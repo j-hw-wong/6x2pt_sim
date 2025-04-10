@@ -90,7 +90,33 @@ def open_spectrum(id_a, id_b, measured_cls_dir, no_iter):
 			dat = np.loadtxt(
 				spec_dir + 'iter_{}/bin_{}_{}.txt'.format(it + 1, spec_2_zbin, spec_1_zbin))
 			cov_dat.append(dat)
+
+	elif spec_1_field == 'E' and spec_2_field == 'K':
+		spec_dir = measured_cls_dir + 'shear_cmbkappa_bp/'
+		cov_dat = []
+		for it in range(no_iter):
+			dat = np.loadtxt(
+				spec_dir + 'kCMB_E/iter_{}/bin_{}_{}.txt'.format(it + 1, spec_1_zbin, spec_2_zbin))
+			cov_dat.append(dat)
+
+	elif spec_1_field == 'N' and spec_2_field == 'K':
+		spec_dir = measured_cls_dir + 'galaxy_cmbkappa_bp/'
+		cov_dat = []
+		for it in range(no_iter):
+			dat = np.loadtxt(
+				spec_dir + 'iter_{}/bin_{}_{}.txt'.format(it + 1, spec_1_zbin, spec_2_zbin))
+			cov_dat.append(dat)
+
+	elif spec_1_field == 'K' and spec_2_field == 'K':
+		spec_dir = measured_cls_dir + 'cmbkappa_bp/'
+		cov_dat = []
+		for it in range(no_iter):
+			dat = np.loadtxt(
+				spec_dir + 'iter_{}/bin_{}_{}.txt'.format(it + 1, spec_1_zbin, spec_2_zbin))
+			cov_dat.append(dat)
+
 	else:
+		print('Unexpected field types - please check inference routine setup')
 		sys.exit()
 
 	return cov_dat
@@ -115,7 +141,7 @@ def execute(pipeline_variables_path):
 	config.read(pipeline_variables_path)
 
 	save_dir = str(config['simulation_setup']['SIMULATION_SAVE_DIR'])
-	measured_bps_dir = save_dir + 'measured_3x2pt_bps/'
+	measured_bps_dir = save_dir + 'measured_6x2pt_bps/'
 	no_iter = int(config['simulation_setup']['REALISATIONS'])
 	n_zbin = int(config['redshift_distribution']['N_ZBIN'])
 	n_bp = int(config['measurement_setup']['N_BANDPOWERS'])
@@ -128,19 +154,77 @@ def execute(pipeline_variables_path):
 		n_field = 2 * n_zbin
 		fields = [f'{f}{z}' for z in range(1, n_zbin + 1) for f in ['N', 'E']]
 
-	else:
-		assert obs_type == '1X2PT'
-		n_field = n_zbin
+		spectra = [fields[row] + fields[row + diag] for diag in range(n_field) for row in range(n_field - diag)]
+
+		spec_1 = [fields[row] for diag in range(n_field) for row in range(n_field - diag)]
+		spec_2 = [fields[row + diag] for diag in range(n_field) for row in range(n_field - diag)]
+
+	elif obs_type == '1X2PT':
 		if field_type == 'E':
+			n_field = n_zbin
 			fields = [f'E{z}' for z in range(1, n_zbin + 1)]
-		else:
-			assert field_type == 'N'
+
+			spectra = [fields[row] + fields[row + diag] for diag in range(n_field) for row in range(n_field - diag)]
+
+			spec_1 = [fields[row] for diag in range(n_field) for row in range(n_field - diag)]
+			spec_2 = [fields[row + diag] for diag in range(n_field) for row in range(n_field - diag)]
+
+		elif field_type == 'N':
+			n_field = n_zbin
 			fields = [f'N{z}' for z in range(1, n_zbin + 1)]
 
-	spectra = [fields[row] + fields[row + diag] for diag in range(n_field) for row in range(n_field - diag)]
+			spectra = [fields[row] + fields[row + diag] for diag in range(n_field) for row in range(n_field - diag)]
 
-	spec_1 = [fields[row] for diag in range(n_field) for row in range(n_field - diag)]
-	spec_2 = [fields[row + diag] for diag in range(n_field) for row in range(n_field - diag)]
+			spec_1 = [fields[row] for diag in range(n_field) for row in range(n_field - diag)]
+			spec_2 = [fields[row + diag] for diag in range(n_field) for row in range(n_field - diag)]
+
+		elif field_type == 'EK':
+			fields = [f'E{z}K1' for z in range(1, n_zbin + 1)]
+			spectra = fields
+			spec_1 = [f'E{z}' for z in range(1, n_zbin + 1)]
+			spec_2 = ['K1'] * n_zbin
+
+		elif field_type == 'NK':
+			fields = [f'N{z}K1' for z in range(1, n_zbin + 1)]
+			spectra = fields
+			spec_1 = [f'N{z}' for z in range(1, n_zbin + 1)]
+			spec_2 = ['K1'] * n_zbin
+
+		else:
+			assert field_type == 'K'
+			fields = ['K1K1']
+			spectra = fields
+			spec_1 = ['K1']
+			spec_2 = ['K1']
+
+	else:
+		assert obs_type == '6X2PT'
+
+		n_field = 2 * n_zbin
+		# n_spec = n_field * (n_field + 1) // 2
+
+		# Form list of power spectra
+		fields = [f'{f}{z}' for z in range(1, n_zbin + 1) for f in ['N', 'E']]
+		# assert len(fields) == n_field
+
+		spectra = [fields[row] + fields[row + diag] for diag in range(n_field) for row in range(n_field - diag)]
+
+		spec_1 = [fields[row] for diag in range(n_field) for row in range(n_field - diag)]
+		spec_2 = [fields[row + diag] for diag in range(n_field) for row in range(n_field - diag)]
+
+		for i in range(n_zbin):
+			spectra.append('E{}K1'.format(i + 1))
+			spectra.append('N{}K1'.format(i + 1))
+
+			spec_1.append('E{}'.format(i + 1))
+			spec_1.append('N{}'.format(i + 1))
+
+			spec_2.append('K1')
+			spec_2.append('K1')
+
+		spectra.append('K1K1')
+		spec_1.append('K1')
+		spec_2.append('K1')
 
 	# Calculate the numerical covariance matrix.
 
@@ -189,6 +273,161 @@ def execute(pipeline_variables_path):
 	if obs_type == '3X2PT':
 		n_spec = n_bin * ((2 * n_bin) + 1)
 
+	elif obs_type == '1X2PT':
+		n_spec = int(n_bin * (n_bin + 1) / 2)
+
+	else:
+		assert obs_type == '6X2PT'
+		n_spec = int((n_bin * ((2 * n_bin) + 1)) + (2*n_bin) + 1)
+
+	n_bps = n_bp
+	dat = []
+
+	for i in range(n_spec):
+		for j in range(n_bps):
+			for k in range(n_spec):
+				coord = []
+				coord.append(j+(k*n_bps))
+				coord.append(j+(i*n_bps))
+				dat.append(coord)
+
+	dat = np.asarray(dat)
+	new_cov = np.zeros(cov.shape)
+	for cov_id in dat:
+		x_coord = cov_id[0]
+		y_coord = cov_id[1]
+		new_cov[x_coord][y_coord] = cov[x_coord][y_coord]
+
+	np.savez(save_sim_cov_dir + 'cov_{}bp.npz'.format(n_bp), cov=new_cov)
+
+
+def execute_iters(pipeline_variables_path, cov_iter_no):
+
+	"""
+	Main function to calculate the numerical covariance matrix. Can be either 3x2pt or 1x2pt ('E' or 'N') depending on
+	which parameters are specified in the 'set_variables_3x2pt_measurement.ini' file.
+
+	Returns
+	-------
+	Numerical covariance matrix, saved as an array in .npz to specified location on disk - the 'cov_fromsim'
+	subdirectory within the main measurement directory.
+	"""
+
+	# Extract and store useful pipeline variables for calculation of covariance matrix
+	# pipeline_variables_path = os.environ['PIPELINE_VARIABLES_PATH']
+	# cov_iter_no = int(float(os.environ['COV_ITER_NO']))
+
+	config = configparser.ConfigParser()
+	config.read(pipeline_variables_path)
+
+	save_dir = str(config['simulation_setup']['SIMULATION_SAVE_DIR'])
+	measured_bps_dir = save_dir + 'measured_3x2pt_bps/'
+	no_iter = cov_iter_no
+	n_zbin = int(config['redshift_distribution']['N_ZBIN'])
+	n_bp = int(config['measurement_setup']['N_BANDPOWERS'])
+	obs_type = str(config['measurement_setup']['OBS_TYPE'])
+	field_type = str(config['measurement_setup']['FIELD'])
+
+	# Generate fields list to order covariance matrix
+
+	if obs_type == '3X2PT':
+		n_field = 2 * n_zbin
+		fields = [f'{f}{z}' for z in range(1, n_zbin + 1) for f in ['N', 'E']]
+
+		spectra = [fields[row] + fields[row + diag] for diag in range(n_field) for row in range(n_field - diag)]
+
+		spec_1 = [fields[row] for diag in range(n_field) for row in range(n_field - diag)]
+		spec_2 = [fields[row + diag] for diag in range(n_field) for row in range(n_field - diag)]
+
+	elif obs_type == '1X2PT':
+		n_field = n_zbin
+		if field_type == 'E':
+			fields = [f'E{z}' for z in range(1, n_zbin + 1)]
+		else:
+			assert field_type == 'N'
+			fields = [f'N{z}' for z in range(1, n_zbin + 1)]
+
+		spectra = [fields[row] + fields[row + diag] for diag in range(n_field) for row in range(n_field - diag)]
+
+		spec_1 = [fields[row] for diag in range(n_field) for row in range(n_field - diag)]
+		spec_2 = [fields[row + diag] for diag in range(n_field) for row in range(n_field - diag)]
+
+	else:
+		assert obs_type == '6X2PT'
+
+		n_field = 2 * n_zbin
+		# n_spec = n_field * (n_field + 1) // 2
+
+		# Form list of power spectra
+		fields = [f'{f}{z}' for z in range(1, n_zbin + 1) for f in ['N', 'E']]
+		# assert len(fields) == n_field
+
+		spectra = [fields[row] + fields[row + diag] for diag in range(n_field) for row in range(n_field - diag)]
+
+		spec_1 = [fields[row] for diag in range(n_field) for row in range(n_field - diag)]
+		spec_2 = [fields[row + diag] for diag in range(n_field) for row in range(n_field - diag)]
+
+		for i in range(n_zbin):
+			spectra.append('E{}K1'.format(i + 1))
+			spectra.append('N{}K1'.format(i + 1))
+
+			spec_1.append('E{}'.format(i + 1))
+			spec_1.append('N{}'.format(i + 1))
+
+			spec_2.append('K1')
+			spec_2.append('K1')
+
+		spectra.append('K1K1')
+		spec_1.append('K1')
+		spec_2.append('K1')
+
+	# Calculate the numerical covariance matrix.
+
+	full_cov_dat = []
+	cov_data_av = np.array([])
+
+	for i in range(len(spectra)):
+		spectrum_a = spec_1[i]
+		spectrum_b = spec_2[i]
+
+		spectrum_i_dat = open_spectrum(
+			spectrum_a,
+			spectrum_b,
+			measured_cls_dir=measured_bps_dir,
+			no_iter=no_iter)
+		full_cov_dat.append(spectrum_i_dat)
+		spectrum_i_dat_av = np.mean(np.array(spectrum_i_dat), axis=0)
+		cov_data_av = np.concatenate((cov_data_av, spectrum_i_dat_av), axis=0)
+
+	cov_total = []
+	for n in range(no_iter):
+		this_cov_dat = np.array([])
+		for it in range(len(full_cov_dat)):
+			this_cov_dat = np.concatenate((this_cov_dat, full_cov_dat[it][n]), axis=0)
+
+		cov_iter = np.zeros([len(this_cov_dat), len(this_cov_dat)])
+
+		for x in range(len(this_cov_dat)):
+			for y in range(len(this_cov_dat)):
+				cov_iter[x][y] = (this_cov_dat[x] - cov_data_av[x])*(this_cov_dat[y] - cov_data_av[y])
+		cov_total.append(cov_iter)
+
+	cov = np.mean(np.array(cov_total), axis=0)
+
+	save_sim_cov_dir = save_dir + 'cov_fromsim/'
+
+	if not os.path.exists(save_sim_cov_dir):
+		os.makedirs(save_sim_cov_dir)
+
+	# Save the 'true' numerical covariance matrix'
+	np.savez(save_sim_cov_dir + 'cov_{}bp_true_{}.npz'.format(n_bp, cov_iter_no), cov=cov)
+	n_bin = n_zbin
+
+	# Save the 'block diagonal' covariance matrix.
+
+	if obs_type == '3X2PT':
+		n_spec = n_bin * ((2 * n_bin) + 1)
+
 	else:
 		assert obs_type == '1X2PT'
 		n_spec = int(n_bin * (n_bin + 1) / 2)
@@ -211,7 +450,7 @@ def execute(pipeline_variables_path):
 		y_coord = cov_id[1]
 		new_cov[x_coord][y_coord] = cov[x_coord][y_coord]
 
-	np.savez(save_sim_cov_dir + 'cov_{}bp.npz'.format(n_bp), cov=new_cov)
+	np.savez(save_sim_cov_dir + 'cov_{}bp_{}.npz'.format(n_bp, cov_iter_no), cov=new_cov)
 
 # if __name__ == '__main__':
 # 	main()

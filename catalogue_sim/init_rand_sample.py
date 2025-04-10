@@ -178,13 +178,14 @@ def init_nz(config_dict):
     rnd_sample = choices(z_sample[0:-1], pz(z_sample[0:-1], z0=z0, beta=beta), k=sample_points)
     zs = np.round(np.asarray(rnd_sample), 2)
 
+    true_zs = []
     phot_zs = []
 
     for k in range(len(z_sample)):
         id_arr = np.where(np.asarray(zs) == z_sample[k])
         zs_sub = zs[id_arr]
         zs_sub = zs_sub.round(decimals=2)
-
+        true_zs = np.concatenate((true_zs, zs_sub))
         photo_z_noise_sigmas = (1 + zs_sub) * photo_z_noise_sigma
         photo_z_noise_means = np.zeros(len(zs_sub)) + photo_z_noise_mean
 
@@ -192,9 +193,11 @@ def init_nz(config_dict):
         obs_zs = zs_sub + photo_z_noise
         phot_zs = np.concatenate((phot_zs, obs_zs))
 
-    true_zs = np.float32(zs)
+    true_zs = np.float32(true_zs)
     obs_gaussian_zs = np.float32(phot_zs)
 
+    # print(true_zs)
+    # print(obs_gaussian_zs)
     # Filename to save raw sample
     mock_cat_filename = 'Raw_Galaxy_Sample.hdf5'
 

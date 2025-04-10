@@ -90,7 +90,33 @@ def open_spectrum(id_a, id_b, measured_cls_dir, no_iter):
 			dat = np.loadtxt(
 				spec_dir + 'iter_{}/bin_{}_{}.txt'.format(it + 1, spec_2_zbin, spec_1_zbin))
 			cov_dat.append(dat)
+
+	elif spec_1_field == 'E' and spec_2_field == 'K':
+		spec_dir = measured_cls_dir + 'shear_cmbkappa_bp/'
+		cov_dat = []
+		for it in range(no_iter):
+			dat = np.loadtxt(
+				spec_dir + 'kCMB_E/iter_{}/bin_{}_{}.txt'.format(it + 1, spec_1_zbin, spec_2_zbin))
+			cov_dat.append(dat)
+
+	elif spec_1_field == 'N' and spec_2_field == 'K':
+		spec_dir = measured_cls_dir + 'galaxy_cmbkappa_bp/'
+		cov_dat = []
+		for it in range(no_iter):
+			dat = np.loadtxt(
+				spec_dir + 'iter_{}/bin_{}_{}.txt'.format(it + 1, spec_1_zbin, spec_2_zbin))
+			cov_dat.append(dat)
+
+	elif spec_1_field == 'K' and spec_2_field == 'K':
+		spec_dir = measured_cls_dir + 'cmbkappa_bp/'
+		cov_dat = []
+		for it in range(no_iter):
+			dat = np.loadtxt(
+				spec_dir + 'iter_{}/bin_{}_{}.txt'.format(it + 1, spec_1_zbin, spec_2_zbin))
+			cov_dat.append(dat)
+
 	else:
+		print('Unexpected field types - please check inference routine setup')
 		sys.exit()
 
 	return cov_dat
@@ -129,8 +155,12 @@ def execute(pipeline_variables_path, cov_iter_no):
 		n_field = 2 * n_zbin
 		fields = [f'{f}{z}' for z in range(1, n_zbin + 1) for f in ['N', 'E']]
 
-	else:
-		assert obs_type == '1X2PT'
+		spectra = [fields[row] + fields[row + diag] for diag in range(n_field) for row in range(n_field - diag)]
+
+		spec_1 = [fields[row] for diag in range(n_field) for row in range(n_field - diag)]
+		spec_2 = [fields[row + diag] for diag in range(n_field) for row in range(n_field - diag)]
+
+	elif obs_type == '1X2PT':
 		n_field = n_zbin
 		if field_type == 'E':
 			fields = [f'E{z}' for z in range(1, n_zbin + 1)]
@@ -138,10 +168,39 @@ def execute(pipeline_variables_path, cov_iter_no):
 			assert field_type == 'N'
 			fields = [f'N{z}' for z in range(1, n_zbin + 1)]
 
-	spectra = [fields[row] + fields[row + diag] for diag in range(n_field) for row in range(n_field - diag)]
+		spectra = [fields[row] + fields[row + diag] for diag in range(n_field) for row in range(n_field - diag)]
 
-	spec_1 = [fields[row] for diag in range(n_field) for row in range(n_field - diag)]
-	spec_2 = [fields[row + diag] for diag in range(n_field) for row in range(n_field - diag)]
+		spec_1 = [fields[row] for diag in range(n_field) for row in range(n_field - diag)]
+		spec_2 = [fields[row + diag] for diag in range(n_field) for row in range(n_field - diag)]
+
+	else:
+		assert obs_type == '6X2PT'
+
+		n_field = 2 * n_zbin
+		# n_spec = n_field * (n_field + 1) // 2
+
+		# Form list of power spectra
+		fields = [f'{f}{z}' for z in range(1, n_zbin + 1) for f in ['N', 'E']]
+		# assert len(fields) == n_field
+
+		spectra = [fields[row] + fields[row + diag] for diag in range(n_field) for row in range(n_field - diag)]
+
+		spec_1 = [fields[row] for diag in range(n_field) for row in range(n_field - diag)]
+		spec_2 = [fields[row + diag] for diag in range(n_field) for row in range(n_field - diag)]
+
+		for i in range(n_zbin):
+			spectra.append('E{}K1'.format(i + 1))
+			spectra.append('N{}K1'.format(i + 1))
+
+			spec_1.append('E{}'.format(i + 1))
+			spec_1.append('N{}'.format(i + 1))
+
+			spec_2.append('K1')
+			spec_2.append('K1')
+
+		spectra.append('K1K1')
+		spec_1.append('K1')
+		spec_2.append('K1')
 
 	# Calculate the numerical covariance matrix.
 

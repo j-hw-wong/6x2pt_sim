@@ -6,6 +6,7 @@ import healpy as hp
 import pymaster as nmt
 from collections import defaultdict
 
+
 def measure_pcls_config(pipeline_variables_path):
     config = configparser.ConfigParser()
     config.read(pipeline_variables_path)
@@ -26,6 +27,7 @@ def measure_pcls_config(pipeline_variables_path):
     sigma_e = float(config['noise_cls']['SIGMA_SHEAR'])
 
     mask_path = str(config['measurement_setup']['PATH_TO_MASK'])
+    cmb_mask_path = str(config['measurement_setup']['PATH_TO_CMB_MASK'])
     nz_dat = np.loadtxt(save_dir + str(config['redshift_distribution']['NZ_TABLE_NAME']))
 
     # Prepare config dictionary
@@ -39,6 +41,7 @@ def measure_pcls_config(pipeline_variables_path):
         'sigma_phot': sigma_phot,
         'sigma_e': sigma_e,
         'mask_path': mask_path,
+        'cmb_mask_path': cmb_mask_path,
         'nz_dat': nz_dat
     }
 
@@ -57,7 +60,19 @@ def maps(config_dict, iter_no):
     npix = hp.nside2npix(nside)
     pi = np.pi
 
-    mask = hp.read_map(config_dict['mask_path'])
+    mask_path = config_dict['mask_path']
+    cmb_mask_path = config_dict['cmb_mask_path']
+
+    if mask_path == 'None':
+        mask = np.ones(hp.nside2npix(nside))
+    else:
+        mask = hp.read_map(mask_path)
+
+    if cmb_mask_path == 'None':
+        cmb_mask = np.ones(hp.nside2npix(nside))
+    else:
+        cmb_mask = hp.read_map(cmb_mask_path)
+
     ell_arr = np.arange(raw_pcl_lmin_out, raw_pcl_lmax_out + 1, 1)
 
     if not os.path.exists(save_dir):
@@ -70,6 +85,17 @@ def maps(config_dict, iter_no):
 
     unobserved_ids = np.where((mask == 0))[0]
     observed_ids = np.where((mask == 1))[0]
+
+    unobserved_cmb_ids = np.where((cmb_mask == 0))[0]
+    observed_cmb_ids = np.where((cmb_mask == 1))[0]
+
+    cmbk_map = hp.read_map(save_dir + 'flask/output/iter_{}/map-f1z{}.fits'.format(iter_no, nbins + 1), field=0)
+    # We could e.g add some noise to the CMB Kappa field at the map level
+
+    cmbk_map[unobserved_cmb_ids] = hp.UNSEEN
+
+    # Now need to measure the CMB kappa fields
+    cut_sky_map_dicts["CMB_kappa"] = nmt.NmtField(mask=cmb_mask, maps=[cmbk_map], spin=0, lmax_sht=raw_pcl_lmax_out)
 
     for b in range(nbins):
 
@@ -96,7 +122,7 @@ def maps(config_dict, iter_no):
 
         poisson_noise_cls = np.zeros(raw_pcl_lmax_out+1)
 
-        sky_coverage = hp.nside2pixarea(nside, degrees=True) * (npix - len(observed_ids)) * ((pi / 180) ** 2)
+        sky_coverage = hp.nside2pixarea(nside, degrees=True) * (npix - len(unobserved_ids)) * ((pi / 180) ** 2)
         poisson_noise_cls_allsky = poisson_noise_cls + (1 * sky_coverage / sum(nz_bin))
         poisson_noise_cls = poisson_noise_cls + (w_survey * sky_coverage / sum(nz_bin))
 
@@ -139,19 +165,27 @@ def maps(config_dict, iter_no):
 
 
 def measure_00_pcls(lmin_out, lmax_out, cut_maps_dic, spectra_type, bin_i, bin_j, measured_pcl_save_dir):
-    accepted_spectra_types = {'TT', 'gal_gal'}
+    accepted_spectra_types = {'TT', 'gal_gal', 'kCMB_kCMB', 'gal_kCMB'}
     if spectra_type not in accepted_spectra_types:
         print('Warning! Field Type Not Recognised - Exiting...')
         sys.exit()
 
     nmt_fields = {
         'TT': [cut_maps_dic["BIN_{}".format(bin_i)][0],
-               cut_maps_dic["BIN_{}".format(bin_j)][0],
+               cut_maps_dic["BIN_{}".format(bin_j)][0]
                ],
 
-        'gal_gal': [cut_maps_dic["BIN_{}".format(bin_i)][-1],
-                    cut_maps_dic["BIN_{}".format(bin_j)][-1],
+        'gal_gal': [cut_maps_dic["BIN_{}".format(bin_i)][2],
+                    cut_maps_dic["BIN_{}".format(bin_j)][2]
                     ],
+
+        'kCMB_kCMB': [cut_maps_dic["CMB_kappa"],
+                      cut_maps_dic["CMB_kappa"]
+                      ],
+
+        'gal_kCMB': [cut_maps_dic["BIN_{}".format(bin_i)][2],
+                     cut_maps_dic["CMB_kappa"]
+                     ]
     }
 
     pcl_coupled = nmt.compute_coupled_cell(nmt_fields[spectra_type][0], nmt_fields[spectra_type][1])
@@ -163,27 +197,36 @@ def measure_00_pcls(lmin_out, lmax_out, cut_maps_dic, spectra_type, bin_i, bin_j
 
 
 def measure_02_pcls(lmin_out, lmax_out, cut_maps_dic, spectra_type, bin_i, bin_j, measured_pcl_save_dir):
-    accepted_spectra_types = {'TE', 'TB', 'gal_E', 'gal_B'}
+    accepted_spectra_types = {'TE', 'TB', 'gal_E', 'gal_B', 'kCMB_E', 'kCMB_B'}
     if spectra_type not in accepted_spectra_types:
         print('Warning! Field Type Not Recognised - Exiting...')
         sys.exit()
 
     nmt_fields = {
         'TE': [cut_maps_dic["BIN_{}".format(bin_i)][0],
-               cut_maps_dic["BIN_{}".format(bin_j)][1],
+               cut_maps_dic["BIN_{}".format(bin_j)][1]
                ],
 
         'TB': [cut_maps_dic["BIN_{}".format(bin_i)][0],
-               cut_maps_dic["BIN_{}".format(bin_j)][1],
+               cut_maps_dic["BIN_{}".format(bin_j)][1]
                ],
 
-        'gal_E': [cut_maps_dic["BIN_{}".format(bin_i)][-1],
-                  cut_maps_dic["BIN_{}".format(bin_j)][1],
+        'gal_E': [cut_maps_dic["BIN_{}".format(bin_i)][2],
+                  cut_maps_dic["BIN_{}".format(bin_j)][1]
                   ],
 
-        'gal_B': [cut_maps_dic["BIN_{}".format(bin_i)][-1],
-                  cut_maps_dic["BIN_{}".format(bin_j)][1],
-                  ]
+        'gal_B': [cut_maps_dic["BIN_{}".format(bin_i)][2],
+                  cut_maps_dic["BIN_{}".format(bin_j)][1]
+                  ],
+
+        'kCMB_E': [cut_maps_dic["CMB_kappa"],
+                   cut_maps_dic["BIN_{}".format(bin_i)][1]
+                   ],
+
+        'kCMB_B': [cut_maps_dic["CMB_kappa"],
+                   cut_maps_dic["BIN_{}".format(bin_i)][1]
+                   ]
+
     }
 
     pcl_coupled = nmt.compute_coupled_cell(nmt_fields[spectra_type][0], nmt_fields[spectra_type][1])
@@ -196,6 +239,10 @@ def measure_02_pcls(lmin_out, lmax_out, cut_maps_dic, spectra_type, bin_i, bin_j
     if spectra_type == 'gal_E' or 'gal_B':
         measured_pcls['gal_E'] = (pcl_coupled[0][lmin_out:lmax_out + 1])
         measured_pcls['gal_B'] = (pcl_coupled[1][lmin_out:lmax_out + 1])
+
+    if spectra_type == 'kCMB_E' or 'kCMB_B':
+        measured_pcls['kCMB_E'] = (pcl_coupled[0][lmin_out:lmax_out + 1])
+        measured_pcls['kCMB_B'] = (pcl_coupled[1][lmin_out:lmax_out + 1])
 
     np.savetxt(measured_pcl_save_dir + 'bin_{}_{}.txt'.format(bin_i, bin_j),
                np.transpose(measured_pcls[spectra_type]))
@@ -234,7 +281,7 @@ def execute_pcl_measurement(config_dict, iter_no, cut_sky_map_dicts):
 
     realisation = iter_no
 
-    recov_cat_cls_dir = save_dir + 'raw_3x2pt_cls/'
+    recov_cat_cls_dir = save_dir + 'raw_6x2pt_cls/'
 
     gal_dir = recov_cat_cls_dir + 'galaxy_cl/iter_{}/'.format(realisation)
     gal_shear_dir = recov_cat_cls_dir + 'galaxy_shear_cl/iter_{}/'.format(realisation)
@@ -246,15 +293,68 @@ def execute_pcl_measurement(config_dict, iter_no, cut_sky_map_dicts):
     y2y1_dir = shear_dir + 'Cl_BE/iter_{}/'.format(realisation)
     y2_dir = shear_dir + 'Cl_BB/iter_{}/'.format(realisation)
 
-    for path in [recov_cat_cls_dir, gal_dir, gal_shear_dir, shear_dir, k_dir, y1_dir, y1y2_dir, y2y1_dir, y2_dir]:
+    kCMB_dir = recov_cat_cls_dir + 'cmbkappa_cl/iter_{}/'.format(realisation)
+    kCMB_gal_dir = recov_cat_cls_dir + 'galaxy_cmbkappa_cl/iter_{}/'.format(realisation)
+    kCMB_shear_E_dir = recov_cat_cls_dir + 'shear_cmbkappa_cl/kCMB_E/iter_{}/'.format(realisation)
+    kCMB_shear_B_dir = recov_cat_cls_dir + 'shear_cmbkappa_cl/kCMB_B/iter_{}/'.format(realisation)
+
+    for path in [recov_cat_cls_dir, gal_dir, gal_shear_dir, shear_dir, k_dir, y1_dir, y1y2_dir, y2y1_dir, y2_dir,
+                 kCMB_dir, kCMB_gal_dir, kCMB_shear_E_dir, kCMB_shear_B_dir]:
         if not os.path.exists(path):
             os.makedirs(path)
 
         np.savetxt(path + 'ell.txt',
                    np.transpose(ell_arr))
 
+    # Measure CMB kappa field first
+
+    measure_00_pcls(
+        lmin_out=raw_pcl_lmin_out,
+        lmax_out=raw_pcl_lmax_out,
+        cut_maps_dic=cut_sky_map_dicts,
+        spectra_type='kCMB_kCMB',
+        bin_i=1,    # Bin index is 1 just to match the naming convention of CosmoSIS
+        bin_j=1,    # Bin index is 1 just to match the naming convention of CosmoSIS
+        measured_pcl_save_dir=kCMB_dir
+    )
+
     # Let's measure some Pseudo-Cls
     for bin_i in range(nbins):
+
+        # Measure cross correlations of cmb kappa with galaxy density field for all bins
+        measure_00_pcls(
+            lmin_out=raw_pcl_lmin_out,
+            lmax_out=raw_pcl_lmax_out,
+            cut_maps_dic=cut_sky_map_dicts,
+            spectra_type='gal_kCMB',
+            bin_i=bin_i+1,
+            bin_j=1,    # Bin index is 1 just to match the naming convention of CosmoSIS
+            measured_pcl_save_dir=kCMB_gal_dir
+        )
+
+        # Measure cross correlations of cmb kappa with shear field for all bins.
+        # Have to keep an eye on the ordering/filename convention
+        measure_02_pcls(
+            lmin_out=raw_pcl_lmin_out,
+            lmax_out=raw_pcl_lmax_out,
+            cut_maps_dic=cut_sky_map_dicts,
+            spectra_type='kCMB_E',
+            bin_i=bin_i + 1,
+            bin_j=1,    # Bin index is 1 just to match the naming convention of CosmoSIS
+            measured_pcl_save_dir=kCMB_shear_E_dir
+        )
+
+        # Extract B-mode. May be useful for validation testing
+        measure_02_pcls(
+            lmin_out=raw_pcl_lmin_out,
+            lmax_out=raw_pcl_lmax_out,
+            cut_maps_dic=cut_sky_map_dicts,
+            spectra_type='kCMB_B',
+            bin_i=bin_i + 1,
+            bin_j=1,
+            measured_pcl_save_dir=kCMB_shear_B_dir
+        )
+
         for bin_j in range(nbins):
 
             # Galaxy-Galaxy Lensing
@@ -335,9 +435,14 @@ def execute_pcl_measurement(config_dict, iter_no, cut_sky_map_dicts):
 
     # Fill in the remaining theory Cls - off diagonal spectra will be zero:
 
-    gal_shear_noise_cls_dir = save_dir + 'raw_noise_cls/galaxy_shear_cl/iter_%s/' % realisation
-    if not os.path.exists(gal_shear_noise_cls_dir):
-        os.makedirs(gal_shear_noise_cls_dir)
+    gal_shear_noise_cls_dir = save_dir + 'raw_noise_cls/galaxy_shear_cl/iter_{}/'.format(realisation)
+    cmbkk_noise_cls_dir = save_dir + 'raw_noise_cls/cmbkappa_cl/iter_{}/'.format(realisation)
+    cmbkk_gal_noise_cls_dir = save_dir + 'raw_noise_cls/galaxy_cmbkappa_cl/iter_{}/'.format(realisation)
+    cmbkk_shear_noise_cls_dir = save_dir + 'raw_noise_cls/shear_cmbkappa_cl/iter_{}/'.format(realisation)
+
+    for cl_path in [gal_shear_noise_cls_dir, cmbkk_noise_cls_dir, cmbkk_gal_noise_cls_dir, cmbkk_shear_noise_cls_dir]:
+        if not os.path.exists(cl_path):
+            os.makedirs(cl_path)
 
     np.savetxt(save_dir + 'raw_noise_cls/galaxy_cl/ell.txt',
                np.transpose(ell_arr))
@@ -348,9 +453,35 @@ def execute_pcl_measurement(config_dict, iter_no, cut_sky_map_dicts):
     np.savetxt(save_dir + 'raw_noise_cls/galaxy_shear_cl/ell.txt',
                np.transpose(ell_arr))
 
+    np.savetxt(save_dir + 'raw_noise_cls/cmbkappa_cl/ell.txt',
+               np.transpose(ell_arr))
+
+    np.savetxt(save_dir + 'raw_noise_cls/galaxy_cmbkappa_cl/ell.txt',
+               np.transpose(ell_arr))
+
+    np.savetxt(save_dir + 'raw_noise_cls/shear_cmbkappa_cl/ell.txt',
+               np.transpose(ell_arr))
+
+    null_noise_cls = np.zeros(len(ell_arr))
+
+    np.savetxt(
+        cmbkk_noise_cls_dir + 'bin_1_1.txt',
+        np.transpose(null_noise_cls)
+    )
+
     for i in range(nbins):
+
+        np.savetxt(
+            cmbkk_gal_noise_cls_dir + 'bin_{}_1.txt'.format(i+1),
+            np.transpose(null_noise_cls)
+        )
+
+        np.savetxt(
+            cmbkk_shear_noise_cls_dir + 'bin_{}_1.txt'.format(i+1),
+            np.transpose(null_noise_cls)
+        )
+
         for j in range(nbins):
-            null_noise_cls = np.zeros(len(ell_arr))
             np.savetxt(
                 gal_shear_noise_cls_dir + 'bin_%s_%s.txt' % (i + 1, j + 1),
                 np.transpose(null_noise_cls)

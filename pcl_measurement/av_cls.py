@@ -65,9 +65,66 @@ def execute(pipeline_variables_path):
     realisations = config_dict['realisations']
 
     noise_cls_dir = save_dir + 'raw_noise_cls/'
-    measured_cls_dir = save_dir + 'raw_3x2pt_cls/'
+    measured_cls_dir = save_dir + 'raw_6x2pt_cls/'
+
+    # kcmb auto power
+    calc_av_cls(cl_dir=measured_cls_dir + 'cmbkappa_cl/',
+                ell_min=pcl_lmin_out,
+                ell_max=pcl_lmax_out,
+                bin_i=1,
+                bin_j=1,
+                realisations=realisations)
+
+    calc_av_cls(cl_dir=noise_cls_dir + 'cmbkappa_cl/',
+                ell_min=pcl_lmin_out,
+                ell_max=pcl_lmax_out,
+                bin_i=1,
+                bin_j=1,
+                realisations=realisations,
+                err=False)
 
     for i in range(nbins):
+
+        # kcmb_d
+        calc_av_cls(cl_dir=measured_cls_dir + 'galaxy_cmbkappa_cl/',
+                    ell_min=pcl_lmin_out,
+                    ell_max=pcl_lmax_out,
+                    bin_i=i + 1,
+                    bin_j=1,
+                    realisations=realisations)
+
+        calc_av_cls(cl_dir=noise_cls_dir + 'galaxy_cmbkappa_cl/',
+                    ell_min=pcl_lmin_out,
+                    ell_max=pcl_lmax_out,
+                    bin_i=i + 1,
+                    bin_j=1,
+                    realisations=realisations,
+                    err=False)
+
+        # kcmb_y (E mode)
+        calc_av_cls(cl_dir=measured_cls_dir + 'shear_cmbkappa_cl/kCMB_E/',
+                    ell_min=pcl_lmin_out,
+                    ell_max=pcl_lmax_out,
+                    bin_i=i + 1,
+                    bin_j=1,
+                    realisations=realisations)
+
+        # kcmb_y (B mode)
+        calc_av_cls(cl_dir=measured_cls_dir + 'shear_cmbkappa_cl/kCMB_B/',
+                    ell_min=pcl_lmin_out,
+                    ell_max=pcl_lmax_out,
+                    bin_i=i + 1,
+                    bin_j=1,
+                    realisations=realisations)
+
+        calc_av_cls(cl_dir=noise_cls_dir + 'shear_cmbkappa_cl/',
+                    ell_min=pcl_lmin_out,
+                    ell_max=pcl_lmax_out,
+                    bin_i=i + 1,
+                    bin_j=1,
+                    realisations=realisations,
+                    err=False)
+
         for j in range(nbins):
 
             calc_av_cls(cl_dir=noise_cls_dir + 'galaxy_shear_cl/',

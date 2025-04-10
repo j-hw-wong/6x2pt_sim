@@ -9,6 +9,157 @@ import healpy as hp
 import pymaster as nmt
 
 
+def get_6x2pt_mixmats(mask_path, mask_path_cmb, nside, lmin, input_lmax, lmax_out_nn, lmax_out_ne, lmax_out_ee,
+                      lmax_out_ek, lmax_out_nk, lmax_out_kk, save_path):
+    """
+    Calculate all 3x2pt mixing matrices from a mask using NaMaster, and save to disk in a single file.
+
+    Args:
+        mask_path (str): Path to mask FITS file. If None, full sky is assumed, in which case the mixing matrices should
+                         be diagonal.
+        nside (int): HEALPix resolution to use.
+        lmin (int): Minimum l to include in mixing matrices.
+        lmax_mix (int): Maximum l to include in input to mixing matrices.
+        lmax_out (int): Maximum l to include in output from mixing matrices.
+        save_path (str): Path to save output, as a single numpy .npz file containing all mixing matrices.
+    """
+
+    # Load and rescale mask, and calculate fsky
+    if mask_path is not None:
+        print('Loading and rescaling mask')
+        mask = hp.pixelfunc.ud_grade(hp.read_map(mask_path, dtype=float), nside)
+        assert np.amin(mask) == 0
+        assert np.amax(mask) == 1
+    else:
+        print('Full sky')
+        mask = np.ones(hp.pixelfunc.nside2npix(nside))
+    assert np.all(np.isfinite(mask))
+
+    if mask_path_cmb is not None:
+        print('Loading and rescaling mask')
+        mask_cmb = hp.pixelfunc.ud_grade(hp.read_map(mask_path_cmb, dtype=float), nside)
+        assert np.amin(mask_cmb) == 0
+        assert np.amax(mask_cmb) == 1
+    else:
+        print('Full sky')
+        mask_cmb = np.ones(hp.pixelfunc.nside2npix(nside))
+    assert np.all(np.isfinite(mask_cmb))
+
+    # fsky = np.mean(mask)
+    # print(f'fsky = {fsky:.3f}')
+
+    # Create NaMaster binning scheme as individual Cls
+    print('Creating binning scheme')
+    bins = nmt.NmtBin.from_lmax_linear(input_lmax, 1)
+
+    # Calculate mixing matrices for spin 0-0, 0-2 (equivalent to 2-0), and 2-2
+    field_spin0 = nmt.NmtField(mask, None, spin=0, lite=True, lmax_sht=input_lmax)
+    field_spin2 = nmt.NmtField(mask, None, spin=2, lite=True, lmax_sht=input_lmax)
+
+    field_spin0_cmb = nmt.NmtField(mask_cmb, None, spin=0, lite=True, lmax_sht=input_lmax)
+
+    workspace_spin00 = nmt.NmtWorkspace()
+    print(f'Calculating mixing matrix 1 / 3 at {time.strftime("%c")}')
+    workspace_spin00.compute_coupling_matrix(field_spin0, field_spin0, bins)
+    workspace_spin02 = nmt.NmtWorkspace()
+    print(f'Calculating mixing matrix 2 / 6 at {time.strftime("%c")}')
+    workspace_spin02.compute_coupling_matrix(field_spin0, field_spin2, bins)
+    workspace_spin22 = nmt.NmtWorkspace()
+    print(f'Calculating mixing matrix 3 / 6 at {time.strftime("%c")}')
+    workspace_spin22.compute_coupling_matrix(field_spin2, field_spin2, bins)
+
+    workspace_spin00_cmb = nmt.NmtWorkspace()
+    print(f'Calculating mixing matrix 4 / 6 at {time.strftime("%c")}')
+    workspace_spin00_cmb.compute_coupling_matrix(field_spin0_cmb, field_spin0_cmb, bins)
+
+    workspace_spin00_galaxy_cmb = nmt.NmtWorkspace()
+    print(f'Calculating mixing matrix 5 / 6 at {time.strftime("%c")}')
+    workspace_spin00_galaxy_cmb.compute_coupling_matrix(field_spin0, field_spin0_cmb, bins)
+
+    workspace_spin02_shear_cmb = nmt.NmtWorkspace()
+    print(f'Calculating mixing matrix 6 / 6 at {time.strftime("%c")}')
+    workspace_spin02_shear_cmb.compute_coupling_matrix(field_spin0_cmb, field_spin2, bins)
+    # workspace_spin22_cmb = nmt.NmtWorkspace()
+    # print(f'Calculating mixing matrix 6 / 6 at {time.strftime("%c")}')
+    # workspace_spin22_cmb.compute_coupling_matrix(field_spin2, field_spin2, bins)
+
+    # Extract the relevant mixing matrices
+    print('Extracting mixing matrices')
+    # For 0-0 there is only a single mixing matrix
+    mixmats_spin00 = workspace_spin00.get_coupling_matrix()
+    mixmat_nn_to_nn = mixmats_spin00
+    # For 0-2 they are arranged NE->NE, NB->NE // NE->NB NB->NB, per l, so select every other row and column
+    mixmats_spin02 = workspace_spin02.get_coupling_matrix()
+    mixmat_ne_to_ne = mixmats_spin02[::2, ::2]
+    # For 2-2 there are 4x4 elements per l, ordered EE, EB, BE, BB. We only need EE->EE and BB->EE,
+    # so select every 4th row and the 1st and 4th columns from each block
+    mixmats_spin22 = workspace_spin22.get_coupling_matrix()
+    mixmat_ee_to_ee = mixmats_spin22[::4, ::4]
+    mixmat_bb_to_ee = mixmats_spin22[::4, 3::4]
+
+    # For 0-0 there is only a single mixing matrix
+    mixmats_spin00_cmb = workspace_spin00_cmb.get_coupling_matrix()
+    mixmat_kk_to_kk = mixmats_spin00_cmb
+
+    # For 0-0 there is only a single mixing matrix
+    mixmats_spin00_galaxy_cmb = workspace_spin00_galaxy_cmb.get_coupling_matrix()
+    mixmat_nn_to_kk = mixmats_spin00_galaxy_cmb
+
+    # For 0-2 they are arranged NE->NE, NB->NE // NE->NB NB->NB, per l, so select every other row and column
+    mixmats_spin02_shear_cmb = workspace_spin02_shear_cmb.get_coupling_matrix()
+    mixmat_ke_to_ke = mixmats_spin02_shear_cmb[::2, ::2]
+
+    # Check everything has the correct shape
+    mixmat_shape = (input_lmax + 1, input_lmax + 1)
+    assert mixmat_nn_to_nn.shape == mixmat_shape
+    assert mixmat_ne_to_ne.shape == mixmat_shape
+    assert mixmat_ee_to_ee.shape == mixmat_shape
+    assert mixmat_bb_to_ee.shape == mixmat_shape
+    assert mixmat_kk_to_kk.shape == mixmat_shape
+    assert mixmat_nn_to_kk.shape == mixmat_shape
+    assert mixmat_ke_to_ke.shape == mixmat_shape
+
+    # Trim to required output range
+    mixmat_nn_to_nn = mixmat_nn_to_nn[lmin:(lmax_out_nn + 1), lmin:(input_lmax+1)]
+    mixmat_ne_to_ne = mixmat_ne_to_ne[lmin:(lmax_out_ne + 1), lmin:(input_lmax+1)]
+    mixmat_ee_to_ee = mixmat_ee_to_ee[lmin:(lmax_out_ee + 1), lmin:(input_lmax+1)]
+    mixmat_bb_to_ee = mixmat_bb_to_ee[lmin:(lmax_out_ee + 1), lmin:(input_lmax+1)]
+    mixmat_kk_to_kk = mixmat_kk_to_kk[lmin:(lmax_out_kk + 1), lmin:(input_lmax+1)]
+    mixmat_nn_to_kk = mixmat_nn_to_kk[lmin:(lmax_out_nk + 1), lmin:(input_lmax+1)]
+    mixmat_ke_to_ke = mixmat_ke_to_ke[lmin:(lmax_out_ek + 1), lmin:(input_lmax+1)]
+
+    # Do some final checks
+
+    assert mixmat_nn_to_nn.shape == (lmax_out_nn - lmin + 1, input_lmax - lmin + 1)
+    assert mixmat_ne_to_ne.shape == (lmax_out_ne - lmin + 1, input_lmax - lmin + 1)
+    assert mixmat_ee_to_ee.shape == (lmax_out_ee - lmin + 1, input_lmax - lmin + 1)
+    assert mixmat_bb_to_ee.shape == (lmax_out_ee - lmin + 1, input_lmax - lmin + 1)
+    assert mixmat_kk_to_kk.shape == (lmax_out_kk - lmin + 1, input_lmax - lmin + 1)
+    assert mixmat_nn_to_kk.shape == (lmax_out_nk - lmin + 1, input_lmax - lmin + 1)
+    assert mixmat_ke_to_ke.shape == (lmax_out_ek - lmin + 1, input_lmax - lmin + 1)
+
+    assert np.all(np.isfinite(mixmat_nn_to_nn))
+    assert np.all(np.isfinite(mixmat_ne_to_ne))
+    assert np.all(np.isfinite(mixmat_ee_to_ee))
+    assert np.all(np.isfinite(mixmat_bb_to_ee))
+    assert np.all(np.isfinite(mixmat_kk_to_kk))
+    assert np.all(np.isfinite(mixmat_nn_to_kk))
+    assert np.all(np.isfinite(mixmat_ke_to_ke))
+
+    # Save to disk
+    header = (f'Mixing matrices. Output from {__file__}.get_3x2pt_mixmats for mask_path = {mask_path}, '
+              f'mask_path_cmb = {mask_path_cmb}, lmin = {lmin}, lmax_out_nn = {lmax_out_nn}, '
+              f'lmax_out_ne = {lmax_out_ne}, lmax_out_ee = {lmax_out_ee}, lmax_out_kk = {lmax_out_kk},'
+              f'lmax_out_nk = {lmax_out_nk}, lmax_out_ek = {lmax_out_ek} at {time.strftime("%c")}')
+
+    np.savez_compressed(save_path, mixmat_nn_to_nn=mixmat_nn_to_nn, mixmat_ne_to_ne=mixmat_ne_to_ne,
+                        mixmat_ee_to_ee=mixmat_ee_to_ee, mixmat_bb_to_ee=mixmat_bb_to_ee,
+                        mixmat_kk_to_kk=mixmat_kk_to_kk, mixmat_nn_to_kk=mixmat_nn_to_kk,
+                        mixmat_ke_to_ke=mixmat_ke_to_ke, header=header)
+    print('Saved ' + save_path)
+
+
+'''
 def get_3x2pt_mixmats(mask_path, nside, lmin, input_lmax, lmax_out_nn, lmax_out_ne, lmax_out_ee, save_path):
     """
     Calculate all 3x2pt mixing matrices from a mask using NaMaster, and save to disk in a single file.
@@ -101,7 +252,7 @@ def get_3x2pt_mixmats(mask_path, nside, lmin, input_lmax, lmax_out_nn, lmax_out_
     np.savez_compressed(save_path, mixmat_nn_to_nn=mixmat_nn_to_nn, mixmat_ne_to_ne=mixmat_ne_to_ne,
                         mixmat_ee_to_ee=mixmat_ee_to_ee, mixmat_bb_to_ee=mixmat_bb_to_ee, header=header)
     print('Saved ' + save_path)
-
+'''
 
 def get_binning_matrix(n_bandpowers, output_lmin, output_lmax, input_lmin=None, input_lmax=None,
                        bp_spacing='lin', bp_edges=None):

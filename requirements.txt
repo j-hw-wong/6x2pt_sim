@@ -1,0 +1,9 @@
+corner==2.2.1
+h5py==3.1.0
+healpy==1.15.0
+matplotlib==3.2.2
+nautilus==0.5.2
+numpy==1.19.5
+pyccl==2.3.0
+pymaster==1.1
+scipy==1.5.3

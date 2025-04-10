@@ -77,7 +77,7 @@ def execute(pipeline_variables_path):
         g_i = ccl.NumberCountsTracer(fid_cosmo, has_rsd=False, dndz=(z, nz_dat[:, bin_i]), bias=(z, b))
 
         # Cosmic shear with intrinsic alignments bin j
-        y_i = ccl.WeakLensingTracer(fid_cosmo, dndz=(z, nz_dat[:, bin_i]), has_shear=True, ia_bias=(z, A_IA))
+        y_i = ccl.WeakLensingTracer(fid_cosmo, dndz=(z, nz_dat[:, bin_i]), has_shear=True, ia_bias=None)
 
         # Galaxy clustering - CMB kappa Cl cross-correlation
         cl_g_kCMB = ccl.angular_cl(fid_cosmo, g_i, k_CMB, ells)
@@ -96,18 +96,20 @@ def execute(pipeline_variables_path):
             g_j = ccl.NumberCountsTracer(fid_cosmo, has_rsd=False, dndz=(z, nz_dat[:,bin_j]), bias=(z, b))
 
             # Cosmic shear with intrinsic alignments bin j
-            y_j = ccl.WeakLensingTracer(fid_cosmo, dndz=(z, nz_dat[:,bin_j]), has_shear=True, ia_bias=(z, A_IA))
-
-            # Tomographic angular clustering Cl
-            cl_gg = ccl.angular_cl(fid_cosmo, g_i, g_j, ells)
-            np.savetxt(save_dir + 'fiducial_cosmology/galaxy_cl/bin_{}_{}.txt'.format(bin_i, bin_j), cl_gg)
+            y_j = ccl.WeakLensingTracer(fid_cosmo, dndz=(z, nz_dat[:,bin_j]), has_shear=True, ia_bias=None)
 
             # Tomographic galaxy-galaxy lensing Cl
             cl_gy = ccl.angular_cl(fid_cosmo, g_i, y_j, ells)
             np.savetxt(save_dir + 'fiducial_cosmology/galaxy_shear_cl/bin_{}_{}.txt'.format(bin_i, bin_j), cl_gy)
 
-            # Tomographic cosmic shear Cl
-            cl_yy = ccl.angular_cl(fid_cosmo, y_i, y_j, ells)
-            np.savetxt(save_dir + 'fiducial_cosmology/shear_cl/bin_{}_{}.txt'.format(bin_i, bin_j), cl_yy)
+            if i>=j:
+
+                # Tomographic angular clustering Cl
+                cl_gg = ccl.angular_cl(fid_cosmo, g_i, g_j, ells)
+                np.savetxt(save_dir + 'fiducial_cosmology/galaxy_cl/bin_{}_{}.txt'.format(bin_i, bin_j), cl_gg)
+
+                # Tomographic cosmic shear Cl
+                cl_yy = ccl.angular_cl(fid_cosmo, y_i, y_j, ells)
+                np.savetxt(save_dir + 'fiducial_cosmology/shear_cl/bin_{}_{}.txt'.format(bin_i, bin_j), cl_yy)
 
 

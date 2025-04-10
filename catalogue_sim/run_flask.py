@@ -87,7 +87,7 @@ def execute(pipeline_variables_path, iter_no):
         "W_de:", "-1.0",
         "ELLIP_SIGMA:", "0",
         "GALDENSITY:", "0",
-        "FIELDS_INFO:", save_dir + "flask/data/field_info_3x2pt.dat",
+        "FIELDS_INFO:", save_dir + "flask/data/field_info_6x2pt.dat",
         "CHOL_IN_PREFIX:", "0",
         "CL_PREFIX:", save_dir + "flask/data/Cl-",
         "ALLOW_MISS_CL:", "1",  # 0 - Return error if required Cl is missing; 1 - Set missing Cls to zero.

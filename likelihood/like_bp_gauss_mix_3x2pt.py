@@ -34,6 +34,7 @@ def is_odd(x):
     """
     return x % 2 == 1
 
+
 def load_cls_dict(n_zbin, cls_dict, lmax=None, lmin=0):
     """
     Given the number of redshift bins and relevant directories, load power spectra (position, shear, cross) in the
@@ -154,7 +155,6 @@ def load_cls(n_zbin, pos_pos_dir, she_she_dir, pos_she_dir, lmax=None, lmin=0):
             spectra.append(spec)
 
     return spectra
-
 
 
 def setup(mixmats, mix_lmin, input_lmin, input_lmax, n_zbin, n_bandpower):

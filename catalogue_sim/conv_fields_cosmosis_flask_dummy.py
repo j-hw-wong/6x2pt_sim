@@ -26,7 +26,7 @@ def conversion_config(pipeline_variables_path):
     config = configparser.ConfigParser()
     config.read(pipeline_variables_path)
 
-    nbins = int(float(config['redshift_distribution']['N_ZBIN']))
+    nbins = int(float(config['create_nz']['N_ZBIN']))
     bins = np.arange(1, nbins + 1, 1)
 
     save_dir = str(config['simulation_setup']['SIMULATION_SAVE_DIR'])
@@ -200,7 +200,7 @@ def conv_fields(config_dict):
         [1],                      # Weak lensing (for CMB) index number
         [nbins+1],                # Bin number - essentially treat as additional lensing bin
         [0],                      # Mean 0 (not using lognormal fields)
-        [1],                      # Shift 1 (not using lognormal fields)
+        [0],                      # Shift 0 (not using lognormal fields)
         [2],                      # Weak lensing (for CMB) field type - designation for FLASK
         [z_boundaries_low[0]],    # Minimum redshift observed
         [1100]                    # Redshift of last scattering surface for CMB

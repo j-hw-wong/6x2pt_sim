@@ -38,6 +38,7 @@ def measure_bps_config(pipeline_variables_path):
     nside = int(float(config['simulation_setup']['NSIDE']))
     no_iter = int(config['simulation_setup']['REALISATIONS'])
     mask_path = str(config['measurement_setup']['PATH_TO_MASK'])
+    cmb_mask_path = str(config['measurement_setup']['PATH_TO_CMB_MASK'])
 
     input_lmin = int(float(config['simulation_setup']['INPUT_ELL_MIN']))
     input_lmax = int(float(config['simulation_setup']['INPUT_ELL_MAX']))
@@ -50,6 +51,15 @@ def measure_bps_config(pipeline_variables_path):
 
     output_lmin_galaxy = int(float(config['measurement_setup']['OUTPUT_ELL_MIN_NN']))
     output_lmax_galaxy = int(float(config['measurement_setup']['OUTPUT_ELL_MAX_NN']))
+
+    output_lmin_cmbkk = int(float(config['measurement_setup']['OUTPUT_ELL_MIN_CMBKK']))
+    output_lmax_cmbkk = int(float(config['measurement_setup']['OUTPUT_ELL_MAX_CMBKK']))
+
+    output_lmin_cmbkk_galaxy = int(float(config['measurement_setup']['OUTPUT_ELL_MIN_CMBKK_N']))
+    output_lmax_cmbkk_galaxy = int(float(config['measurement_setup']['OUTPUT_ELL_MAX_CMBKK_N']))
+
+    output_lmin_cmbkk_shear = int(float(config['measurement_setup']['OUTPUT_ELL_MIN_CMBKK_E']))
+    output_lmax_cmbkk_shear = int(float(config['measurement_setup']['OUTPUT_ELL_MAX_CMBKK_E']))
 
     n_bandpowers = int(float(config['measurement_setup']['N_BANDPOWERS']))
     bandpower_spacing = str(config['measurement_setup']['BANDPOWER_SPACING'])
@@ -64,12 +74,18 @@ def measure_bps_config(pipeline_variables_path):
         bp_bin_edges_galaxy = np.logspace(np.log10(output_lmin_galaxy + 1e-5), np.log10(output_lmax_galaxy + 1e-5), n_bandpowers + 1)
         bp_bin_edges_galaxy_shear = np.logspace(np.log10(output_lmin_galaxy_shear + 1e-5), np.log10(output_lmax_galaxy_shear + 1e-5), n_bandpowers + 1)
         bp_bin_edges_shear = np.logspace(np.log10(output_lmin_shear + 1e-5), np.log10(output_lmax_shear + 1e-5), n_bandpowers + 1)
+        bp_bin_edges_cmbkk = np.logspace(np.log10(output_lmin_cmbkk + 1e-5), np.log10(output_lmax_cmbkk + 1e-5), n_bandpowers + 1)
+        bp_bin_edges_cmbkk_galaxy = np.logspace(np.log10(output_lmin_cmbkk_galaxy + 1e-5), np.log10(output_lmax_cmbkk_galaxy + 1e-5), n_bandpowers + 1)
+        bp_bin_edges_cmbkk_shear = np.logspace(np.log10(output_lmin_cmbkk_shear + 1e-5), np.log10(output_lmax_cmbkk_shear + 1e-5), n_bandpowers + 1)
 
     elif bandpower_spacing == 'lin':
         # bp_bin_edges = np.linspace(output_lmin + 1e-5, output_lmax + 1e-5, n_bandpowers + 1)
         bp_bin_edges_galaxy = np.linspace(output_lmin_galaxy + 1e-5, output_lmax_galaxy + 1e-5, n_bandpowers + 1)
         bp_bin_edges_galaxy_shear = np.linspace(output_lmin_galaxy_shear + 1e-5, output_lmax_galaxy_shear + 1e-5, n_bandpowers + 1)
         bp_bin_edges_shear = np.linspace(output_lmin_shear + 1e-5, output_lmax_shear + 1e-5, n_bandpowers + 1)
+        bp_bin_edges_cmbkk = np.linspace(output_lmin_cmbkk + 1e-5, output_lmax_cmbkk + 1e-5, n_bandpowers + 1)
+        bp_bin_edges_cmbkk_galaxy = np.linspace(output_lmin_cmbkk_galaxy + 1e-5, output_lmax_cmbkk_galaxy + 1e-5, n_bandpowers + 1)
+        bp_bin_edges_cmbkk_shear = np.linspace(output_lmin_cmbkk_shear + 1e-5, output_lmax_cmbkk_shear + 1e-5, n_bandpowers + 1)
 
     elif bandpower_spacing == 'custom':
         # Placeholder at the moment!!!
@@ -77,6 +93,9 @@ def measure_bps_config(pipeline_variables_path):
         bp_bin_edges_galaxy = np.empty(n_bandpowers)
         bp_bin_edges_galaxy_shear = np.empty(n_bandpowers)
         bp_bin_edges_shear = np.empty(n_bandpowers)
+        bp_bin_edges_cmbkk = np.empty(n_bandpowers)
+        bp_bin_edges_cmbkk_galaxy = np.empty(n_bandpowers)
+        bp_bin_edges_cmbkk_shear = np.empty(n_bandpowers)
 
         print('Need to figure out how to do something. Future JWong todo.')
         # I think it should probably be something like set_variables.ini points to a file in which the bandpower edges
@@ -106,6 +125,21 @@ def measure_bps_config(pipeline_variables_path):
         ell_end=np.ceil(bp_bin_edges_shear).astype(int)[1:])
     ell_arr_shear = bp_bins_shear.get_effective_ells()
 
+    bp_bins_cmbkk = nmt.NmtBin.from_edges(
+        ell_ini=np.ceil(bp_bin_edges_cmbkk).astype(int)[:-1],
+        ell_end=np.ceil(bp_bin_edges_cmbkk).astype(int)[1:])
+    ell_arr_cmbkk = bp_bins_cmbkk.get_effective_ells()
+
+    bp_bins_cmbkk_galaxy = nmt.NmtBin.from_edges(
+        ell_ini=np.ceil(bp_bin_edges_cmbkk_galaxy).astype(int)[:-1],
+        ell_end=np.ceil(bp_bin_edges_cmbkk_galaxy).astype(int)[1:])
+    ell_arr_cmbkk_galaxy = bp_bins_cmbkk_galaxy.get_effective_ells()
+
+    bp_bins_cmbkk_shear = nmt.NmtBin.from_edges(
+        ell_ini=np.ceil(bp_bin_edges_cmbkk_shear).astype(int)[:-1],
+        ell_end=np.ceil(bp_bin_edges_cmbkk_shear).astype(int)[1:])
+    ell_arr_cmbkk_shear = bp_bins_cmbkk_shear.get_effective_ells()
+
     pbl_shear = mask.get_binning_matrix(
         n_bandpowers=n_bandpowers,
         output_lmin=output_lmin_shear,
@@ -124,12 +158,32 @@ def measure_bps_config(pipeline_variables_path):
         output_lmax=output_lmax_galaxy,
         bp_spacing=bandpower_spacing)
 
+    pbl_cmbkk = mask.get_binning_matrix(
+        n_bandpowers=n_bandpowers,
+        output_lmin=output_lmin_cmbkk,
+        output_lmax=output_lmax_cmbkk,
+        bp_spacing=bandpower_spacing)
+
+    pbl_cmbkk_galaxy = mask.get_binning_matrix(
+        n_bandpowers=n_bandpowers,
+        output_lmin=output_lmin_cmbkk_galaxy,
+        output_lmax=output_lmax_cmbkk_galaxy,
+        bp_spacing=bandpower_spacing)
+
+    pbl_cmbkk_shear = mask.get_binning_matrix(
+        n_bandpowers=n_bandpowers,
+        output_lmin=output_lmin_cmbkk_shear,
+        output_lmax=output_lmax_cmbkk_shear,
+        bp_spacing=bandpower_spacing)
+
     # Prepare config dictionary
     config_dict = {
         'save_dir': save_dir,
         'nbins': nbins,
+        'nside': nside,
         'no_iter': no_iter,
         'mask_path': mask_path,
+        'cmb_mask_path': cmb_mask_path,
         'input_lmin': input_lmin,
         'input_lmax': input_lmax,
         'n_bandpowers': n_bandpowers,
@@ -148,7 +202,22 @@ def measure_bps_config(pipeline_variables_path):
         'output_lmax_galaxy': output_lmax_galaxy,
         'pbl_galaxy': pbl_galaxy,
         'bp_bins_galaxy': bp_bins_galaxy,
-        'ell_arr_galaxy': ell_arr_galaxy
+        'ell_arr_galaxy': ell_arr_galaxy,
+        'output_lmin_cmbkk': output_lmin_cmbkk,
+        'output_lmax_cmbkk': output_lmax_cmbkk,
+        'pbl_cmbkk': pbl_cmbkk,
+        'bp_bins_cmbkk': bp_bins_cmbkk,
+        'ell_arr_cmbkk': ell_arr_cmbkk,
+        'output_lmin_cmbkk_galaxy': output_lmin_cmbkk_galaxy,
+        'output_lmax_cmbkk_galaxy': output_lmax_cmbkk_galaxy,
+        'pbl_cmbkk_galaxy': pbl_cmbkk_galaxy,
+        'bp_bins_cmbkk_galaxy': bp_bins_cmbkk_galaxy,
+        'ell_arr_cmbkk_galaxy': ell_arr_cmbkk_galaxy,
+        'output_lmin_cmbkk_shear': output_lmin_cmbkk_shear,
+        'output_lmax_cmbkk_shear': output_lmax_cmbkk_shear,
+        'pbl_cmbkk_shear': pbl_cmbkk_shear,
+        'bp_bins_cmbkk_shear': bp_bins_cmbkk_shear,
+        'ell_arr_cmbkk_shear': ell_arr_cmbkk_shear,
     }
 
     return config_dict
@@ -278,7 +347,8 @@ def setup_theory_cls(cl_dir, spectra_type, bin_i, bin_j):
     Array of the fiducial power spectrum, and its path
     """
 
-    accepted_spectra_types = {'TT', 'TE', 'TB', 'EE', 'EB', 'BE', 'BB', 'kk', 'gal_gal', 'gal_E', 'gal_B'}
+    accepted_spectra_types = {'TT', 'TE', 'TB', 'EE', 'EB', 'BE', 'BB', 'kk', 'gal_gal', 'gal_E', 'gal_B', 'kCMB_kCMB',
+                              'kCMB_gal', 'kCMB_E', 'kCMB_B'}
 
     if spectra_type not in accepted_spectra_types:
         print(spectra_type)
@@ -297,7 +367,11 @@ def setup_theory_cls(cl_dir, spectra_type, bin_i, bin_j):
         'BB': 'null_spectra/',
         'gal_gal': 'galaxy_cl/',
         'gal_E': 'galaxy_shear_cl/',
-        'gal_B': 'null_spectra/'
+        'gal_B': 'null_spectra/',
+        'kCMB_kCMB': 'cmbkappa_cl/',
+        'kCMB_gal': 'galaxy_cmbkappa_cl/',
+        'kCMB_E': 'shear_cmbkappa_cl/',
+        'kCMB_B': 'null_spectra/'
     }
 
     theory_cls_dir = cl_dir + cl_paths[spectra_type]
@@ -392,18 +466,44 @@ def process_00_pcls(config_dict, theory_cl_dir, noise_cl_dir, spectra_type, bin_
     input_lmin = config_dict['input_lmin']
     input_lmax = config_dict['input_lmax']
 
-    accepted_spectra_types = {'TT', 'gal_gal'}
+    nside = config_dict['nside']
+
+    accepted_spectra_types = {'TT', 'gal_gal', 'kCMB_kCMB', 'kCMB_gal'}
     if spectra_type not in accepted_spectra_types:
         print('Warning! Field Type Not Recognised - Exiting...')
         sys.exit()
 
-    obs_mask = hp.read_map(obs_mask_path)
+    if spectra_type == 'kCMB_gal':
 
-    # lmax_sht here should be input lmax
-    f0 = nmt.NmtField(mask=obs_mask, maps=None, spin=0, lmax_sht=input_lmax, lite=True)
+        if obs_mask_path[0] == 'None':
+            obs_mask = np.ones(hp.nside2npix(nside))
+        else:
+            obs_mask = hp.read_map(obs_mask_path[0])
 
-    w = nmt.NmtWorkspace()
-    w.compute_coupling_matrix(f0, f0, bins=nmt.NmtBin.from_lmax_linear(input_lmax, 1))
+        if obs_mask_path[1] == 'None':
+            obs_mask_cmb = np.ones(hp.nside2npix(nside))
+        else:
+            obs_mask_cmb = hp.read_map(obs_mask_path[1])
+
+        # lmax_sht here should be input lmax
+        f0 = nmt.NmtField(mask=obs_mask, maps=None, spin=0, lmax_sht=input_lmax, lite=True)
+        f0_cmb = nmt.NmtField(mask=obs_mask_cmb, maps=None, spin=0, lmax_sht=input_lmax, lite=True)
+
+        w = nmt.NmtWorkspace()
+        w.compute_coupling_matrix(f0, f0_cmb, bins=nmt.NmtBin.from_lmax_linear(input_lmax, 1))
+
+    else:
+
+        if obs_mask_path == 'None':
+            obs_mask = np.ones(hp.nside2npix(nside))
+        else:
+            obs_mask = hp.read_map(obs_mask_path)
+
+        # lmax_sht here should be input lmax
+        f0 = nmt.NmtField(mask=obs_mask, maps=None, spin=0, lmax_sht=input_lmax, lite=True)
+
+        w = nmt.NmtWorkspace()
+        w.compute_coupling_matrix(f0, f0, bins=nmt.NmtBin.from_lmax_linear(input_lmax, 1))
 
     # theory cls go from input lmin to input lmax
     theory_cls, bp_save_dir = setup_theory_cls(
@@ -427,8 +527,8 @@ def process_00_pcls(config_dict, theory_cl_dir, noise_cl_dir, spectra_type, bin_
     np.savetxt(bp_save_dir + 'PCl_Bandpowers_{}_bin_{}_{}.txt'.format(spectra_type, bin_i, bin_j),
                np.transpose(binned_theory_pcl))
 
-    if os.path.isfile(bp_save_dir + 'ell.txt') is False:
-        np.savetxt(bp_save_dir + 'ell.txt',
+    if os.path.isfile(bp_save_dir + 'ell_bp.txt') is False:
+        np.savetxt(bp_save_dir + 'ell_bp.txt',
                    np.transpose(ell_arr))
 
 
@@ -461,22 +561,53 @@ def process_02_pcls(config_dict, theory_cl_dir, noise_cl_dir, spectra_type, bin_
     input_lmin = config_dict['input_lmin']
     input_lmax = config_dict['input_lmax']
 
-    accepted_spectra_types = {'TE', 'TB', 'gal_E', 'gal_B'}
+    nside = config_dict['nside']
+
+    accepted_spectra_types = {'TE', 'TB', 'gal_E', 'gal_B', 'kCMB_E', 'kCMB_B'}
     if spectra_type not in accepted_spectra_types:
         print('Warning! Field Type Not Recognised - Exiting...')
         sys.exit()
 
-    obs_mask = hp.read_map(obs_mask_path)
+    if spectra_type == 'kCMB_E' or spectra_type == 'kCMB_B':
 
-    f0 = nmt.NmtField(mask=obs_mask, maps=None, spin=0, lmax_sht=input_lmax)
-    f2 = nmt.NmtField(mask=obs_mask, maps=None, spin=2, lmax_sht=input_lmax)
+        if obs_mask_path[0] == 'None':
+            obs_mask = np.ones(hp.nside2npix(nside))
+        else:
+            obs_mask = hp.read_map(obs_mask_path[0])
 
-    w = nmt.NmtWorkspace()
-    w.compute_coupling_matrix(f0, f2, bins=nmt.NmtBin.from_lmax_linear(input_lmax, 1))
+        if obs_mask_path[1] == 'None':
+            obs_mask_cmb = np.ones(hp.nside2npix(nside))
+        else:
+            obs_mask_cmb = hp.read_map(obs_mask_path[1])
+
+        # obs_mask = hp.read_map(obs_mask_path[0])
+        # obs_mask_cmb = hp.read_map(obs_mask_path[1])
+
+        # lmax_sht here should be input lmax
+        f0 = nmt.NmtField(mask=obs_mask_cmb, maps=None, spin=0, lmax_sht=input_lmax)
+        f2 = nmt.NmtField(mask=obs_mask, maps=None, spin=2, lmax_sht=input_lmax)
+
+        w = nmt.NmtWorkspace()
+        w.compute_coupling_matrix(f0, f2, bins=nmt.NmtBin.from_lmax_linear(input_lmax, 1))
+
+    else:
+
+        if obs_mask_path == 'None':
+            obs_mask = np.ones(hp.nside2npix(nside))
+        else:
+            obs_mask = hp.read_map(obs_mask_path)
+
+        # obs_mask = hp.read_map(obs_mask_path)
+
+        f0 = nmt.NmtField(mask=obs_mask, maps=None, spin=0, lmax_sht=input_lmax)
+        f2 = nmt.NmtField(mask=obs_mask, maps=None, spin=2, lmax_sht=input_lmax)
+
+        w = nmt.NmtWorkspace()
+        w.compute_coupling_matrix(f0, f2, bins=nmt.NmtBin.from_lmax_linear(input_lmax, 1))
 
     binned_theory_pcls = defaultdict(list)
 
-    if spectra_type == 'TE' or 'TB':
+    if spectra_type == 'TE' or spectra_type == 'TB':
         theory_TE = pad_cls(
             lmin=input_lmin,
             input_cls=setup_theory_cls(
@@ -509,7 +640,7 @@ def process_02_pcls(config_dict, theory_cl_dir, noise_cl_dir, spectra_type, bin_
         binned_theory_pcls['TB'] = pbl @ (theory_pcl[1][output_lmin:output_lmax + 1]
                                           + noise_cls[output_lmin:output_lmax + 1])
 
-    if spectra_type == 'gal_E' or 'gal_B':
+    elif spectra_type == 'gal_E' or spectra_type == 'gal_B':
         theory_gal_E = pad_cls(
             lmin=input_lmin,
             input_cls=setup_theory_cls(
@@ -543,13 +674,47 @@ def process_02_pcls(config_dict, theory_cl_dir, noise_cl_dir, spectra_type, bin_
         binned_theory_pcls['gal_B'] = pbl @ (theory_pcl[1][output_lmin:output_lmax + 1]
                                              + noise_cls[output_lmin:output_lmax + 1])
 
+    elif spectra_type == 'kCMB_E' or spectra_type == 'kCMB_B':
+        theory_kCMB_E = pad_cls(
+            lmin=input_lmin,
+            input_cls=setup_theory_cls(
+                cl_dir=theory_cl_dir,
+                spectra_type='kCMB_E',
+                bin_i=bin_i,
+                bin_j=bin_j)[0])
+
+        theory_kCMB_B = pad_cls(
+            lmin=input_lmin,
+            input_cls=setup_theory_cls(
+                cl_dir=theory_cl_dir,
+                spectra_type='kCMB_B',
+                bin_i=bin_i,
+                bin_j=bin_j)[0])
+
+        noise_cls = pad_cls(
+            lmin=output_lmin,
+            input_cls=setup_theory_cls(
+                cl_dir=noise_cl_dir,
+                spectra_type=spectra_type,
+                bin_i=bin_i,
+                bin_j=bin_j)[0])
+
+        theory_cls = [theory_kCMB_E, theory_kCMB_B]
+        theory_pcl = w.couple_cell(theory_cls)
+
+        binned_theory_pcls['kCMB_E'] = pbl @ (theory_pcl[0][output_lmin:output_lmax + 1]
+                                             + noise_cls[output_lmin:output_lmax + 1])
+
+        binned_theory_pcls['kCMB_B'] = pbl @ (theory_pcl[1][output_lmin:output_lmax + 1]
+                                             + noise_cls[output_lmin:output_lmax + 1])
+
     bp_save_dir = setup_theory_cls(cl_dir=theory_cl_dir, spectra_type=spectra_type, bin_i=bin_i, bin_j=bin_j)[1]
 
     np.savetxt(bp_save_dir + 'PCl_Bandpowers_{}_bin_{}_{}.txt'.format(spectra_type, bin_i, bin_j),
                np.transpose(binned_theory_pcls[spectra_type]))
 
-    if os.path.isfile(bp_save_dir + 'ell.txt') is False:
-        np.savetxt(bp_save_dir + 'ell.txt',
+    if os.path.isfile(bp_save_dir + 'ell_bp.txt') is False:
+        np.savetxt(bp_save_dir + 'ell_bp.txt',
                    np.transpose(ell_arr))
 
 
@@ -582,12 +747,19 @@ def process_22_pcls(config_dict, theory_cl_dir, noise_cl_dir, spectra_type, bin_
     input_lmin = config_dict['input_lmin']
     input_lmax = config_dict['input_lmax']
 
+    nside = config_dict['nside']
+
     accepted_spectra_types = {'EE', 'EB', 'BE', 'BB'}
     if spectra_type not in accepted_spectra_types:
         print('Warning! Field Type Not Recognised - Exiting...')
         sys.exit()
 
-    obs_mask = hp.read_map(obs_mask_path)
+    if obs_mask_path == 'None':
+        obs_mask = np.ones(hp.nside2npix(nside))
+    else:
+        obs_mask = hp.read_map(obs_mask_path)
+
+    # obs_mask = hp.read_map(obs_mask_path)
 
     f2 = nmt.NmtField(mask=obs_mask, maps=None, spin=2, lmax_sht=input_lmax)
 
@@ -625,8 +797,8 @@ def process_22_pcls(config_dict, theory_cl_dir, noise_cl_dir, spectra_type, bin_
     np.savetxt(bp_save_dir + 'PCl_Bandpowers_{}_bin_{}_{}.txt'.format(spectra_type, bin_i, bin_j),
                np.transpose(binned_theory_pcls[spectra_type]))
 
-    if os.path.isfile(bp_save_dir + 'ell.txt') is False:
-        np.savetxt(bp_save_dir + 'ell.txt',
+    if os.path.isfile(bp_save_dir + 'ell_bp.txt') is False:
+        np.savetxt(bp_save_dir + 'ell_bp.txt',
                    np.transpose(ell_arr))
 
 
@@ -645,6 +817,7 @@ def execute(pipeline_variables_path):
     nbins = config_dict['nbins']
     no_iter = config_dict['no_iter']
     mask_path = config_dict['mask_path']
+    cmb_mask_path = config_dict['cmb_mask_path']
 
     n_bandpowers = config_dict['n_bandpowers']
     input_lmin = config_dict['input_lmin']
@@ -668,12 +841,31 @@ def execute(pipeline_variables_path):
     bp_bins_galaxy = config_dict['bp_bins_galaxy']
     ell_arr_galaxy = config_dict['ell_arr_galaxy']
 
+    output_lmin_cmbkk = config_dict['output_lmin_cmbkk']
+    output_lmax_cmbkk = config_dict['output_lmax_cmbkk']
+    pbl_cmbkk = config_dict['pbl_cmbkk']
+    bp_bins_cmbkk = config_dict['bp_bins_cmbkk']
+    ell_arr_cmbkk = config_dict['ell_arr_cmbkk']
+
+    output_lmin_cmbkk_galaxy = config_dict['output_lmin_cmbkk_galaxy']
+    output_lmax_cmbkk_galaxy = config_dict['output_lmax_cmbkk_galaxy']
+    pbl_cmbkk_galaxy = config_dict['pbl_cmbkk_galaxy']
+    bp_bins_cmbkk_galaxy = config_dict['bp_bins_cmbkk_galaxy']
+    ell_arr_cmbkk_galaxy = config_dict['ell_arr_cmbkk_galaxy']
+
+    output_lmin_cmbkk_shear = config_dict['output_lmin_cmbkk_shear']
+    output_lmax_cmbkk_shear = config_dict['output_lmax_cmbkk_shear']
+    pbl_cmbkk_shear = config_dict['pbl_cmbkk_shear']
+    bp_bins_cmbkk_shear = config_dict['bp_bins_cmbkk_shear']
+    ell_arr_cmbkk_shear = config_dict['ell_arr_cmbkk_shear']
+
     # Define some paths to extract data on disk and save measured quantities.
 
-    recov_cat_cls_dir = save_dir + 'raw_3x2pt_cls/'
-    obs_cat_cls_dir = save_dir + 'measured_3x2pt_cls/'
-    obs_cat_bps_dir = save_dir + 'measured_3x2pt_bps/'
+    recov_cat_cls_dir = save_dir + 'raw_6x2pt_cls/'
+    obs_cat_cls_dir = save_dir + 'measured_6x2pt_cls/'
     obs_noise_cls_dir = save_dir + 'measured_noise_cls/'
+
+    obs_cat_bps_dir = save_dir + 'measured_6x2pt_bps/'
 
     gal_bps_dir = obs_cat_bps_dir + 'galaxy_bp/'
     shear_bps_dir = obs_cat_bps_dir + 'shear_bp/'
@@ -684,6 +876,11 @@ def execute(pipeline_variables_path):
     y1y2_bps_dir = shear_bps_dir + 'Cl_EB/'
     y2y1_bps_dir = shear_bps_dir + 'Cl_BE/'
     y2_bps_dir = shear_bps_dir + 'Cl_BB/'
+
+    kCMB_bps_dir = obs_cat_bps_dir + 'cmbkappa_bp/'
+    kCMB_gal_bps_dir = obs_cat_bps_dir + 'galaxy_cmbkappa_bp/'
+    kCMB_E_bps_dir = obs_cat_bps_dir + 'shear_cmbkappa_bp/kCMB_E/'
+    kCMB_B_bps_dir = obs_cat_bps_dir + 'shear_cmbkappa_bp/kCMB_B/'
 
     for folder in [gal_bps_dir]:
         if not os.path.exists(folder):
@@ -703,24 +900,50 @@ def execute(pipeline_variables_path):
         np.savetxt(folder + 'ell.txt',
                    np.transpose(ell_arr_shear))
 
+    for folder in [kCMB_bps_dir]:
+        if not os.path.exists(folder):
+            os.makedirs(folder)
+        np.savetxt(folder + 'ell.txt',
+                   np.transpose(ell_arr_cmbkk))
+
+    for folder in [kCMB_gal_bps_dir]:
+        if not os.path.exists(folder):
+            os.makedirs(folder)
+        np.savetxt(folder + 'ell.txt',
+                   np.transpose(ell_arr_cmbkk_galaxy))
+
+    for folder in [kCMB_E_bps_dir, kCMB_B_bps_dir]:
+        if not os.path.exists(folder):
+            os.makedirs(folder)
+        np.savetxt(folder + 'ell.txt',
+                   np.transpose(ell_arr_cmbkk_shear))
+
     gal_cl_dir = recov_cat_cls_dir + 'galaxy_cl/'
     shear_cl_dir = recov_cat_cls_dir + 'shear_cl/'
     gal_shear_cl_dir = recov_cat_cls_dir + 'galaxy_shear_cl/'
+    cmbkk_cl_dir = recov_cat_cls_dir + 'cmbkappa_cl/'
+    cmbkk_gal_cl_dir = recov_cat_cls_dir + 'galaxy_cmbkappa_cl/'
+    cmbkk_E_cl_dir = recov_cat_cls_dir + 'shear_cmbkappa_cl/kCMB_E/'
+    cmbkk_B_cl_dir = recov_cat_cls_dir + 'shear_cmbkappa_cl/kCMB_B/'
 
     obs_gal_cl_dir = obs_cat_cls_dir + 'galaxy_cl/'
     obs_shear_cl_dir = obs_cat_cls_dir + 'shear_cl/'
     obs_gal_shear_cl_dir = obs_cat_cls_dir + 'galaxy_shear_cl/'
+    obs_cmbkk_cl_dir = obs_cat_cls_dir + 'cmbkappa_cl/'
+    obs_cmbkk_gal_cl_dir = obs_cat_cls_dir + 'galaxy_cmbkappa_cl/'
+    obs_cmbkk_E_cl_dir = obs_cat_cls_dir + 'shear_cmbkappa_cl/kCMB_E/'
+    obs_cmbkk_B_cl_dir = obs_cat_cls_dir + 'shear_cmbkappa_cl/kCMB_B/'
 
-    theory_cls_dir = save_dir + 'theory_cls/'
+    theory_cls_dir = save_dir + 'fiducial_cosmology/'
     noise_cls_dir = save_dir + 'raw_noise_cls/'
 
     # Create null spectra
     create_null_spectras(nbins=nbins, lmin=input_lmin, lmax=input_lmax, output_dir=theory_cls_dir)
     create_null_spectras(nbins=nbins, lmin=0, lmax=input_lmax, output_dir=noise_cls_dir)
 
-    shutil.copytree(save_dir + 'fiducial_cosmology/shear_cl', theory_cls_dir + 'shear_cl')
-    shutil.copytree(save_dir + 'fiducial_cosmology/galaxy_cl', theory_cls_dir + 'galaxy_cl')
-    shutil.copytree(save_dir + 'fiducial_cosmology/galaxy_shear_cl', theory_cls_dir + 'galaxy_shear_cl')
+    # shutil.copytree(save_dir + 'fiducial_cosmology/shear_cl', theory_cls_dir + 'shear_cl')
+    # shutil.copytree(save_dir + 'fiducial_cosmology/galaxy_cl', theory_cls_dir + 'galaxy_cl')
+    # shutil.copytree(save_dir + 'fiducial_cosmology/galaxy_shear_cl', theory_cls_dir + 'galaxy_shear_cl')
 
     # Convert Cls to bandpowers for each realisation
     for it in range(no_iter):
@@ -731,9 +954,83 @@ def execute(pipeline_variables_path):
         gal_shear_cl_it_dir = gal_shear_cl_dir + 'iter_{}/'.format(it + 1)
         gal_shear_bp_it_dir = gal_shear_bps_dir + 'iter_{}/'.format(it + 1)
 
+        cmbkk_cl_it_dir = cmbkk_cl_dir + 'iter_{}/'.format(it+1)
+        cmbkk_bp_it_dir = kCMB_bps_dir + 'iter_{}/'.format(it+1)
+
+        cmbkk_gal_cl_it_dir = cmbkk_gal_cl_dir + 'iter_{}/'.format(it+1)
+        cmbkk_gal_bp_it_dir = kCMB_gal_bps_dir + 'iter_{}/'.format(it+1)
+
+        cmbkk_E_cl_it_dir = cmbkk_E_cl_dir + 'iter_{}/'.format(it+1)
+        cmbkk_E_bp_it_dir = kCMB_E_bps_dir + 'iter_{}/'.format(it+1)
+
+        cmbkk_B_cl_it_dir = cmbkk_B_cl_dir + 'iter_{}/'.format(it+1)
+        cmbkk_B_bp_it_dir = kCMB_B_bps_dir + 'iter_{}/'.format(it+1)
+
+        # Convert raw PCls to measured PCls for each realisation of cmbkappa_cl
+        measured_cls_to_obs_cls(
+            measured_cls_dir=cmbkk_cl_it_dir,
+            obs_cls_dir=obs_cmbkk_cl_dir + 'iter_{}/'.format(it + 1),
+            bin_i=1,
+            bin_j=1,
+            lmin_out=output_lmin_cmbkk,
+            lmax_out=output_lmax_cmbkk)
+        # Convert 'observed' PCls to bandpowers for eaxh realisation of cmbkappa
+        cl_to_bp(cl_dir=obs_cmbkk_cl_dir + 'iter_{}/'.format(it + 1),
+                 bp_dir=cmbkk_bp_it_dir,
+                 bin_i=1,
+                 bin_j=1,
+                 pbl=pbl_cmbkk)
+
         for i in range(nbins):
+
+            # Convert raw PCls to measured PCls for each realisation of galaxy_cmbkappa
+            measured_cls_to_obs_cls(
+                measured_cls_dir=cmbkk_gal_cl_it_dir,
+                obs_cls_dir=obs_cmbkk_gal_cl_dir + 'iter_{}/'.format(it + 1),
+                bin_i=i+1,
+                bin_j=1,
+                lmin_out=output_lmin_cmbkk_galaxy,
+                lmax_out=output_lmax_cmbkk_galaxy)
+            # Convert 'observed' PCls to bandpowers for each realisation of galaxy_cmbkappa
+            cl_to_bp(cl_dir=obs_cmbkk_gal_cl_dir + 'iter_{}/'.format(it + 1),
+                     bp_dir=cmbkk_gal_bp_it_dir,
+                     bin_i=i+1,
+                     bin_j=1,
+                     pbl=pbl_cmbkk_galaxy)
+
+            # Convert raw PCls to measured PCls for each realisation of cmbkappa_shear-E
+            measured_cls_to_obs_cls(
+                measured_cls_dir=cmbkk_E_cl_it_dir,
+                obs_cls_dir=obs_cmbkk_E_cl_dir + 'iter_{}/'.format(it + 1),
+                bin_i=i+1,
+                bin_j=1,
+                lmin_out=output_lmin_cmbkk_shear,
+                lmax_out=output_lmax_cmbkk_shear)
+            # Convert 'observed' PCls to bandpowers for each realisation of cmbkappa_shear-E
+            cl_to_bp(cl_dir=obs_cmbkk_E_cl_dir + 'iter_{}/'.format(it + 1),
+                     bp_dir=cmbkk_E_bp_it_dir,
+                     bin_i=i+1,
+                     bin_j=1,
+                     pbl=pbl_cmbkk_shear)
+
+            # Convert raw PCls to measured PCls for each realisation of cmbkappa_shear-B
+            measured_cls_to_obs_cls(
+                measured_cls_dir=cmbkk_B_cl_it_dir,
+                obs_cls_dir=obs_cmbkk_B_cl_dir + 'iter_{}/'.format(it + 1),
+                bin_i=i+1,
+                bin_j=1,
+                lmin_out=output_lmin_cmbkk_shear,
+                lmax_out=output_lmax_cmbkk_shear)
+            # Convert 'observed' PCls to bandpowers for each realisation of cmbkappa_shear-B
+            cl_to_bp(cl_dir=obs_cmbkk_B_cl_dir + 'iter_{}/'.format(it + 1),
+                     bp_dir=cmbkk_B_bp_it_dir,
+                     bin_i=i+1,
+                     bin_j=1,
+                     pbl=pbl_cmbkk_shear)
+
             for j in range(nbins):
 
+                # Convert raw PCls to measured PCls for each realisation of galaxy_shear
                 measured_cls_to_obs_cls(
                     measured_cls_dir=gal_shear_cl_it_dir,
                     obs_cls_dir=obs_gal_shear_cl_dir + 'iter_{}/'.format(it + 1),
@@ -741,7 +1038,7 @@ def execute(pipeline_variables_path):
                     bin_j=j + 1,
                     lmin_out=output_lmin_galaxy_shear,
                     lmax_out=output_lmax_galaxy_shear)
-                # save bp array here
+                # Convert 'observed' PCls to bandpowers for each realisation of galaxy_shear
                 cl_to_bp(cl_dir=obs_gal_shear_cl_dir + 'iter_{}/'.format(it + 1),
                          bp_dir=gal_shear_bp_it_dir,
                          bin_i=i + 1,
@@ -749,6 +1046,7 @@ def execute(pipeline_variables_path):
                          pbl=pbl_galaxy_shear)
                 if i >= j:
 
+                    # Convert raw PCls to measured PCls for each realisation of galaxy_galaxy
                     measured_cls_to_obs_cls(
                         measured_cls_dir=gal_cl_it_dir,
                         obs_cls_dir=obs_gal_cl_dir + 'iter_{}/'.format(it + 1),
@@ -756,7 +1054,7 @@ def execute(pipeline_variables_path):
                         bin_j=j + 1,
                         lmin_out=output_lmin_galaxy,
                         lmax_out=output_lmax_galaxy)
-
+                    # Convert 'observed' PCls to bandpowers for each realisation of galaxy_galaxy
                     cl_to_bp(cl_dir=obs_gal_cl_dir + 'iter_{}/'.format(it + 1),
                              bp_dir=gal_bp_it_dir,
                              bin_i=i + 1,
@@ -767,6 +1065,7 @@ def execute(pipeline_variables_path):
                         shear_cl_it_dir = shear_cl_dir + shear_component_dir + 'iter_{}/'.format(it + 1)
                         shear_bp_it_dir = shear_bps_dir + shear_component_dir + 'iter_{}/'.format(it + 1)
 
+                        # Convert raw PCls to measured PCls for each realisation of shear_shear (per component)
                         measured_cls_to_obs_cls(
                             measured_cls_dir=shear_cl_it_dir,
                             obs_cls_dir=obs_shear_cl_dir + shear_component_dir + 'iter_{}/'.format(it + 1),
@@ -774,7 +1073,7 @@ def execute(pipeline_variables_path):
                             bin_j=j + 1,
                             lmin_out=output_lmin_shear,
                             lmax_out=output_lmax_shear)
-
+                        # Convert 'observed' PCls to bandpowers for each realisation of shear_shear (per component)
                         cl_to_bp(cl_dir=obs_shear_cl_dir + shear_component_dir + 'iter_{}/'.format(it + 1),
                                  bp_dir=shear_bp_it_dir,
                                  bin_i=i + 1,
@@ -782,7 +1081,146 @@ def execute(pipeline_variables_path):
                                  pbl=pbl_shear)
 
     # Now convert Cls to bandpowers for the average Cl quantities, and generate theoretical prediction for bandpowers
+
+    ####################################################################################################################
+    # JW 04/04/2025 - edited up to here for the full 6x2pt analysis. Converted all realisations of 6x2pt into
+    # measured/observed PCls, and Pseudo-bandpowers. Then converted the **averaged** quantities into
+    # measured/observed PCls and Pseudo-bandpowers.
+    #
+    # NOW NEED TO CONVERT THE FIDUCIAL CLS INTO PREDICTED PSEUDO BANDPOWERS FOR ALL COMPONENTS OF 6X2PT. BASE CODE DOES
+    # THIS ALREADY FO 3X2PT, NOW NEED TO EXTEND TO CMB CORRELATIONS! TO DO NEXT WEEK!!
+    ####################################################################################################################
+
+    # cmbkappa
+    measured_cls_to_obs_cls(
+        measured_cls_dir=cmbkk_cl_dir,
+        obs_cls_dir=obs_cmbkk_cl_dir,
+        bin_i=1,
+        bin_j=1,
+        lmin_out=output_lmin_cmbkk,
+        lmax_out=output_lmax_cmbkk)
+
+    measured_cls_to_obs_cls(
+        measured_cls_dir=noise_cls_dir + 'cmbkappa_cl/',
+        obs_cls_dir=obs_noise_cls_dir + 'cmbkappa_cl/',
+        bin_i=1,
+        bin_j=1,
+        lmin_out=output_lmin_cmbkk,
+        lmax_out=output_lmax_cmbkk)
+
+    cl_to_bp(cl_dir=obs_cmbkk_cl_dir, bp_dir=kCMB_bps_dir, bin_i=1, bin_j=1, pbl=pbl_cmbkk)
+    calc_stdem_bps(bp_dir=kCMB_bps_dir, n_bps=n_bandpowers, bin_i=1, bin_j=1, realisations=no_iter)
+
+    process_00_pcls(
+        config_dict=config_dict,
+        theory_cl_dir=theory_cls_dir,
+        noise_cl_dir=noise_cls_dir,
+        spectra_type='kCMB_kCMB',
+        bin_i=1,
+        bin_j=1,
+        obs_mask_path=cmb_mask_path,
+        output_lmin=output_lmin_cmbkk,
+        output_lmax=output_lmax_cmbkk,
+        bp_bins=bp_bins_cmbkk,
+        ell_arr=ell_arr_cmbkk,
+        pbl=pbl_cmbkk)
+
     for i in range(nbins):
+
+        # galaxy_cmbkappa
+        measured_cls_to_obs_cls(
+            measured_cls_dir=cmbkk_gal_cl_dir,
+            obs_cls_dir=obs_cmbkk_gal_cl_dir,
+            bin_i=i+1,
+            bin_j=1,
+            lmin_out=output_lmin_cmbkk_galaxy,
+            lmax_out=output_lmax_cmbkk_galaxy)
+
+        measured_cls_to_obs_cls(
+            measured_cls_dir=noise_cls_dir + 'galaxy_cmbkappa_cl/',
+            obs_cls_dir=obs_noise_cls_dir + 'galaxy_cmbkappa_cl/',
+            bin_i=i+1,
+            bin_j=1,
+            lmin_out=output_lmin_cmbkk_galaxy,
+            lmax_out=output_lmax_cmbkk_galaxy)
+
+        cl_to_bp(cl_dir=obs_cmbkk_gal_cl_dir, bp_dir=kCMB_gal_bps_dir, bin_i=i+1, bin_j=1, pbl=pbl_cmbkk_galaxy)
+        calc_stdem_bps(bp_dir=kCMB_gal_bps_dir, n_bps=n_bandpowers, bin_i=i+1, bin_j=1, realisations=no_iter)
+
+        process_00_pcls(
+            config_dict=config_dict,
+            theory_cl_dir=theory_cls_dir,
+            noise_cl_dir=noise_cls_dir,
+            spectra_type='kCMB_gal',
+            bin_i=i+1,
+            bin_j=1,
+            obs_mask_path=[mask_path, cmb_mask_path],
+            output_lmin=output_lmin_cmbkk_galaxy,
+            output_lmax=output_lmax_cmbkk_galaxy,
+            bp_bins=bp_bins_cmbkk_galaxy,
+            ell_arr=ell_arr_cmbkk_galaxy,
+            pbl=pbl_cmbkk_galaxy)
+
+        # shear_cmbkappa (E mode component)
+        measured_cls_to_obs_cls(
+            measured_cls_dir=cmbkk_E_cl_dir,
+            obs_cls_dir=obs_cmbkk_E_cl_dir,
+            bin_i=i+1,
+            bin_j=1,
+            lmin_out=output_lmin_cmbkk_shear,
+            lmax_out=output_lmax_cmbkk_shear)
+
+        measured_cls_to_obs_cls(
+            measured_cls_dir=noise_cls_dir + 'shear_cmbkappa_cl/',
+            obs_cls_dir=obs_noise_cls_dir + 'shear_cmbkappa_cl/',
+            bin_i=i+1,
+            bin_j=1,
+            lmin_out=output_lmin_cmbkk_shear,
+            lmax_out=output_lmax_cmbkk_shear)
+
+        cl_to_bp(cl_dir=obs_cmbkk_E_cl_dir, bp_dir=kCMB_E_bps_dir, bin_i=i+1, bin_j=1, pbl=pbl_cmbkk_shear)
+        calc_stdem_bps(bp_dir=kCMB_E_bps_dir, n_bps=n_bandpowers, bin_i=i+1, bin_j=1, realisations=no_iter)
+
+        process_02_pcls(
+            config_dict=config_dict,
+            theory_cl_dir=theory_cls_dir,
+            noise_cl_dir=noise_cls_dir,
+            spectra_type='kCMB_E',
+            bin_i=i + 1,
+            bin_j=1,
+            obs_mask_path=[mask_path, cmb_mask_path],
+            output_lmin=output_lmin_cmbkk_shear,
+            output_lmax=output_lmax_cmbkk_shear,
+            bp_bins=bp_bins_cmbkk_shear,
+            ell_arr=ell_arr_cmbkk_shear,
+            pbl=pbl_cmbkk_shear)
+
+        # shear_cmbkappa (B mode component)
+        measured_cls_to_obs_cls(
+            measured_cls_dir=cmbkk_B_cl_dir,
+            obs_cls_dir=obs_cmbkk_B_cl_dir,
+            bin_i=i+1,
+            bin_j=1,
+            lmin_out=output_lmin_cmbkk_shear,
+            lmax_out=output_lmax_cmbkk_shear)
+
+        cl_to_bp(cl_dir=obs_cmbkk_B_cl_dir, bp_dir=kCMB_B_bps_dir, bin_i=i+1, bin_j=1, pbl=pbl_cmbkk_shear)
+        calc_stdem_bps(bp_dir=kCMB_B_bps_dir, n_bps=n_bandpowers, bin_i=i+1, bin_j=1, realisations=no_iter)
+
+        process_02_pcls(
+            config_dict=config_dict,
+            theory_cl_dir=theory_cls_dir,
+            noise_cl_dir=noise_cls_dir,
+            spectra_type='kCMB_B',
+            bin_i=i + 1,
+            bin_j=1,
+            obs_mask_path=[mask_path, cmb_mask_path],
+            output_lmin=output_lmin_cmbkk_shear,
+            output_lmax=output_lmax_cmbkk_shear,
+            bp_bins=bp_bins_cmbkk_shear,
+            ell_arr=ell_arr_cmbkk_shear,
+            pbl=pbl_cmbkk_shear)
+
         for j in range(nbins):
 
             # Cut the raw PCls measured from Catalogues to a specific range in lmin, lmax
