@@ -71,6 +71,7 @@ def sampler_config(pipeline_variables_path):
     no_iter = int(config['simulation_setup']['REALISATIONS'])
     mask_path = str(config['measurement_setup']['PATH_TO_MASK'])
     mask_path_cmb = str(config['measurement_setup']['PATH_TO_CMB_MASK'])
+    n_pool = int(config['simulation_setup']['POOL'])
 
     input_lmin = int(float(config['simulation_setup']['INPUT_ELL_MIN']))
     input_lmax = int(float(config['simulation_setup']['INPUT_ELL_MAX']))
@@ -210,6 +211,7 @@ def sampler_config(pipeline_variables_path):
         'nside': nside,
         'nz_filename': nz_filename,
         'no_iter': no_iter,
+        'n_pool': n_pool,
         'mask_path': mask_path,
         'mask_path_cmb': mask_path_cmb,
         'input_lmin': input_lmin,
@@ -684,7 +686,7 @@ def test(params, config_dict, mixmats, data_vector):
         ax.plot(xs, data_vector[(i*n_bandpower):(i*n_bandpower)+n_bandpower], marker = 'x', linestyle='None')
         plt.show()
 
-
+'''
 def generate_mixmats(sampler_config_dict):
 
     save_dir = sampler_config_dict['save_dir']
@@ -734,7 +736,7 @@ def generate_mixmats(sampler_config_dict):
                            lmax_out_nk=output_lmax_cmbkk_galaxy,
                            lmax_out_kk=output_lmax_cmbkk,
                            save_path=mix_mats_save_path)
-
+'''
 
 def run_nautilus(sampler_config_dict, mixmats, data_vector, inverse_covariance, sampler_checkpoint_file):
 
@@ -744,6 +746,8 @@ def run_nautilus(sampler_config_dict, mixmats, data_vector, inverse_covariance, 
     prior.add_parameter("Omega_c", dist=(0.2, 0.4))
     prior.add_parameter("h", dist=(0.5, 0.8))
 
+    n_pool = sampler_config_dict['n_pool']
+
     sampler = nautilus.Sampler(
         prior, log_normal_likelihood_ccl, n_live=100,
         likelihood_kwargs={
@@ -751,14 +755,14 @@ def run_nautilus(sampler_config_dict, mixmats, data_vector, inverse_covariance, 
             "mixmats": mixmats,
             "data_vector": data_vector,
             "inverse_covariance": inverse_covariance},
-        filepath=sampler_checkpoint_file
+        filepath=sampler_checkpoint_file,
+        pool=n_pool
     )
     
-    start_time = time.time()
     sampler.run(verbose=True)
     
     points, log_w, log_l = sampler.posterior()
-    print("--- %s seconds ---" % (time.time() - start_time))
+
     
     corner.corner(
         points, weights=np.exp(log_w), bins=30, labels=prior.keys
@@ -785,7 +789,7 @@ def execute(pipeline_variables_path):
 
     # generate_mixmats(sampler_config_dict=sampler_config_dict)
 
-    mix_mats_save_path = inference_dir + 'mixmats.npz'
+    mix_mats_save_path = save_dir + 'mixmats.npz'
     mixmats_all = np.load(mix_mats_save_path)
 
     mixmats = {'mixmat_nn_to_nn': mixmats_all['mixmat_nn_to_nn'],

@@ -1,9 +1,7 @@
-import sys
 import datetime
 import configparser
 import catalogue_sim
 import pcl_measurement
-import likelihood
 
 
 def run_catalogue_sim(pipeline_variables_path, clean=True):
@@ -87,23 +85,29 @@ def measure_pcls(pipeline_variables_path, clean=True, cov_iter=False):
     print('Done')
 
     # Convert bandpower data vector to 1D
+    print('Combining to joint data vector...')
     pcl_measurement.conv_bps.execute(pipeline_variables_path)
+    print('Done')
 
     if not cov_iter:
         # Calculate numerical covariance matrix
+        print('Calculating numerical covariance matrix...')
         pcl_measurement.cov_fromsim.execute(pipeline_variables_path)
+        print('Done')
 
     else:
         # If we want to calculate covariance matrix for different numbers of realisations
         cov_iter_nos = [1, 2, 3]
         for cov_iter_no in cov_iter_nos:
+            print('Calculating numerical covariance matrix - {} realisations ...'.format(cov_iter_no))
             pcl_measurement.cov_fromsim.execute_iters(pipeline_variables_path, cov_iter_no)
-
-
-def run_likelihood(pipeline_variables_path):
-
-    # Run nautilus sampler to perform likelihood analysis
-    likelihood.sampler.execute(pipeline_variables_path)
+            print('Done')
+#
+#
+# def run_likelihood(pipeline_variables_path):
+#
+#     # Run nautilus sampler to perform likelihood analysis
+#     likelihood.sampler.execute(pipeline_variables_path)
 
 
 def main():
@@ -113,13 +117,14 @@ def main():
 
     # # Create catalogues
     run_catalogue_sim(pipeline_variables_path, clean=True)
-
-    # # Measure Pseudo-Cls
+    #
+    # # # Measure Pseudo-Cls
     measure_pcls(pipeline_variables_path, clean=True, cov_iter=False)
 
     now = datetime.datetime.now()
     print(now)
     # Perform likelihood analysis
+
     # run_likelihood(pipeline_variables_path)
 
 

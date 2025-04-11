@@ -814,6 +814,7 @@ def execute(pipeline_variables_path):
     config_dict = measure_bps_config(pipeline_variables_path=pipeline_variables_path)
 
     save_dir = config_dict['save_dir']
+    nside = config_dict['nside']
     nbins = config_dict['nbins']
     no_iter = config_dict['no_iter']
     mask_path = config_dict['mask_path']
@@ -936,6 +937,20 @@ def execute(pipeline_variables_path):
 
     theory_cls_dir = save_dir + 'fiducial_cosmology/'
     noise_cls_dir = save_dir + 'raw_noise_cls/'
+    mix_mats_save_path = save_dir + 'mixmats.npz'
+
+    mask.get_6x2pt_mixmats(mask_path=mask_path,
+                           mask_path_cmb=cmb_mask_path,
+                           nside=nside,
+                           lmin=input_lmin,
+                           input_lmax=input_lmax,
+                           lmax_out_nn=output_lmax_galaxy,
+                           lmax_out_ne=output_lmax_galaxy_shear,
+                           lmax_out_ee=output_lmax_shear,
+                           lmax_out_ek=output_lmax_cmbkk_shear,
+                           lmax_out_nk=output_lmax_cmbkk_galaxy,
+                           lmax_out_kk=output_lmax_cmbkk,
+                           save_path=mix_mats_save_path)
 
     # Create null spectra
     create_null_spectras(nbins=nbins, lmin=input_lmin, lmax=input_lmax, output_dir=theory_cls_dir)

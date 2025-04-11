@@ -4,7 +4,7 @@ import healpy as hp
 import matplotlib.pyplot as plt
 from collections import defaultdict
 
-simulation_save_dir = '/raid/scratch/wongj/mywork/3x2pt/TEST_COV_AREAS_FINAL_superclass_data/j/'
+simulation_save_dir = '/raid/scratch/wongj/mywork/3x2pt/TEST_COV_AREAS_FINAL_superclass_data/j2/'
 
 no_realisations = 1
 nbins = 3
@@ -75,15 +75,15 @@ def process_cls(save_dir, type, bin_i=None, bin_j=None):
 
     elif type == 'dy':
         label = "$\~{C}_\ell^{\delta_{\mathrm{g}}\gamma}$"
-        # theory_cls.append(open_dat(save_dir + 'fiducial_cosmology/galaxy_shear_cl/ell_bp.txt'))
-        # theory_cls.append(open_dat(save_dir + 'fiducial_cosmology/galaxy_shear_cl/PCl_Bandpowers_gal_E_bin_{}_{}.txt'.format(bin_i, bin_j)))
-        theory_cls.append(open_dat(save_dir + 'fiducial_cosmology/galaxy_shear_cl/ell.txt'))
-        theory_cls.append(open_dat(save_dir + 'fiducial_cosmology/galaxy_shear_cl/bin_{}_{}.txt'.format(bin_i, bin_j)))
+        theory_cls.append(open_dat(save_dir + 'fiducial_cosmology/galaxy_shear_cl/ell_bp.txt'))
+        theory_cls.append(open_dat(save_dir + 'fiducial_cosmology/galaxy_shear_cl/PCl_Bandpowers_gal_E_bin_{}_{}.txt'.format(bin_i, bin_j)))
+        # theory_cls.append(open_dat(save_dir + 'fiducial_cosmology/galaxy_shear_cl/ell.txt'))
+        # theory_cls.append(open_dat(save_dir + 'fiducial_cosmology/galaxy_shear_cl/bin_{}_{}.txt'.format(bin_i, bin_j)))
 
-        # measured_cls.append(open_dat(save_dir + 'measured_6x2pt_bps/galaxy_shear_bp/ell.txt'))
-        # measured_cls.append(open_dat(save_dir + 'measured_6x2pt_bps/galaxy_shear_bp/bin_{}_{}.txt'.format(bin_i, bin_j)))
-        measured_cls.append(open_dat(save_dir + 'fiducial_cosmology/galaxy_shear_cl/ell.txt'))
-        measured_cls.append(open_dat(save_dir + 'fiducial_cosmology/galaxy_shear_cl/bin_{}_{}.txt'.format(bin_i, bin_j)))
+        measured_cls.append(open_dat(save_dir + 'measured_6x2pt_bps/galaxy_shear_bp/ell.txt'))
+        measured_cls.append(open_dat(save_dir + 'measured_6x2pt_bps/galaxy_shear_bp/bin_{}_{}.txt'.format(bin_i, bin_j)))
+        # measured_cls.append(open_dat(save_dir + 'fiducial_cosmology/galaxy_shear_cl/ell.txt'))
+        # measured_cls.append(open_dat(save_dir + 'fiducial_cosmology/galaxy_shear_cl/bin_{}_{}.txt'.format(bin_i, bin_j)))
 
     # measured_cls_av = np.mean(np.array(measured_cls[1:]), axis=0)
 
@@ -108,7 +108,6 @@ def plot_kCMB(save_dir):
     plt.show()
 
 
-# kCMB_label, kCMB_theory, kCMB_measured = process_cls(, type='kk')
 # plot_kCMB(save_dir=simulation_save_dir)
 
 
@@ -127,8 +126,11 @@ def plot_tom_xcorr(save_dir, nbins, type):
                 ax = fig.add_axes(rect)
 
                 plt.plot(theory_cl[0], theory_cl[1],zorder=1,color='0',alpha=0.5)
-                # plt.plot(measured_cl[0], measured_cl[1],zorder=2,marker='x',linestyle='None')
-                # plt.xscale('log')
+                plt.plot(measured_cl[0], measured_cl[1],zorder=2,marker='x',linestyle='None')
+                print(theory_cl[1])
+                # plt.plot(theory_cl[0], (measured_cl[1] - theory_cl[1])/theory_cl[1],zorder=1,color='0',alpha=0.5)
+
+                plt.xscale('log')
                 # plt.yscale('log')
 
                 if j == 0:
@@ -160,4 +162,4 @@ def plot_tom_xcorr(save_dir, nbins, type):
     plt.show()
 
 
-plot_tom_xcorr(save_dir=simulation_save_dir,nbins=nbins, type='dy')
+plot_tom_xcorr(save_dir=simulation_save_dir, nbins=nbins, type='yy')

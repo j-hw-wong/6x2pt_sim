@@ -77,7 +77,7 @@ def execute(pipeline_variables_path):
         g_i = ccl.NumberCountsTracer(fid_cosmo, has_rsd=False, dndz=(z, nz_dat[:, bin_i]), bias=(z, b))
 
         # Cosmic shear with intrinsic alignments bin j
-        y_i = ccl.WeakLensingTracer(fid_cosmo, dndz=(z, nz_dat[:, bin_i]), has_shear=True, ia_bias=None)
+        y_i = ccl.WeakLensingTracer(fid_cosmo, dndz=(z, nz_dat[:, bin_i]), has_shear=True, ia_bias=(z, A_IA))
 
         # Galaxy clustering - CMB kappa Cl cross-correlation
         cl_g_kCMB = ccl.angular_cl(fid_cosmo, g_i, k_CMB, ells)
@@ -96,7 +96,7 @@ def execute(pipeline_variables_path):
             g_j = ccl.NumberCountsTracer(fid_cosmo, has_rsd=False, dndz=(z, nz_dat[:,bin_j]), bias=(z, b))
 
             # Cosmic shear with intrinsic alignments bin j
-            y_j = ccl.WeakLensingTracer(fid_cosmo, dndz=(z, nz_dat[:,bin_j]), has_shear=True, ia_bias=None)
+            y_j = ccl.WeakLensingTracer(fid_cosmo, dndz=(z, nz_dat[:,bin_j]), has_shear=True, ia_bias=(z, A_IA))
 
             # Tomographic galaxy-galaxy lensing Cl
             cl_gy = ccl.angular_cl(fid_cosmo, g_i, y_j, ells)
