@@ -256,7 +256,7 @@ def generate_nz(config_dict):
     # cat_photo_z_frac = config_dict['cat_photo_z_frac']
     # cat_photo_z_sigma = config_dict['cat_photo_z_sigma']
 
-    dat = h5py.File(save_dir + 'Raw_Galaxy_Sample.hdf5')
+    dat = h5py.File(save_dir + 'Raw_Galaxy_Sample.hdf5', 'r')
     true_zs = np.array(dat.get('True_Redshift_z'))
     obs_gaussian_zs = np.array(dat.get('Redshift_z'))
     dat.close()

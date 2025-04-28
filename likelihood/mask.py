@@ -25,24 +25,24 @@ def get_6x2pt_mixmats(mask_path, mask_path_cmb, nside, lmin, input_lmax, lmax_ou
     """
 
     # Load and rescale mask, and calculate fsky
-    if mask_path is not None:
+    if mask_path == 'None':
+        print('Full sky')
+        mask = np.ones(hp.pixelfunc.nside2npix(nside))
+    else:
         print('Loading and rescaling mask')
         mask = hp.pixelfunc.ud_grade(hp.read_map(mask_path, dtype=float), nside)
         assert np.amin(mask) == 0
         assert np.amax(mask) == 1
-    else:
-        print('Full sky')
-        mask = np.ones(hp.pixelfunc.nside2npix(nside))
     assert np.all(np.isfinite(mask))
 
-    if mask_path_cmb is not None:
+    if mask_path_cmb == 'None':
+        print('Full sky')
+        mask_cmb = np.ones(hp.pixelfunc.nside2npix(nside))
+    else:
         print('Loading and rescaling mask')
         mask_cmb = hp.pixelfunc.ud_grade(hp.read_map(mask_path_cmb, dtype=float), nside)
         assert np.amin(mask_cmb) == 0
         assert np.amax(mask_cmb) == 1
-    else:
-        print('Full sky')
-        mask_cmb = np.ones(hp.pixelfunc.nside2npix(nside))
     assert np.all(np.isfinite(mask_cmb))
 
     # fsky = np.mean(mask)
