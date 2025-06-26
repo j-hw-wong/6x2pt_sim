@@ -10,7 +10,7 @@ import h5py
 import configparser
 import numpy as np
 from collections import defaultdict
-
+from random import choices
 
 def nz_fromsim_config(pipeline_variables_path):
 
@@ -45,7 +45,7 @@ def nz_fromsim_config(pipeline_variables_path):
     realisations = int(float(config['simulation_setup']['REALISATIONS']))
 
     photo_z_noise_mean = 0
-    photo_z_noise_sigma = float(config['noise_cls']['SIGMA_PHOT'])
+    photo_z_noise_sigma = float(config['photo_z']['SIGMA_PHOT'])
 
     # cat_photo_z_frac = float(config['noise_cls']['CAT_PHOTO_Z_FRAC'])
     # cat_photo_z_sigma = float(config['noise_cls']['CAT_PHOTO_Z_SIGMA'])
@@ -120,8 +120,8 @@ def create_zbin_boundaries(config_dict):
 
         # rnd_sample = np.load(save_dir)  # Placeholder for now!
 
-        rnd_sample = np.round(rnd_sample, 2)
-        rnd_sample = rnd_sample[rnd_sample<=(zmax-dz)]
+        # rnd_sample = np.round(rnd_sample, 2)
+        rnd_sample = rnd_sample[rnd_sample<=zmax]
         sorted_sample = np.sort(rnd_sample)
         split_sorted_sample = np.array_split(sorted_sample, nbins)
         z_boundaries_low = [zmin]
@@ -250,54 +250,11 @@ def generate_nz(config_dict):
     dz = config_dict['dz']
     nz_table_filename = config_dict['nz_table_filename']
     nbins = config_dict['nbins']
-    photo_z_noise_mean = config_dict['photo_z_noise_mean']
-    photo_z_noise_sigma = config_dict['photo_z_noise_sigma']
-
-    # cat_photo_z_frac = config_dict['cat_photo_z_frac']
-    # cat_photo_z_sigma = config_dict['cat_photo_z_sigma']
 
     dat = h5py.File(save_dir + 'Raw_Galaxy_Sample.hdf5', 'r')
     true_zs = np.array(dat.get('True_Redshift_z'))
     obs_gaussian_zs = np.array(dat.get('Redshift_z'))
     dat.close()
-
-    ############
-    # Here is some code from the full catalogue simulation which simulates the injection of catastrophic photo-z errors.
-    # I am not sure if it makes any sense to inject these into the n(z) for the faster map-only sims (since this can't
-    # really be introduced as a bias in the same way. Either way, I will keep the code here for now in case we can
-    # figure out how it could be useful in the future
-    ############
-    #
-    # # Inject some catastrophic photo-z errors
-    #
-    # final_phot_zs = np.copy(phot_zs)  # will inject catastrophic errors into this column
-    # final_phot_zs = np.float32(final_phot_zs)
-    #
-    # if cat_photo_z_frac != 0:
-    #     # Let's inject some catastrophic photo-zs
-    #
-    #     # Angstroms
-    #     Ly_alpha = 1216
-    #     Ly_break = 912
-    #     Balmer = 3700
-    #     D4000 = 4000
-    #
-    #     break_rfs = [Ly_alpha, Ly_alpha]  # , Ly_break, Ly_break] - could include more pair confusions
-    #     break_catas = [Balmer, D4000]  # , Balmer, D4000] - could include more pair confusions
-    #
-    #     rand_zs_ids = choices(range(len(zs)), k=int(len(zs) * cat_photo_z_frac))
-    #     rand_zs_ids = np.asarray(rand_zs_ids)
-    #     rand_zs_ids_chunks = split_z_chunks(rand_zs_ids, 4)
-    #
-    #     final_phot_zs[rand_zs_ids_chunks[0]] = generate_cat_err_sig(zs[rand_zs_ids_chunks[0]], break_rfs[0],
-    #                                                                 break_catas[0], cat_photo_z_sigma)
-    #     final_phot_zs[rand_zs_ids_chunks[1]] = generate_cat_err_sig(zs[rand_zs_ids_chunks[1]], break_rfs[1],
-    #                                                                 break_catas[1], cat_photo_z_sigma)
-    #     final_phot_zs[rand_zs_ids_chunks[2]] = generate_cat_err_sig(zs[rand_zs_ids_chunks[2]], break_catas[0],
-    #                                                                 break_rfs[0], cat_photo_z_sigma)
-    #     final_phot_zs[rand_zs_ids_chunks[3]] = generate_cat_err_sig(zs[rand_zs_ids_chunks[3]], break_catas[1],
-    #                                                                 break_rfs[1], cat_photo_z_sigma)
-    #
 
     # if not os.path.exists(save_dir):
     #     os.makedirs(save_dir)
@@ -331,6 +288,8 @@ def generate_nz(config_dict):
 
     for b in range(nbins):
         bin_pop = true_zs[np.where((obs_gaussian_zs >= z_boundaries_low[b]) & (obs_gaussian_zs < z_boundaries_high[b]))[0]]
+        # bin_pop = true_zs[np.where((true_zs >= z_boundaries_low[b]) & (true_zs < z_boundaries_high[b]))[0]]
+
         bin_hist = np.histogram(bin_pop, bins=int(np.rint((zmax + dz - zmin) / dz)), range=(zmin, zmax))[0]
         hists["BIN_{}".format(b + 1)].append(bin_hist)
 
@@ -361,6 +320,7 @@ def generate_nz(config_dict):
 
     np.savetxt(save_dir + nz_table_filename,
                np.transpose(final_cat_tab))
+
 
 def execute(pipeline_variables_path):
 

@@ -130,7 +130,7 @@ def execute(pipeline_variables_path):
 
 	Returns
 	-------
-	Numerical covariance matrix, saved as an array in .npz to specified location on disk - the 'cov_fromsim'
+	Numerical covariance matrix, saved as an array in .npz to specified location on disk - the 'numerical_covariance'
 	subdirectory within the main measurement directory.
 	"""
 
@@ -259,13 +259,13 @@ def execute(pipeline_variables_path):
 
 	cov = np.mean(np.array(cov_total), axis=0)
 
-	save_sim_cov_dir = save_dir + 'cov_fromsim/'
+	save_sim_cov_dir = save_dir + 'numerical_covariance/'
 
 	if not os.path.exists(save_sim_cov_dir):
 		os.makedirs(save_sim_cov_dir)
 
 	# Save the 'true' numerical covariance matrix'
-	np.savez(save_sim_cov_dir + 'cov_{}bp_true.npz'.format(n_bp), cov=cov)
+	np.savez(save_sim_cov_dir + 'cov_{}bp.npz'.format(n_bp), cov=cov)
 	n_bin = n_zbin
 
 	# Save the 'block diagonal' covariance matrix.
@@ -274,7 +274,12 @@ def execute(pipeline_variables_path):
 		n_spec = n_bin * ((2 * n_bin) + 1)
 
 	elif obs_type == '1X2PT':
-		n_spec = int(n_bin * (n_bin + 1) / 2)
+		if field_type == 'E' or field_type == 'N':
+			n_spec = int(n_bin * (n_bin + 1) / 2)
+		elif field_type == 'K':
+			n_spec = 1
+		elif field_type == 'EK' or field_type == 'NK':
+			n_spec = n_zbin
 
 	else:
 		assert obs_type == '6X2PT'
@@ -298,7 +303,7 @@ def execute(pipeline_variables_path):
 		y_coord = cov_id[1]
 		new_cov[x_coord][y_coord] = cov[x_coord][y_coord]
 
-	np.savez(save_sim_cov_dir + 'cov_{}bp.npz'.format(n_bp), cov=new_cov)
+	np.savez(save_sim_cov_dir + 'cov_{}bp_blockdiags.npz'.format(n_bp), cov=new_cov)
 
 
 def execute_iters(pipeline_variables_path, cov_iter_no):
@@ -309,7 +314,7 @@ def execute_iters(pipeline_variables_path, cov_iter_no):
 
 	Returns
 	-------
-	Numerical covariance matrix, saved as an array in .npz to specified location on disk - the 'cov_fromsim'
+	Numerical covariance matrix, saved as an array in .npz to specified location on disk - the 'numerical_covariance'
 	subdirectory within the main measurement directory.
 	"""
 
@@ -414,13 +419,13 @@ def execute_iters(pipeline_variables_path, cov_iter_no):
 
 	cov = np.mean(np.array(cov_total), axis=0)
 
-	save_sim_cov_dir = save_dir + 'cov_fromsim/'
+	save_sim_cov_dir = save_dir + 'numerical_covariance/'
 
 	if not os.path.exists(save_sim_cov_dir):
 		os.makedirs(save_sim_cov_dir)
 
 	# Save the 'true' numerical covariance matrix'
-	np.savez(save_sim_cov_dir + 'cov_{}bp_true_{}.npz'.format(n_bp, cov_iter_no), cov=cov)
+	np.savez(save_sim_cov_dir + 'cov_{}bp_{}.npz'.format(n_bp, cov_iter_no), cov=cov)
 	n_bin = n_zbin
 
 	# Save the 'block diagonal' covariance matrix.
@@ -450,7 +455,5 @@ def execute_iters(pipeline_variables_path, cov_iter_no):
 		y_coord = cov_id[1]
 		new_cov[x_coord][y_coord] = cov[x_coord][y_coord]
 
-	np.savez(save_sim_cov_dir + 'cov_{}bp_{}.npz'.format(n_bp, cov_iter_no), cov=new_cov)
+	np.savez(save_sim_cov_dir + 'cov_{}bp_blockdiags_{}.npz'.format(n_bp, cov_iter_no), cov=new_cov)
 
-# if __name__ == '__main__':
-# 	main()

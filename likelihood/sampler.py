@@ -10,6 +10,7 @@ import pymaster as nmt
 import likelihood.mask as mask
 import matplotlib.pyplot as plt
 from likelihood.model_pcl import PCl_bandpowers_1x2pt, PCl_bandpowers_3x2pt, PCl_bandpowers_6x2pt
+from catalogue_sim import generate_cls
 
 
 def parse_nautilus_params_for_ccl(params):
@@ -20,12 +21,44 @@ def parse_nautilus_params_for_ccl(params):
     return {key:val[()] for key, val in params.items()}
 
 
-def split_ccl_parameters(params):
+def split_ccl_parameters(params, n_zbin, bi_marg=False, mi_marg=False, Dzi_marg=False, A1i_marg=False):
     ccl_params = {}
     nuisance_params = {}
 
     # Some list of nuisance parameters
-    are_nuisance_params = ['a']
+    are_nuisance_params = [
+        'Omega_m',
+        '_b1',
+        '_b2',
+        '_bs',
+        '_A1',
+        '_A2',
+        '_bTA',
+        '_eta1',
+        '_eta2',
+        '_m',
+        '_s0',
+        '_s1',
+        '_s2',
+        '_s3'
+    ]
+
+    # nuisance_params['bi_marg'] = bi_marg
+    # nuisance_params['mi_marg'] = mi_marg
+    # nuisance_params['A1i_marg'] = A1i_marg
+
+    if bi_marg:
+        for i in range(n_zbin):
+            are_nuisance_params.append('_b1_{}'.format(i+1))
+    if mi_marg:
+        for i in range(n_zbin):
+            are_nuisance_params.append('_m_{}'.format(i+1))
+    if Dzi_marg:
+        for i in range(n_zbin):
+            are_nuisance_params.append('_Dz_{}'.format(i+1))
+    if A1i_marg:
+        for i in range(n_zbin):
+            are_nuisance_params.append('_A1_{}'.format(i + 1))
     # are_nuisance_params = [f"m_{_i}" for _i in range(1, Z_N_BIN + 1)] + [f"dz_{_i}" for _i in range(1, Z_N_BIN + 1)]
 
     for key, val in params.items():
@@ -52,7 +85,7 @@ def sampler_config(pipeline_variables_path):
     Create a dictionary of parameters that will be useful to calculate measure Pseudo bandpowers (e.g. number of bins,
     realisations, mask etc.)
 
-    Parameters
+    ParametersSS
     ----------
     pipeline_variables_path (str):  Path to location of pipeline variables file ('set_variables_3x2pt_measurement.ini')
 
@@ -285,155 +318,7 @@ def mysplit(s):
     return head, tail
 
 
-'''
-def conv_3x2pt_bps(n_zbin, n_bp, save_dir, recov_cat_bps_path):
-
-    """
-    Collect all 3x2pt tomographic Pseudo bandpowers and store into single array.
-
-    Parameters
-    ----------
-    n_zbin (float): Number of tomographic redshift bins
-    n_bp (float):   Number of bandpowers
-    save_dir (str): Path to directory that stores all measurement data (MEASUREMENT_SAVE_DIR from the
-                    set_variables_3x2pt_measurement.ini file)
-    recov_cat_bps_path (str): Location to store combined 3x2pt data vector as .npz file
-    obs_type (str): Use the data measured from simulation ('obs') or the fiducial data ('fid') to generate the
-                    combined data vector
-
-    Returns
-    -------
-    Saves array in .npz format of the combined 3x2pt data vector.
-    """
-
-    n_field = 2 * n_zbin
-    n_spec = n_field * (n_field + 1) // 2
-
-    # Form list of power spectra
-    fields = [f'{f}{z}' for z in range(1, n_zbin + 1) for f in ['N', 'E']]
-    assert len(fields) == n_field
-
-    spectra = [fields[row] + fields[row + diag] for diag in range(n_field) for row in range(n_field - diag)]
-
-    spec_1 = [fields[row] for diag in range(n_field) for row in range(n_field - diag)]
-    spec_2 = [fields[row + diag] for diag in range(n_field) for row in range(n_field - diag)]
-
-    # Identify fields and redshift bin ids used to generate specific power spectrum
-
-    field_1 = [mysplit(spec_1_id)[0] for spec_1_id in spec_1]
-    zbin_1 = [mysplit(spec_1_id)[1] for spec_1_id in spec_1]
-    field_2 = [mysplit(spec_2_id)[0] for spec_2_id in spec_2]
-    zbin_2 = [mysplit(spec_2_id)[1] for spec_2_id in spec_2]
-
-    obs_bp = np.full((n_spec, n_bp), np.nan)
-
-    for spec_idx in range(len(spectra)):
-        f1 = field_1[spec_idx]
-        f2 = field_2[spec_idx]
-        z1 = int(zbin_1[spec_idx])
-        z2 = int(zbin_2[spec_idx])
-
-        if f1 == 'N' and f2 == 'N':
-            measured_bp_file = save_dir + 'inference_chains/galaxy_cl/PCl_Bandpowers_gal_gal_bin_{}_{}.txt'. \
-                format(max(z1, z2), min(z1, z2))
-
-        elif f1 == 'E' and f2 == 'E':
-            measured_bp_file = save_dir + 'inference_chains/shear_cl/PCl_Bandpowers_EE_bin_{}_{}.txt'. \
-                format(max(z1, z2), min(z1, z2))
-
-        elif f1 == 'N' and f2 == 'E':
-            measured_bp_file = save_dir + 'inference_chains/galaxy_shear_cl/PCl_Bandpowers_gal_E_bin_{}_{}.txt'. \
-                format(z1, z2)
-
-        elif f1 == 'E' and f2 == 'N':
-            # switch around, i.e. open f2z2f1z1
-            measured_bp_file = save_dir + 'inference_chains/galaxy_shear_cl/PCl_Bandpowers_gal_E_bin_{}_{}.txt'. \
-                format(z2, z1)
-
-        else:
-            print('Unexpected Spectra Found - Please check inference pipeline')
-            sys.exit()
-
-        measured_bp = np.loadtxt(measured_bp_file)
-        obs_bp[spec_idx, :] = measured_bp
-
-    obs_bp_path = os.path.join(recov_cat_bps_path, f'obs_{n_bp}bp.npz')
-    obs_bp_header = (f'Observed bandpowers for 3x2pt simulation')
-    np.savez_compressed(obs_bp_path, obs_bp=obs_bp, header=obs_bp_header)
-    return obs_bp
-
-
-def conv_1x2pt_bps(n_zbin, n_bp, save_dir, recov_cat_bps_path, field='E'):
-
-    """
-    Collect all Pseudo bandpowers for a tomographic 1x2pt (shear only or clustering only) and store into single array.
-
-    Parameters
-    ----------
-    n_zbin (float): Number of tomographic redshift bins
-    n_bp (float):   Number of bandpowers
-    save_dir (str): Path to directory that stores all measurement data (MEASUREMENT_SAVE_DIR from the
-                    set_variables_3x2pt_measurement.ini file)
-    recov_cat_bps_path (str): Location to store combined 1x2pt data vector as .npz file
-    obs_type (str): Use the data measured from simulation ('obs') or the fiducial data ('fid') to generate the
-                    combined data vector
-    field (str):    'E' or 'N' to specify the 1x2pt measurement is cosmic shear only or angular clustering only
-
-    Returns
-    -------
-    Saves array in .npz format of the combined 3x2pt data vector.
-    """
-
-    n_field = n_zbin
-    n_spec = n_field * (n_field + 1) // 2
-
-    # Form list of power spectra
-    if field == 'E':
-        fields = [f'E{z}' for z in range(1, n_zbin + 1)]
-    else:
-        assert field == 'N'
-        fields = [f'N{z}' for z in range(1, n_zbin + 1)]
-
-    assert len(fields) == n_field
-    spectra = [fields[row] + fields[row + diag] for diag in range(n_field) for row in range(n_field - diag)]
-
-    spec_1 = [fields[row] for diag in range(n_field) for row in range(n_field - diag)]
-    spec_2 = [fields[row + diag] for diag in range(n_field) for row in range(n_field - diag)]
-
-    field_1 = [mysplit(spec_1_id)[0] for spec_1_id in spec_1]
-    zbin_1 = [mysplit(spec_1_id)[1] for spec_1_id in spec_1]
-    field_2 = [mysplit(spec_2_id)[0] for spec_2_id in spec_2]
-    zbin_2 = [mysplit(spec_2_id)[1] for spec_2_id in spec_2]
-
-    obs_bp = np.full((n_spec, n_bp), np.nan)
-
-    for spec_idx in range(len(spectra)):
-        f1 = field_1[spec_idx]
-        f2 = field_2[spec_idx]
-        z1 = int(zbin_1[spec_idx])
-        z2 = int(zbin_2[spec_idx])
-
-        if field == 'E':
-            measured_bp_file = save_dir + 'inference_chains/shear_cl/PCl_Bandpowers_EE_bin_{}_{}.txt'. \
-                format(max(z1, z2), min(z1, z2))
-            measured_bp = np.loadtxt(measured_bp_file)
-            obs_bp[spec_idx, :] = measured_bp
-
-        else:
-            assert field == 'N'
-            measured_bp_file = save_dir + 'inference_chains/galaxy_cl/PCl_Bandpowers_gal_gal_bin_{}_{}.txt'. \
-                format(max(z1, z2), min(z1, z2))
-            measured_bp = np.loadtxt(measured_bp_file)
-            obs_bp[spec_idx, :] = measured_bp
-
-    obs_bp_path = os.path.join(recov_cat_bps_path, f'obs_{n_bp}bp.npz')
-    obs_bp_header = (f'Observed bandpowers for 1x2pt simulation')
-    np.savez_compressed(obs_bp_path, obs_bp=obs_bp, header=obs_bp_header)
-    return obs_bp
-'''
-
-
-def generate_pseudo_bps_model(cosmo_params, config_dict, mixmats):
+def generate_pseudo_bps_model(cosmo_params, pipeline_variables_path, config_dict, mixmats, bi_marg=False, mi_marg=False, Dzi_marg=False, A1i_marg=False):
     """
     cosmo_params: dict
         Dictionary of parameters to overwrite in default CCL cosmology
@@ -497,19 +382,140 @@ def generate_pseudo_bps_model(cosmo_params, config_dict, mixmats):
         'extra_parameters': {'camb':{'dark_energy_model':'ppf'}}
     }
 
-    ccl_params, nuisance_params = split_ccl_parameters(cosmo_params)
+    ccl_params, nuisance_params = split_ccl_parameters(cosmo_params, n_zbin=nbins, bi_marg=bi_marg, mi_marg=mi_marg, Dzi_marg=Dzi_marg, A1i_marg=A1i_marg)
+
+    if 'Omega_m' in nuisance_params:
+        fid_cosmo_dict['Omega_c'] = nuisance_params['Omega_m'] - Omega_b
     fid_cosmo_dict.update(ccl_params)
+
     fid_cosmo = ccl.Cosmology(**fid_cosmo_dict)
 
     # Now we have to make the Cls, PCls, bandpowers, then combined data vector
-    cls_dict = {'galaxy_cl': {'ell':ells},
-                'shear_cl': {'ell':ells},
-                'galaxy_shear_cl': {'ell':ells},
-                'cmbkappa_cl': {'ell':ells},
-                'galaxy_cmbkappa_cl': {'ell':ells},
-                'shear_cmbkappa_cl': {'ell':ells},
-                'null_spectra': {'ell':ells}
-                }
+    # cls_dict = {'galaxy_cl': {'ell':ells},
+    #             'shear_cl': {'ell':ells},
+    #             'galaxy_shear_cl': {'ell':ells},
+    #             'cmbkappa_cl': {'ell':ells},
+    #             'galaxy_cmbkappa_cl': {'ell':ells},
+    #             'shear_cmbkappa_cl': {'ell':ells},
+    #             'null_spectra': {'ell':ells}
+    #             }
+
+    nz_boundaries = np.loadtxt(f"{save_dir}z_boundaries.txt")
+
+    sampler_systematics = {}
+
+    if "_b1" in nuisance_params:
+        # need to convert to b(z)
+        b_1 = float(nuisance_params["_b1"]) * np.ones(len(z))
+        sampler_systematics['b1'] = b_1
+
+    # bi_marg = nuisance_params['bi_marg']
+    if bi_marg:
+        b_1 = np.ones(len(z))
+        for i in range(nbins-1):
+            ids = np.where((z.round(decimals=2) >= nz_boundaries[:, 0][i].round(decimals=2)) & (
+                        z.round(decimals=2) < nz_boundaries[:, 2][i].round(decimals=2)))[0]
+            b_1[ids] = nuisance_params["_b1_{}".format(i+1)]
+        ids_last = np.where((z.round(decimals=2) >= nz_boundaries[:, 0][-2].round(decimals=2)) & (
+                    z.round(decimals=2) <= nz_boundaries[:, 2][-2].round(decimals=2)))[0]
+        b_1[ids_last] = nuisance_params["_b1_{}".format(nbins)]
+        sampler_systematics['b1'] = b_1
+
+    if "_m" in nuisance_params:
+        # need to convert to b(z)
+        mi = float(nuisance_params["_m"]) * np.ones(len(z))
+        sampler_systematics['mi'] = mi
+
+    # mi_marg = nuisance_params['mi_marg']
+    if mi_marg:
+        mi_dat = []
+        for i in range(nbins):
+            mi_dat.append(nuisance_params["_m_{}".format(i+1)])
+        sampler_systematics['mi'] = np.asarray(mi_dat)
+
+    if "_A1" in nuisance_params:
+        # need to convert to b(z)
+        A_1 = float(nuisance_params["_A1"]) * np.ones(len(z))
+        sampler_systematics['A1'] = A_1
+
+    # A1i_marg = nuisance_params['A1i_marg']
+    if A1i_marg:
+        A_1 = np.ones(len(z))
+        for i in range(nbins-1):
+            ids = np.where((z.round(decimals=2) >= nz_boundaries[:, 0][i].round(decimals=2)) & (
+                        z.round(decimals=2) < nz_boundaries[:, 2][i].round(decimals=2)))[0]
+            A_1[ids] = nuisance_params["_A1_{}".format(i+1)]
+        ids_last = np.where((z.round(decimals=2) >= nz_boundaries[:, 0][-2].round(decimals=2)) & (
+                    z.round(decimals=2) <= nz_boundaries[:, 2][-2].round(decimals=2)))[0]
+        A_1[ids_last] = nuisance_params["_A1_{}".format(nbins)]
+        sampler_systematics['A1'] = A_1
+
+    # Now loop over some other constant nuisance parameters that need to be converted to arrays along z
+    constant_nuisance_params_to_z = [
+        'b2',
+        'bs',
+    ]
+
+    for count, constant_nuisance_param in enumerate(['_b2','_bs']):
+        if constant_nuisance_param in nuisance_params:
+            nuisance_param_dat = float(nuisance_params[constant_nuisance_param]) * np.ones(len(z))
+            sampler_systematics[constant_nuisance_params_to_z[count]] = nuisance_param_dat
+
+    # Now loop over some other constant nuisance parameters that just need to be kept as constant
+    constant_nuisance_params = [
+        'A2',
+        'bTA',
+        'eta1',
+        'eta2',
+        's0',
+        's1',
+        's2',
+        's3'
+    ]
+
+    for count, mag_bias_param in enumerate(['_A2', '_bTA', '_eta1', '_eta2', '_s0', '_s1', '_s2', '_s3']):
+        if mag_bias_param in nuisance_params:
+            sampler_systematics[constant_nuisance_params[count]] = float(nuisance_params[mag_bias_param])
+
+    if Dzi_marg:
+        Dzi_dat = []
+        for i in range(nbins):
+            Dzi_dat.append(nuisance_params["_Dz_{}".format(i+1)])
+        # sampler_systematics['Dzi'] = np.asarray(Dzi_dat)
+
+    else:
+        Dzi_dat = None
+
+    systematics_dict = generate_cls.setup_systematics_dict(pipeline_variables_path=pipeline_variables_path)
+    systematics_dict.update(sampler_systematics)
+
+    cls_dict = generate_cls.setup_6x2pt_cls(
+        save_dir=save_dir,
+        nz_filename=nz_filename,
+        n_zbin=nbins,
+        ell_min=input_lmin,
+        ell_max=input_lmax,
+        fid_cosmo=fid_cosmo,
+        systematics_dict=systematics_dict,
+        mode='dict',
+        Dzi_dat=Dzi_dat)
+
+    '''
+    b_1 = systematics_dict['b_1']
+    b_2 = systematics_dict['b_2']
+    b_s = systematics_dict['b_s']
+    A_1 = systematics_dict['A_1']
+    A_2 = systematics_dict['A_2']
+    A_1d = systematics_dict['A_1d']
+    c_1 = systematics_dict['c_1']
+    c_delta = systematics_dict['c_delta']
+    c_2 = systematics_dict['c_2']
+    mi_dat = systematics_dict['mi']
+    s0 = systematics_dict['s0']
+    s1 = systematics_dict['s1']
+    s2 = systematics_dict['s2']
+    s3 = systematics_dict['s3']
+    sz = systematics_dict['sz']
 
     # These parameters can probably be read in from a config file
     # Galaxy bias
@@ -517,8 +523,8 @@ def generate_pseudo_bps_model(cosmo_params, config_dict, mixmats):
     # bz = 0.95/ccl.growth_factor(fid_cosmo,1./(1+z))
 
     # Intrinsic alignment amplitude
-    A_IA = 0.6 * np.ones_like(z)
-
+    A_IA = nuisance_params['A1'] * np.ones_like(z)
+    # print(A_IA)
     # Magnification bias
     sz = np.ones_like(z)
 
@@ -573,7 +579,7 @@ def generate_pseudo_bps_model(cosmo_params, config_dict, mixmats):
                 # Tomographic cosmic shear Cl
                 cl_yy = ccl.angular_cl(fid_cosmo, y_i, y_j, ells)
                 cls_dict['shear_cl']['bin_{}_{}'.format(bin_i, bin_j)] = cl_yy
-
+    '''
     # Now we need to convert to Pseudo-Cls and then bandpowers
     theory_cls_dir = save_dir + 'inference_chains/'
     obs_noise_cls_dir = save_dir + 'measured_noise_cls/'
@@ -649,9 +655,9 @@ def generate_pseudo_bps_model(cosmo_params, config_dict, mixmats):
     return model_bps
 
 
-def log_normal_likelihood_ccl(params, config_dict, mixmats, data_vector, inverse_covariance):
+def log_normal_likelihood_ccl(params, config_dict, pipeline_variables_path, mixmats, data_vector, inverse_covariance, bi_marg=False, mi_marg=False, Dzi_marg=False, A1i_marg=False):
 
-    model_vector = generate_pseudo_bps_model(cosmo_params=params, config_dict=config_dict, mixmats=mixmats)
+    model_vector = generate_pseudo_bps_model(cosmo_params=params, pipeline_variables_path=pipeline_variables_path, config_dict=config_dict, mixmats=mixmats, bi_marg=bi_marg, mi_marg=mi_marg, Dzi_marg=Dzi_marg, A1i_marg=A1i_marg)
 
     # Need to stack data vector
     assert model_vector.shape == data_vector.shape
@@ -666,9 +672,9 @@ def log_normal_likelihood_ccl(params, config_dict, mixmats, data_vector, inverse
     return -0.5 * d_vector @ inverse_covariance @ d_vector
 
 
-def test(params, config_dict, mixmats, data_vector):
+def test(params, config_dict, pipeline_variables_path, mixmats, data_vector):
 
-    model_vector = generate_pseudo_bps_model(cosmo_params=params, config_dict=config_dict, mixmats=mixmats)
+    model_vector = generate_pseudo_bps_model(cosmo_params=params, pipeline_variables_path=pipeline_variables_path, config_dict=config_dict, mixmats=mixmats)
 
     # Need to stack data vector
     assert model_vector.shape == data_vector.shape
@@ -738,13 +744,59 @@ def generate_mixmats(sampler_config_dict):
                            save_path=mix_mats_save_path)
 '''
 
-def run_nautilus(sampler_config_dict, mixmats, data_vector, inverse_covariance, sampler_checkpoint_file):
+def run_nautilus(sampler_config_dict, pipeline_variables_path, mixmats, data_vector, inverse_covariance,
+                 sampler_checkpoint_file, priors, bi_marg=False, mi_marg=False, Dzi_marg=False, A1i_marg=False):
+
+    # systematics_dict = generate_cls.setup_systematics_dict(pipeline_variables_path=pipeline_variables_path)
+    # n_zbin = sampler_config_dict['nbins']
+    # b_1 = systematics_dict['b_1']
+    # mi = systematics_dict['mi']
 
     prior = nautilus.Prior()
-    prior.add_parameter("w0", dist=(-1.5, -0.5))
-    prior.add_parameter("wa", dist=(-0.5, 0.5))
-    prior.add_parameter("Omega_c", dist=(0.2, 0.4))
-    prior.add_parameter("h", dist=(0.5, 0.8))
+
+    n_params = len(priors)
+
+    for p in range(n_params):
+        prior.add_parameter(priors[p][0], dist=priors[p][1])
+
+    # prior = nautilus.Prior()
+    # prior.add_parameter("w0", dist=(-1.5, -0.5))
+    # prior.add_parameter("wa", dist=(-0.5, 0.5))
+    # prior.add_parameter("Omega_m", dist=(0.2, 0.4))
+    # prior.add_parameter("h", dist=(0.5, 0.8))
+
+    # For a constant global galaxy bias, we can have e.g.
+    # prior.add_parameter('_b1', dist=(0,3))   # for a constant global galaxy bias
+
+    # Or we specify b1 as a constant that is different for each bin, e.g for a 3 bin analysis.
+    # prior.add_parameter('_b1_1', dist=(0,3))   # for a constant galaxy bias in bin 1
+    # prior.add_parameter('_b1_2', dist=(0,3))   # for a constant galaxy bias in bin 2
+    # prior.add_parameter('_b1_3', dist=(0,3))   # for a constant galaxy bias in bin 3
+    # and in this case we need to have bi_marg=True in the sampler args below
+
+    # Can also repeat this for m-bias marginalisation. If a global m-bias (independent of tomographic bin)
+    # then we have to do
+    # prior.add_parameter('_m', dist=(0,3))   # for a constant global m-bias
+    # Otherwise, we set the m-bias per tomographic bin, i.e
+    # prior.add_parameter('_m_1', dist=(0,3))   # for a constant m-bias in bin 1
+    # prior.add_parameter('_m_2', dist=(0,3))   # for a constant m-bias in bin 2
+    # prior.add_parameter('_m_3', dist=(0,3))   # for a constant m-bias in bin 3
+    # and in this case we need to set mi_marg=True in the sampler args below
+
+    # Can also repeat this for the A1 amplitude of IA TATT/NLA model. If a global A1 value (independent of tomographic
+    # bin) then we have to do
+    # prior.add_parameter('_A1', dist=(0,3))   # for a constant global m-bias
+    # Otherwise, we set the A1 value per tomographic bin, i.e
+    # prior.add_parameter('_A1_1', dist=(0,3))   # for a constant A1 in bin 1
+    # prior.add_parameter('_A1_2', dist=(0,3))   # for a constant A1 in bin 2
+    # prior.add_parameter('_A1_3', dist=(0,3))   # for a constant A1 in bin 3
+    # and in this case we need to set A1i_marg=True in the sampler args below
+
+    # For marginalisation over shift paramaters for the n(z) we have to add a shift parameter per bin, i.e
+    # prior.add_parameter('_Dz_1', dist=(0,3))   # for a constant m-bias in bin 1
+    # prior.add_parameter('_Dz_2', dist=(0,3))   # for a constant m-bias in bin 2
+    # prior.add_parameter('_Dz_3', dist=(0,3))   # for a constant m-bias in bin 3
+    # and we need to set Dzi_marg=True in the sampler args below
 
     n_pool = sampler_config_dict['n_pool']
 
@@ -752,9 +804,15 @@ def run_nautilus(sampler_config_dict, mixmats, data_vector, inverse_covariance, 
         prior, log_normal_likelihood_ccl, n_live=100,
         likelihood_kwargs={
             "config_dict": sampler_config_dict,
+            "pipeline_variables_path": pipeline_variables_path,
             "mixmats": mixmats,
             "data_vector": data_vector,
-            "inverse_covariance": inverse_covariance},
+            "inverse_covariance": inverse_covariance,
+            "bi_marg": bi_marg,
+            "mi_marg": mi_marg,
+            "Dzi_marg": Dzi_marg,
+            "A1i_marg": A1i_marg
+        },  # could e.g. add bi_marg=True if marginalising over tomographic bin-dependent b parameters
         filepath=sampler_checkpoint_file,
         pool=n_pool
     )
@@ -762,17 +820,22 @@ def run_nautilus(sampler_config_dict, mixmats, data_vector, inverse_covariance, 
     sampler.run(verbose=True)
     
     points, log_w, log_l = sampler.posterior()
+    # print(points, log_w, log_l)
 
-    
+    # max_like_id = log_l.argmax()
+    # print(max_like_id)
+    # w0_m, wa_m, Omega_c_m, h_m,  = points[max_like_id]
+    # print(w0_m, wa_m, Omega_c_m, h_m)
     corner.corner(
         points, weights=np.exp(log_w), bins=30, labels=prior.keys
     )
     plt.show()
 
 
-def execute(pipeline_variables_path):
+def execute(pipeline_variables_path, covariance_matrix_type, priors, bi_marg=False, mi_marg=False, Dzi_marg=False, A1i_marg=False):
 
     sampler_config_dict = sampler_config(pipeline_variables_path=pipeline_variables_path)
+    # systematics_dict = generate_cls.setup_systematics_dict(pipeline_variables_path=pipeline_variables_path)
 
     save_dir = sampler_config_dict['save_dir']
     n_bps = sampler_config_dict['n_bandpowers']
@@ -784,7 +847,16 @@ def execute(pipeline_variables_path):
     data_vector = np.load(save_dir + 'measured_6x2pt_bps/obs_{}bp.npz'.format(n_bps))['obs_bp']
     sampler_checkpoint_file = inference_dir + "nautilus_inference.h5"
 
-    covariance_matrix = np.load(save_dir + 'cov_fromsim/cov_{}bp.npz'.format(n_bps))['cov']
+    if covariance_matrix_type == 'analytic':
+        covariance_matrix = np.load(save_dir + 'analytic_covariance/cov_{}bp.npz'.format(n_bps))['cov']
+
+    else:
+        assert covariance_matrix_type == 'numerical'
+        covariance_matrix = np.load(save_dir + 'numerical_covariance/cov_{}bp.npz'.format(n_bps))['cov']
+
+    # covariance_matrix = np.load(save_dir + 'cov_fromsim/cov_{}bp.npz'.format(n_bps))['cov']
+    # covariance_matrix = np.load(covariance_matrix_path)['cov']
+
     inverse_covariance = np.linalg.inv(covariance_matrix)
 
     # generate_mixmats(sampler_config_dict=sampler_config_dict)
@@ -807,8 +879,14 @@ def execute(pipeline_variables_path):
 
     run_nautilus(
         sampler_config_dict=sampler_config_dict,
+        pipeline_variables_path=pipeline_variables_path,
         mixmats=mixmats,
         data_vector=data_vector,
         inverse_covariance=inverse_covariance,
-        sampler_checkpoint_file=sampler_checkpoint_file
+        sampler_checkpoint_file=sampler_checkpoint_file,
+        priors=priors,
+        bi_marg=bi_marg,
+        mi_marg=mi_marg,
+        Dzi_marg=Dzi_marg,
+        A1i_marg=A1i_marg
     )

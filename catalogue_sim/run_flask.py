@@ -37,6 +37,9 @@ def flask_config(pipeline_variables_path):
     ell_max = float(config['simulation_setup']['INPUT_ELL_MAX'])
     # iter_no = int(float(os.environ['ITER_NO']))
 
+    Omega_c = float(config['cosmology']['Omega_c'])
+    Omega_b = float(config['cosmology']['Omega_b'])
+
     # Prepare config dictionary
     config_dict = {
         'pipeline_dir': pipeline_dir,
@@ -45,6 +48,7 @@ def flask_config(pipeline_variables_path):
         'nside': nside,
         'ell_min': ell_min,
         'ell_max': ell_max,
+        'Omega_m': Omega_c + Omega_b
         # 'iter_no': iter_no
     }
 
@@ -69,6 +73,7 @@ def execute(pipeline_variables_path, iter_no):
     nside = config_dict['nside']
     ell_min = config_dict['ell_min']
     ell_max = config_dict['ell_max']
+    Omega_m = config_dict['Omega_m']
 
     flask_output_dir = save_dir + 'flask/output/' + 'iter_{}/'.format(iter_no)
     if not os.path.exists(flask_output_dir):
@@ -82,8 +87,8 @@ def execute(pipeline_variables_path, iter_no):
             "DIST:", "GAUSSIAN",
             "RNDSEED:", str(rnd_seed),
             "POISSON:", "1",
-            "OMEGA_m:", "0.3",
-            "OMEGA_L:", "0.7",
+            "OMEGA_m:", str(Omega_m),
+            "OMEGA_L:", str(1-Omega_m),
             "W_de:", "-1.0",
             "ELLIP_SIGMA:", "0",
             "GALDENSITY:", "0",

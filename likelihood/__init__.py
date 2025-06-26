@@ -1,3 +1,6 @@
+import likelihood.analytic_covariance
+import likelihood.convert_noise
+import likelihood.gaussian_pcl_covariance
 import likelihood.like_bp_gauss_mix_6x2pt
 import likelihood.like_bp_gauss_mix_3x2pt
 import likelihood.like_bp_gauss_mix_1x2pt

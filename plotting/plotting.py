@@ -4,11 +4,10 @@ import healpy as hp
 import matplotlib.pyplot as plt
 from collections import defaultdict
 
-simulation_save_dir = '/raid/scratch/wongj/mywork/3x2pt/TEST_COV_AREAS_FINAL_superclass_data/j2/'
+simulation_save_dir = '/raid/scratch/wongj/mywork/3x2pt/6x2pt_sim_data/jw/'
 
 no_realisations = 1
 nbins = 3
-lmax = 250
 
 def open_dat(fname):
     dat_arr = []
@@ -30,6 +29,8 @@ def process_cls(save_dir, type, bin_i=None, bin_j=None):
 
     theory_cls = []
     measured_cls = []
+
+    label = None
 
     if type == 'kk':
 
@@ -108,9 +109,6 @@ def plot_kCMB(save_dir):
     plt.show()
 
 
-# plot_kCMB(save_dir=simulation_save_dir)
-
-
 def plot_tom_xcorr(save_dir, nbins, type):
 
     fig = plt.figure(figsize=(10, 10))
@@ -127,7 +125,7 @@ def plot_tom_xcorr(save_dir, nbins, type):
 
                 plt.plot(theory_cl[0], theory_cl[1],zorder=1,color='0',alpha=0.5)
                 plt.plot(measured_cl[0], measured_cl[1],zorder=2,marker='x',linestyle='None')
-                print(theory_cl[1])
+                # print(theory_cl[1])
                 # plt.plot(theory_cl[0], (measured_cl[1] - theory_cl[1])/theory_cl[1],zorder=1,color='0',alpha=0.5)
 
                 plt.xscale('log')
@@ -161,5 +159,6 @@ def plot_tom_xcorr(save_dir, nbins, type):
     plt.savefig(save_dir + '{}.png'.format(type))
     plt.show()
 
+# plot_kCMB(save_dir=simulation_save_dir)
 
-plot_tom_xcorr(save_dir=simulation_save_dir, nbins=nbins, type='yy')
+plot_tom_xcorr(save_dir=simulation_save_dir, nbins=nbins, type='kd')

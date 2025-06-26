@@ -44,7 +44,10 @@ def pz_config(pipeline_variables_path):
     sample_points = int(float(config['redshift_distribution']['NGAL']))
 
     photo_z_noise_mean = 0
-    photo_z_noise_sigma = float(config['noise_cls']['SIGMA_PHOT'])
+    photo_z_noise_sigma = float(config['photo_z']['SIGMA_PHOT'])
+
+    catastrophic_photo_z_frac = str(config['photo_z']['CATASTROPHIC_PHOTO_Z_FRAC'])
+    catastrophic_photo_z_sigma = str(config['photo_z']['CATASTROPHIC_PHOTO_Z_SIGMA'])
 
     save_dir = str(config['simulation_setup']['SIMULATION_SAVE_DIR'])
 
@@ -58,7 +61,9 @@ def pz_config(pipeline_variables_path):
         'sample_points': sample_points,
         'save_dir': save_dir,
         'photo_z_noise_mean': photo_z_noise_mean,
-        'photo_z_noise_sigma': photo_z_noise_sigma
+        'photo_z_noise_sigma': photo_z_noise_sigma,
+        'catastrophic_photo_z_frac': catastrophic_photo_z_frac,
+        'catastrophic_photo_z_sigma': catastrophic_photo_z_sigma
     }
 
     return config_dict
@@ -134,7 +139,6 @@ def split_z_chunks(a, n):
     return [a[i*k+min(i, m):(i+1)*k+min(i+1, m)] for i in range(n)]
 
 
-
 def init_nz(config_dict):
 
     """
@@ -173,7 +177,7 @@ def init_nz(config_dict):
         (round((zmax-zmin)/dz))+1
     )
     z_sample = z_sample.round(decimals=2)
-
+    # print(z_sample)
     # Select n=sample_points number of galaxies randomly from p(z) distribution
     rnd_sample = choices(z_sample[0:-1], pz(z_sample[0:-1], z0=z0, beta=beta), k=sample_points)
     zs = np.round(np.asarray(rnd_sample), 2)
@@ -186,15 +190,58 @@ def init_nz(config_dict):
         zs_sub = zs[id_arr]
         zs_sub = zs_sub.round(decimals=2)
         true_zs = np.concatenate((true_zs, zs_sub))
+        # print(true_zs)
         photo_z_noise_sigmas = (1 + zs_sub) * photo_z_noise_sigma
         photo_z_noise_means = np.zeros(len(zs_sub)) + photo_z_noise_mean
 
         photo_z_noise = np.random.normal(photo_z_noise_means, photo_z_noise_sigmas, len(photo_z_noise_sigmas))
+        # photo_z_noise = photo_z_noise.astype(np.float16)
         obs_zs = zs_sub + photo_z_noise
         phot_zs = np.concatenate((phot_zs, obs_zs))
 
+    ############
+    # Here is some code from the full catalogue simulation which simulates the injection of catastrophic photo-z errors.
+    # I am not sure if it makes any sense to inject these into the n(z) for the faster map-only sims (since this can't
+    # really be introduced as a bias in the same way. Either way, I will keep the code here for now in case we can
+    # figure out how it could be useful in the future
+    ############
+    #
+    # # Inject some catastrophic photo-z errors
+    #
+    final_phot_zs = np.copy(phot_zs)  # will inject catastrophic errors into this column
+    final_phot_zs = np.float32(final_phot_zs)
+
+    catastrophic_photo_z_frac = float(config_dict['catastrophic_photo_z_frac'])
+    catastrophic_photo_z_sigma = float(config_dict['catastrophic_photo_z_sigma'])
+
+    if catastrophic_photo_z_frac != 0:
+        # Let's inject some catastrophic photo-zs
+
+        # Angstroms
+        Ly_alpha = 1216
+        Ly_break = 912
+        Balmer = 3700
+        D4000 = 4000
+
+        break_rfs = [Ly_alpha, Ly_alpha]  # , Ly_break, Ly_break] - could include more pair confusions
+        break_catas = [Balmer, D4000]  # , Balmer, D4000] - could include more pair confusions
+
+        rand_zs_ids = choices(range(len(true_zs)), k=int(len(true_zs) * catastrophic_photo_z_frac))
+        rand_zs_ids = np.asarray(rand_zs_ids)
+        rand_zs_ids_chunks = split_z_chunks(rand_zs_ids, 4)
+
+        final_phot_zs[rand_zs_ids_chunks[0]] = generate_cat_err_sig(true_zs[rand_zs_ids_chunks[0]], break_rfs[0],
+                                                                    break_catas[0], catastrophic_photo_z_sigma)
+        final_phot_zs[rand_zs_ids_chunks[1]] = generate_cat_err_sig(true_zs[rand_zs_ids_chunks[1]], break_rfs[1],
+                                                                    break_catas[1], catastrophic_photo_z_sigma)
+        final_phot_zs[rand_zs_ids_chunks[2]] = generate_cat_err_sig(true_zs[rand_zs_ids_chunks[2]], break_catas[0],
+                                                                    break_rfs[0], catastrophic_photo_z_sigma)
+        final_phot_zs[rand_zs_ids_chunks[3]] = generate_cat_err_sig(true_zs[rand_zs_ids_chunks[3]], break_catas[1],
+                                                                    break_rfs[1], catastrophic_photo_z_sigma)
+
     true_zs = np.float32(true_zs)
     obs_gaussian_zs = np.float32(phot_zs)
+    final_phot_zs = np.float32(final_phot_zs)
 
     # print(true_zs)
     # print(obs_gaussian_zs)
@@ -204,6 +251,8 @@ def init_nz(config_dict):
     with h5py.File(save_dir + mock_cat_filename, 'w') as f:
         f.create_dataset("Redshift_z", data=obs_gaussian_zs)
         f.create_dataset("True_Redshift_z", data=true_zs)
+        if catastrophic_photo_z_frac != 0:
+            f.create_dataset("Catastrophic_Redshift_z", data=final_phot_zs)
 
 
 def execute(pipeline_variables_path):

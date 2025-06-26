@@ -1,4 +1,6 @@
 mywork/
 singularity/
+old/
+dat/
 6x2pt_sim.sif
 6x2pt_sim_mpi.sif

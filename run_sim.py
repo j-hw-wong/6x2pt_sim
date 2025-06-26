@@ -20,8 +20,8 @@ def run_catalogue_sim(pipeline_variables_path, clean=True):
     print('Creating n(z) distribution...')
     catalogue_sim.create_nz.execute(pipeline_variables_path)
     print('Done')
-
-    # Generate fiducial Cls
+    # #
+    # # Generate fiducial Cls
     print('Generating fiducial cosmology...')
     catalogue_sim.generate_cls.execute(pipeline_variables_path)
     print('Done')
@@ -102,12 +102,6 @@ def measure_pcls(pipeline_variables_path, clean=True, cov_iter=False):
             print('Calculating numerical covariance matrix - {} realisations ...'.format(cov_iter_no))
             pcl_measurement.cov_fromsim.execute_iters(pipeline_variables_path, cov_iter_no)
             print('Done')
-#
-#
-# def run_likelihood(pipeline_variables_path):
-#
-#     # Run nautilus sampler to perform likelihood analysis
-#     likelihood.sampler.execute(pipeline_variables_path)
 
 
 def main():
@@ -117,8 +111,8 @@ def main():
 
     # # Create catalogues
     run_catalogue_sim(pipeline_variables_path, clean=True)
-    #
-    # # # Measure Pseudo-Cls
+
+    # # Measure Pseudo-Cls
     measure_pcls(pipeline_variables_path, clean=True, cov_iter=False)
 
     now = datetime.datetime.now()

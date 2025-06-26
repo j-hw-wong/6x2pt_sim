@@ -12,7 +12,7 @@ def measure_pcls_config(pipeline_variables_path):
     config.read(pipeline_variables_path)
 
     save_dir = str(config['simulation_setup']['SIMULATION_SAVE_DIR'])
-    # save_dir = str(config['measurement_setup']['MEASUREMENT_SAVE_DIR'])
+    cmb_kk_noise_path = str(config['cmb_kk_noise']['cmb_kk_noise_path'])
     realisations = int(config['simulation_setup']['REALISATIONS'])
 
     nside = int(config['simulation_setup']['NSIDE'])
@@ -23,8 +23,8 @@ def measure_pcls_config(pipeline_variables_path):
     raw_pcl_lmin_out = 0
     raw_pcl_lmax_out = int(float(config['simulation_setup']['INPUT_ELL_MAX']))
 
-    sigma_phot = float(config['noise_cls']['SIGMA_PHOT'])
-    sigma_e = float(config['noise_cls']['SIGMA_SHEAR'])
+    sigma_phot = float(config['photo_z']['SIGMA_PHOT'])
+    sigma_e = float(config['shape_noise']['SIGMA_SHEAR'])
 
     mask_path = str(config['measurement_setup']['PATH_TO_MASK'])
     cmb_mask_path = str(config['measurement_setup']['PATH_TO_CMB_MASK'])
@@ -37,6 +37,7 @@ def measure_pcls_config(pipeline_variables_path):
         'raw_pcl_lmin_out': raw_pcl_lmin_out,
         'raw_pcl_lmax_out': raw_pcl_lmax_out,
         'save_dir': save_dir,
+        'cmb_kk_noise_path': cmb_kk_noise_path,
         'realisations': realisations,
         'sigma_phot': sigma_phot,
         'sigma_e': sigma_e,
@@ -51,6 +52,7 @@ def measure_pcls_config(pipeline_variables_path):
 def maps(config_dict, iter_no):
 
     save_dir = config_dict['save_dir']
+    cmb_kk_noise_path = config_dict['cmb_kk_noise_path']
     nbins = config_dict['nbins']
     nside = config_dict['nside']
     raw_pcl_lmin_out = config_dict['raw_pcl_lmin_out']
@@ -92,10 +94,29 @@ def maps(config_dict, iter_no):
     cmbk_map = hp.read_map(save_dir + 'flask/output/iter_{}/map-f1z{}.fits'.format(iter_no, nbins + 1), field=0)
     # We could e.g add some noise to the CMB Kappa field at the map level
 
+    # These lines here are untested!
+    full_sky_cmbkk_noise_ell = np.loadtxt(cmb_kk_noise_path)[:, 0]
+    assert full_sky_cmbkk_noise_ell[-1] >= raw_pcl_lmax_out
+    full_sky_cmbkk_noise_cl = np.loadtxt(cmb_kk_noise_path)[:,1]
+    full_sky_cmbkk_noise_cl = full_sky_cmbkk_noise_cl[0:raw_pcl_lmax_out+1]
+    full_sky_cmbkk_noise_map = hp.synfast(cls=full_sky_cmbkk_noise_cl, nside=nside,
+                                 lmax=raw_pcl_lmax_out, pol=False)
+
+    cmbk_map += full_sky_cmbkk_noise_map
+
     cmbk_map[unobserved_cmb_ids] = hp.UNSEEN
 
     # Now need to measure the CMB kappa fields
     cut_sky_map_dicts["CMB_kappa"] = nmt.NmtField(mask=cmb_mask, maps=[cmbk_map], spin=0, lmax_sht=raw_pcl_lmax_out)
+
+    cmb_kk_noise_cls_dir = save_dir + 'raw_noise_cls/cmbkappa_cl/iter_{}/'.format(iter_no)
+    if not os.path.exists(cmb_kk_noise_cls_dir):
+        os.makedirs(cmb_kk_noise_cls_dir)
+
+    np.savetxt(cmb_kk_noise_cls_dir + 'bin_1_1.txt',
+               np.transpose(full_sky_cmbkk_noise_cl*w_survey))
+
+    np.savetxt(cmb_kk_noise_cls_dir + 'ell.txt', np.transpose(ell_arr))
 
     for b in range(nbins):
 
@@ -436,11 +457,11 @@ def execute_pcl_measurement(config_dict, iter_no, cut_sky_map_dicts):
     # Fill in the remaining theory Cls - off diagonal spectra will be zero:
 
     gal_shear_noise_cls_dir = save_dir + 'raw_noise_cls/galaxy_shear_cl/iter_{}/'.format(realisation)
-    cmbkk_noise_cls_dir = save_dir + 'raw_noise_cls/cmbkappa_cl/iter_{}/'.format(realisation)
+    # cmbkk_noise_cls_dir = save_dir + 'raw_noise_cls/cmbkappa_cl/iter_{}/'.format(realisation)
     cmbkk_gal_noise_cls_dir = save_dir + 'raw_noise_cls/galaxy_cmbkappa_cl/iter_{}/'.format(realisation)
     cmbkk_shear_noise_cls_dir = save_dir + 'raw_noise_cls/shear_cmbkappa_cl/iter_{}/'.format(realisation)
 
-    for cl_path in [gal_shear_noise_cls_dir, cmbkk_noise_cls_dir, cmbkk_gal_noise_cls_dir, cmbkk_shear_noise_cls_dir]:
+    for cl_path in [gal_shear_noise_cls_dir, cmbkk_gal_noise_cls_dir, cmbkk_shear_noise_cls_dir]:
         if not os.path.exists(cl_path):
             os.makedirs(cl_path)
 
@@ -464,10 +485,10 @@ def execute_pcl_measurement(config_dict, iter_no, cut_sky_map_dicts):
 
     null_noise_cls = np.zeros(len(ell_arr))
 
-    np.savetxt(
-        cmbkk_noise_cls_dir + 'bin_1_1.txt',
-        np.transpose(null_noise_cls)
-    )
+    # np.savetxt(
+    #     cmbkk_noise_cls_dir + 'bin_1_1.txt',
+    #     np.transpose(null_noise_cls)
+    # )
 
     for i in range(nbins):
 
