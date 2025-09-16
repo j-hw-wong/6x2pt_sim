@@ -113,8 +113,21 @@ def maps(config_dict, iter_no):
     if not os.path.exists(cmb_kk_noise_cls_dir):
         os.makedirs(cmb_kk_noise_cls_dir)
 
+    # f0 = nmt.NmtField(mask=cmb_mask, maps=None, spin=0, lmax_sht=raw_pcl_lmax_out, lite=True)
+    #
+    # w = nmt.NmtWorkspace()
+    # w.compute_coupling_matrix(f0, f0, bins=nmt.NmtBin.from_lmax_linear(raw_pcl_lmax_out, 1))
+    #
+    # cmb_kk_noise_PCl = w.couple_cell([full_sky_cmbkk_noise_cl])[0]
+    #
+    # np.savetxt(cmb_kk_noise_cls_dir + 'bin_1_1.txt',
+    #            np.transpose(cmb_kk_noise_PCl[0:raw_pcl_lmax_out+1]))
+
+    # np.savetxt(cmb_kk_noise_cls_dir + 'bin_1_1.txt',
+    #            np.transpose(full_sky_cmbkk_noise_cl*w_survey))
+
     np.savetxt(cmb_kk_noise_cls_dir + 'bin_1_1.txt',
-               np.transpose(full_sky_cmbkk_noise_cl*w_survey))
+               np.transpose(full_sky_cmbkk_noise_cl))
 
     np.savetxt(cmb_kk_noise_cls_dir + 'ell.txt', np.transpose(ell_arr))
 
@@ -153,7 +166,8 @@ def maps(config_dict, iter_no):
         shape_noise_cls = np.zeros(raw_pcl_lmax_out+1)
         she_nl = ((((sigma_e / np.sqrt(2)) ** 2) / (sum(nz_bin) / sky_coverage)) * w_survey)
         she_nl_all_sky = ((((sigma_e / np.sqrt(2)) ** 2) / (sum(nz_bin) / sky_coverage)))
-        shape_noise_cls += she_nl
+        # shape_noise_cls += she_nl
+        shape_noise_cls += she_nl_all_sky
 
         dens_map[unobserved_ids] = hp.UNSEEN
         shape_noise_map = hp.synfast(cls=np.zeros(raw_pcl_lmax_out+1)+she_nl_all_sky, nside=nside, lmax=raw_pcl_lmax_out, pol=False)
@@ -164,10 +178,16 @@ def maps(config_dict, iter_no):
         y1_map[unobserved_ids] = hp.UNSEEN
         y2_map[unobserved_ids] = hp.UNSEEN
 
+        # np.savetxt(poisson_cls_theory_dir + 'bin_{}_{}.txt'.format(b + 1, b + 1),
+        #            np.transpose(poisson_noise_cls))
+
         np.savetxt(poisson_cls_theory_dir + 'bin_{}_{}.txt'.format(b + 1, b + 1),
-                   np.transpose(poisson_noise_cls))
+                   np.transpose(poisson_noise_cls_allsky))
 
         np.savetxt(poisson_cls_theory_dir + 'ell.txt', np.transpose(ell_arr))
+
+        # np.savetxt(shape_noise_cls_dir + 'bin_{}_{}.txt'.format(b + 1, b + 1),
+        #            np.transpose(shape_noise_cls))
 
         np.savetxt(shape_noise_cls_dir + 'bin_{}_{}.txt'.format(b + 1, b + 1),
                    np.transpose(shape_noise_cls))

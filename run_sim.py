@@ -2,7 +2,8 @@ import datetime
 import configparser
 import catalogue_sim
 import pcl_measurement
-
+from itertools import repeat
+import multiprocessing
 
 def run_catalogue_sim(pipeline_variables_path, clean=True):
 
@@ -13,14 +14,14 @@ def run_catalogue_sim(pipeline_variables_path, clean=True):
 
     # Generate random sample
     print('Initialising random galaxy sample...')
-    catalogue_sim.init_rand_sample.execute(pipeline_variables_path)
+    #catalogue_sim.init_rand_sample.execute(pipeline_variables_path)
     print('Done')
 
     # Create n(z)
     print('Creating n(z) distribution...')
-    catalogue_sim.create_nz.execute(pipeline_variables_path)
+    #catalogue_sim.create_nz.execute(pipeline_variables_path)
     print('Done')
-    # #
+
     # # Generate fiducial Cls
     print('Generating fiducial cosmology...')
     catalogue_sim.generate_cls.execute(pipeline_variables_path)
@@ -55,6 +56,10 @@ def run_catalogue_sim(pipeline_variables_path, clean=True):
             pcl_measurement.clean_products.execute(pipeline_variables_path=pipeline_variables_path, iter_no=i+1)
             print('Done')
 
+    print('Parallel PCl')
+    # pool = multiprocessing.Pool(4)
+    # zip(*pool.starmap(pcl_measurement.measure_spectra.execute, zip(repeat(pipeline_variables_path), range(1, no_realisations+1))))
+
 
 def measure_pcls(pipeline_variables_path, clean=True, cov_iter=False):
 
@@ -68,11 +73,11 @@ def measure_pcls(pipeline_variables_path, clean=True, cov_iter=False):
         for j in range(no_realisations):
 
             print('Measuring 6x2pt power spectra from simulated maps... - Realisation {} / {}'.format(j+1, no_realisations))
-            pcl_measurement.measure_spectra.execute(pipeline_variables_path=pipeline_variables_path, realisation=j+1)
+            # pcl_measurement.measure_spectra.execute(pipeline_variables_path=pipeline_variables_path, realisation=j+1)
             print('Done')
 
             # Delete data (for saving storage space)
-            pcl_measurement.clean_products.execute(pipeline_variables_path=pipeline_variables_path, iter_no=j+1)
+            # pcl_measurement.clean_products.execute(pipeline_variables_path=pipeline_variables_path, iter_no=j+1)
 
     # # Average Cls over all realisations
     print('Averaging Cls over realisations...')
@@ -100,14 +105,14 @@ def measure_pcls(pipeline_variables_path, clean=True, cov_iter=False):
         cov_iter_nos = [1, 2, 3]
         for cov_iter_no in cov_iter_nos:
             print('Calculating numerical covariance matrix - {} realisations ...'.format(cov_iter_no))
-            pcl_measurement.cov_fromsim.execute_iters(pipeline_variables_path, cov_iter_no)
+            # pcl_measurement.cov_fromsim.execute_iters(pipeline_variables_path, cov_iter_no)
             print('Done')
 
 
 def main():
 
     pipeline_variables_path = \
-        '/raid/scratch/wongj/mywork/3x2pt/6x2pt_sim/set_config/set_variables.ini'
+        '/raid/scratch/wongj/mywork/3x2pt/6x2pt_sim/set_config/set_variables_temp3.ini'
 
     # # Create catalogues
     run_catalogue_sim(pipeline_variables_path, clean=True)

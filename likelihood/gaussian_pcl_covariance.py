@@ -1160,8 +1160,8 @@ def get_3x2pt_cov_pcl(n_zbin, signal_path, noise_path, lmax_in, lmin_in, lmax_ou
         # Load in the signal + noise Cls
         print(f'Loading and coupling input Cls {spec_idx + 1} / {len(spectra)}: Loading...')
         uncoupled_theory_cls = load_cls(signal_paths, noise_paths, lmax_in, lmax_in, lmin_in, noise_lmin)
-        if field_types == ['E', 'N']:
-            print(uncoupled_theory_cls)
+        # if field_types == ['E', 'N']:
+        #     print(uncoupled_theory_cls)
         # Apply the "improved NKA" method: couple the theory Cls,
         # then divide by fsky to avoid double-counting the reduction in power
         print(f'Loading and coupling input Cls {spec_idx + 1} / {len(spectra)}: Coupling...')
@@ -1599,13 +1599,13 @@ def get_6x2pt_cov_pcl(n_zbin, signal_path, noise_path, lmax_in, lmin_in, lmax_ou
         elif field_types == ['N', 'E']:
             # NE, NB
             signal_paths = [f"{signal_path}/galaxy_shear_cl/bin_{zbins[0]}_{zbins[1]}.txt", None]
-            noise_paths = [f"{signal_path}/galaxy_shear_cl/bin_{zbins[0]}_{zbins[1]}.txt", None]
+            noise_paths = [f"{noise_path}/galaxy_shear_cl/bin_{zbins[0]}_{zbins[1]}.txt", None]
             workspace = workspace_spin02
 
         elif field_types == ['E', 'N']:
             # EN, BN
             signal_paths = [f"{signal_path}/galaxy_shear_cl/bin_{zbins[1]}_{zbins[0]}.txt", None]
-            noise_paths = [f"{signal_path}/galaxy_shear_cl/bin_{zbins[1]}_{zbins[0]}.txt", None]
+            noise_paths = [f"{noise_path}/galaxy_shear_cl/bin_{zbins[1]}_{zbins[0]}.txt", None]
             workspace = workspace_spin02
 
         else:

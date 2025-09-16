@@ -7,7 +7,7 @@ from scipy.stats import norm
 def main():
 
     pipeline_variables_path = \
-        '/raid/scratch/wongj/mywork/3x2pt/6x2pt_sim/set_config/set_variables_sampler.ini'
+        '/raid/scratch/wongj/mywork/3x2pt/6x2pt_sim/set_config/set_variables.ini'
 
     now = datetime.datetime.now()
     # Perform likelihood analysis
@@ -33,11 +33,11 @@ def main():
 
     priors.append(("w0", (-1.25, -0.75)))  # for a shape to the prior, this could be e.g ["w0", scipy.stats.norm(loc=2.0, scale=0\
     priors.append(("wa", (-0.5, 0.5)))
-    # priors.append(("Omega_m", (0.2, 0.4)))
-    # priors.append(("h", (0.5, 0.8)))
-    # priors.append(("Omega_b", (0.02, 0.08)))
-    # priors.append(("n_s", (0.8, 1.2)))
-    # priors.append(("sigma8", (0.75, 0.9)))
+    priors.append(("Omega_m", (0.2, 0.4)))
+    priors.append(("h", (0.5, 0.8)))
+    priors.append(("Omega_b", (0.02, 0.08)))
+    priors.append(("n_s", (0.8, 1.2)))
+    priors.append(("sigma8", (0.75, 0.9)))
 
     # priors.append(("w0", (-1.15, -0.85)))
     # priors.append(("wa", (-0.3, 0.3)))
@@ -48,9 +48,9 @@ def main():
     # priors.append(("sigma8", (0.81, 0.87)))
 
     # priors.append(("_b1", (0.5, 3)))
-    # priors.append(("_b2", (-2, 2)))
-    # priors.append(("_bs", (-2, 2)))
-
+    # priors.append(("_b2", (-5, 5)))
+    # priors.append(("_bs", (-5, 5)))
+    #
     # priors.append(("_A1", (-8, 8)))
     # priors.append(("_A2", (-8, 8)))
     # priors.append(("_bTA", (-6, 6)))
@@ -83,6 +83,10 @@ def main():
     # priors.append(('_b1_1', (0,3)))   # for a constant galaxy bias in bin 1
     # priors.append(('_b1_2', (0,3)))   # for a constant galaxy bias in bin 2
     # priors.append(('_b1_3', (0,3)))   # for a constant galaxy bias in bin 3
+    # priors.append(('_b1_4', (0,3)))  # for a constant galaxy bias in bin 4
+    # priors.append(('_b1_5', (0,3)))  # for a constant galaxy bias in bin 5
+    # priors.append(('_b1_6', (0,3)))  # for a constant galaxy bias in bin 6
+
     # and in this case we need to have bi_marg=True in the sampler args below
 
     # Can also repeat this for m-bias marginalisation. If a global m-bias (independent of tomographic bin)
@@ -113,7 +117,8 @@ def main():
         pipeline_variables_path,
         covariance_matrix_type=covariance_matrix_type,
         priors=priors,
-        checkpoint_filename='w0wa_3x2pt_analytic.hdf5',
+        checkpoint_filename='Cosmology_6x2pt_analytic.hdf5',
+        # checkpoint_filename='Cosmology_3x2pt_numerical.hdf5',
         bi_marg=False,
         mi_marg=False,
         Dzi_marg=False,

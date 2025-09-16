@@ -199,7 +199,7 @@ def load_cls(n_zbin, field, cls_dir, lmax=None, lmin=0):
         spec_2 = ['K1']
 
     max_rows = None if lmax is None else (lmax - lmin + 1)
-
+    # print(spectra_list)
     spectra = []
     for spec_id in range(len(spectra_list)):
         spec_1_field = mysplit(spec_1[spec_id])[0]
@@ -480,6 +480,7 @@ def expected_bp(theory_cl, theory_lmin, config, noise_cls, pbl_nn, pbl_ne, pbl_e
     # Now trim/pad noise Cls as above
     # 1. Trim so power is truncated above input_lmax
     noise_cls = noise_cls[:, :(input_lmax - theory_lmin + 1)]
+    # print(len(noise_cls[0]))
     # 2. Pad so theory power runs from 0 up to max(input_lmax, mix_lmax)
     zeros_lowl = np.zeros((n_spec, theory_lmin))
     zeros_hil = np.zeros((n_spec, max(mix_lmax - input_lmax, 0)))
@@ -494,35 +495,35 @@ def expected_bp(theory_cl, theory_lmin, config, noise_cls, pbl_nn, pbl_ne, pbl_e
             assert spec == 'EE'
             this_cl = theory_cl[spec_idx]
             this_noise_cl = noise_cls[spec_idx]
-            this_exp_bp = pbl_ee @ ((mixmat_ee_to_ee @ this_cl) + this_noise_cl)
+            this_exp_bp = pbl_ee @ ((mixmat_ee_to_ee @ (this_cl + this_noise_cl))+(mixmat_bb_to_ee @ (this_noise_cl))) #Need to convolve mixing from noise component in B-mode. B-mode itself is zero
             exp_bp[spec_idx] = this_exp_bp
 
         elif field == 'N':
             assert spec == 'NN'
             this_cl = theory_cl[spec_idx]
             this_noise_cl = noise_cls[spec_idx]
-            this_exp_bp = pbl_nn @ ((mixmat_nn_to_nn @ this_cl) + this_noise_cl)
+            this_exp_bp = pbl_nn @ ((mixmat_nn_to_nn @ (this_cl + this_noise_cl)))
             exp_bp[spec_idx] = this_exp_bp
 
         elif field == 'EK':
             assert spec == 'EK'
             this_cl = theory_cl[spec_idx]
             this_noise_cl = noise_cls[spec_idx]
-            this_exp_bp = pbl_ek @ ((mixmat_ke_to_ke @ this_cl) + this_noise_cl)
+            this_exp_bp = pbl_ek @ ((mixmat_ke_to_ke @ (this_cl + this_noise_cl)))
             exp_bp[spec_idx] = this_exp_bp
 
         elif field == 'NK':
             assert spec == 'NK'
             this_cl = theory_cl[spec_idx]
             this_noise_cl = noise_cls[spec_idx]
-            this_exp_bp = pbl_nk @ ((mixmat_nn_to_kk @ this_cl) + this_noise_cl)
+            this_exp_bp = pbl_nk @ ((mixmat_nn_to_kk @ (this_cl + this_noise_cl)))
             exp_bp[spec_idx] = this_exp_bp
 
         elif field == 'K':
             assert spec == 'K'
             this_cl = theory_cl[spec_idx]
             this_noise_cl = noise_cls[spec_idx]
-            this_exp_bp = pbl_kk @ ((mixmat_kk_to_kk @ this_cl) + this_noise_cl)
+            this_exp_bp = pbl_kk @ ((mixmat_kk_to_kk @ (this_cl + this_noise_cl)))
             exp_bp[spec_idx] = this_exp_bp
 
     assert np.all(np.isfinite(exp_bp))

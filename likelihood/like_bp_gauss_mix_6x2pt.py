@@ -181,7 +181,7 @@ def load_cls(n_zbin, cls_dir, lmax=None, lmin=0):
     spectra_list.append('K1K1')
     spec_1.append('K1')
     spec_2.append('K1')
-
+    # print(spectra_list)
     max_rows = None if lmax is None else (lmax - lmin + 1)
 
     spectra = []
@@ -364,22 +364,22 @@ def expected_bp(theory_cl, theory_lmin, config, noise_cls, pbl_nn, pbl_ne, pbl_e
         this_noise_cl = this_noise_cl[mix_lmin:(mix_lmax + 1)]
 
         if spec == 'NN':
-            this_exp_bp = pbl_nn@((mixmat_nn_to_nn@(this_cl))+(this_noise_cl))
+            this_exp_bp = pbl_nn@((mixmat_nn_to_nn@(this_cl+this_noise_cl)))
 
         elif spec in ('NE', 'EN'):
-            this_exp_bp = pbl_ne@((mixmat_ne_to_ne@this_cl)+this_noise_cl)
+            this_exp_bp = pbl_ne@((mixmat_ne_to_ne@(this_cl+this_noise_cl)))
 
         elif spec == 'EE':
-            this_exp_bp = pbl_ee@((mixmat_ee_to_ee@this_cl)+this_noise_cl) #Add BB noise contribution to auto-spectra - we don't consider this for JW work
+            this_exp_bp = pbl_ee@((mixmat_ee_to_ee@(this_cl+this_noise_cl))+(mixmat_bb_to_ee @ (this_noise_cl))) #Add BB noise contribution to auto-spectra - we don't consider this for JW work
 
         elif spec == 'EK':
-            this_exp_bp = pbl_ek@((mixmat_ke_to_ke@(this_cl))+(this_noise_cl))
+            this_exp_bp = pbl_ek@((mixmat_ke_to_ke@(this_cl+this_noise_cl)))
 
         elif spec == 'NK':
-            this_exp_bp = pbl_nk@((mixmat_nn_to_kk@(this_cl))+(this_noise_cl))
+            this_exp_bp = pbl_nk@((mixmat_nn_to_kk@(this_cl+this_noise_cl)))
 
         elif spec == 'KK':
-            this_exp_bp = pbl_kk@((mixmat_kk_to_kk@(this_cl))+(this_noise_cl))
+            this_exp_bp = pbl_kk@((mixmat_kk_to_kk@(this_cl+this_noise_cl)))
 
         else:
             raise ValueError('Unexpected spectrum: ' + spec)

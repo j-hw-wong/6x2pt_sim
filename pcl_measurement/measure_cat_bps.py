@@ -519,10 +519,11 @@ def process_00_pcls(config_dict, theory_cl_dir, noise_cl_dir, spectra_type, bin_
         bin_j=bin_j)[0]
 
     theory_cls = pad_cls(lmin=input_lmin, input_cls=theory_cls)
-    noise_cls = pad_cls(lmin=output_lmin, input_cls=noise_cls)
-    theory_cls = [theory_cls]
+    noise_cls = pad_cls(lmin=0, input_cls=noise_cls)
+    # theory_cls = [theory_cls]
+    theory_cls = [theory_cls+noise_cls]
     theory_pcl = w.couple_cell(theory_cls)
-    binned_theory_pcl = pbl @ (theory_pcl[0][output_lmin:output_lmax + 1] + noise_cls[output_lmin:output_lmax + 1])
+    binned_theory_pcl = pbl @ (theory_pcl[0][output_lmin:output_lmax + 1])
 
     np.savetxt(bp_save_dir + 'PCl_Bandpowers_{}_bin_{}_{}.txt'.format(spectra_type, bin_i, bin_j),
                np.transpose(binned_theory_pcl))
@@ -625,20 +626,25 @@ def process_02_pcls(config_dict, theory_cl_dir, noise_cl_dir, spectra_type, bin_
                 bin_j=bin_j)[0])
 
         noise_cls = pad_cls(
-            lmin=output_lmin,
+            lmin=0,
             input_cls=setup_theory_cls(
                 cl_dir=noise_cl_dir,
                 spectra_type=spectra_type,
                 bin_i=bin_i,
                 bin_j=bin_j)[0])
 
-        theory_cls = [theory_TE, theory_TB]
+        # theory_cls = [theory_TE, theory_TB]
+        theory_cls = [theory_TE+noise_cls, theory_TB+noise_cls]
+
         theory_pcl = w.couple_cell(theory_cls)
 
-        binned_theory_pcls['TE'] = pbl @ (theory_pcl[0][output_lmin:output_lmax + 1]
-                                          + noise_cls[output_lmin:output_lmax + 1])
-        binned_theory_pcls['TB'] = pbl @ (theory_pcl[1][output_lmin:output_lmax + 1]
-                                          + noise_cls[output_lmin:output_lmax + 1])
+        # binned_theory_pcls['TE'] = pbl @ (theory_pcl[0][output_lmin:output_lmax + 1]
+        #                                   + noise_cls[output_lmin:output_lmax + 1])
+        # binned_theory_pcls['TB'] = pbl @ (theory_pcl[1][output_lmin:output_lmax + 1]
+        #                                   + noise_cls[output_lmin:output_lmax + 1])
+
+        binned_theory_pcls['TE'] = pbl @ (theory_pcl[0][output_lmin:output_lmax + 1])
+        binned_theory_pcls['TB'] = pbl @ (theory_pcl[1][output_lmin:output_lmax + 1])
 
     elif spectra_type == 'gal_E' or spectra_type == 'gal_B':
         theory_gal_E = pad_cls(
@@ -658,21 +664,27 @@ def process_02_pcls(config_dict, theory_cl_dir, noise_cl_dir, spectra_type, bin_
                 bin_j=bin_j)[0])
 
         noise_cls = pad_cls(
-            lmin=output_lmin,
+            lmin=0,
             input_cls=setup_theory_cls(
                 cl_dir=noise_cl_dir,
                 spectra_type=spectra_type,
                 bin_i=bin_i,
                 bin_j=bin_j)[0])
 
-        theory_cls = [theory_gal_E, theory_gal_B]
+        # theory_cls = [theory_gal_E, theory_gal_B]
+        theory_cls = [theory_gal_E+noise_cls, theory_gal_B+noise_cls]
+
         theory_pcl = w.couple_cell(theory_cls)
 
-        binned_theory_pcls['gal_E'] = pbl @ (theory_pcl[0][output_lmin:output_lmax + 1]
-                                             + noise_cls[output_lmin:output_lmax + 1])
+        # binned_theory_pcls['gal_E'] = pbl @ (theory_pcl[0][output_lmin:output_lmax + 1]
+        #                                      + noise_cls[output_lmin:output_lmax + 1])
+        #
+        # binned_theory_pcls['gal_B'] = pbl @ (theory_pcl[1][output_lmin:output_lmax + 1]
+        #                                      + noise_cls[output_lmin:output_lmax + 1])
 
-        binned_theory_pcls['gal_B'] = pbl @ (theory_pcl[1][output_lmin:output_lmax + 1]
-                                             + noise_cls[output_lmin:output_lmax + 1])
+        binned_theory_pcls['gal_E'] = pbl @ (theory_pcl[0][output_lmin:output_lmax + 1])
+
+        binned_theory_pcls['gal_B'] = pbl @ (theory_pcl[1][output_lmin:output_lmax + 1])
 
     elif spectra_type == 'kCMB_E' or spectra_type == 'kCMB_B':
         theory_kCMB_E = pad_cls(
@@ -692,21 +704,27 @@ def process_02_pcls(config_dict, theory_cl_dir, noise_cl_dir, spectra_type, bin_
                 bin_j=bin_j)[0])
 
         noise_cls = pad_cls(
-            lmin=output_lmin,
+            lmin=0,
             input_cls=setup_theory_cls(
                 cl_dir=noise_cl_dir,
                 spectra_type=spectra_type,
                 bin_i=bin_i,
                 bin_j=bin_j)[0])
 
-        theory_cls = [theory_kCMB_E, theory_kCMB_B]
+        # theory_cls = [theory_kCMB_E, theory_kCMB_B]
+        theory_cls = [theory_kCMB_E+noise_cls, theory_kCMB_B+noise_cls]
+
         theory_pcl = w.couple_cell(theory_cls)
 
-        binned_theory_pcls['kCMB_E'] = pbl @ (theory_pcl[0][output_lmin:output_lmax + 1]
-                                             + noise_cls[output_lmin:output_lmax + 1])
+        # binned_theory_pcls['kCMB_E'] = pbl @ (theory_pcl[0][output_lmin:output_lmax + 1]
+        #                                      + noise_cls[output_lmin:output_lmax + 1])
+        #
+        # binned_theory_pcls['kCMB_B'] = pbl @ (theory_pcl[1][output_lmin:output_lmax + 1]
+        #                                      + noise_cls[output_lmin:output_lmax + 1])
 
-        binned_theory_pcls['kCMB_B'] = pbl @ (theory_pcl[1][output_lmin:output_lmax + 1]
-                                             + noise_cls[output_lmin:output_lmax + 1])
+        binned_theory_pcls['kCMB_E'] = pbl @ (theory_pcl[0][output_lmin:output_lmax + 1])
+
+        binned_theory_pcls['kCMB_B'] = pbl @ (theory_pcl[1][output_lmin:output_lmax + 1])
 
     bp_save_dir = setup_theory_cls(cl_dir=theory_cl_dir, spectra_type=spectra_type, bin_i=bin_i, bin_j=bin_j)[1]
 
@@ -775,21 +793,30 @@ def process_22_pcls(config_dict, theory_cl_dir, noise_cl_dir, spectra_type, bin_
             bin_j=bin_j)[0]) for spec_type in ['EE', 'EB', 'BE', 'BB']]
 
     noise_cls = pad_cls(
-        lmin=output_lmin,
+        lmin=0,
         input_cls=setup_theory_cls(
             cl_dir=noise_cl_dir,
             spectra_type=spectra_type,
             bin_i=bin_i,
             bin_j=bin_j)[0])
 
-    theory_cls = [theory_EE, theory_EB, theory_BE, theory_BB]
+    # theory_cls = [theory_EE, theory_EB, theory_BE, theory_BB]
+    theory_cls = [theory_EE+noise_cls, theory_EB, theory_BE, theory_BB+noise_cls]
+
     theory_pcls = w.couple_cell(theory_cls)
 
+    # binned_theory_pcls = {
+    #     'EE': pbl @ (theory_pcls[0][output_lmin:output_lmax + 1] + noise_cls[output_lmin:output_lmax + 1]),
+    #     'EB': pbl @ (theory_pcls[1][output_lmin:output_lmax + 1] + noise_cls[output_lmin:output_lmax + 1]),
+    #     'BE': pbl @ (theory_pcls[2][output_lmin:output_lmax + 1] + noise_cls[output_lmin:output_lmax + 1]),
+    #     'BB': pbl @ (theory_pcls[3][output_lmin:output_lmax + 1] + noise_cls[output_lmin:output_lmax + 1])
+    # }
+
     binned_theory_pcls = {
-        'EE': pbl @ (theory_pcls[0][output_lmin:output_lmax + 1] + noise_cls[output_lmin:output_lmax + 1]),
-        'EB': pbl @ (theory_pcls[1][output_lmin:output_lmax + 1] + noise_cls[output_lmin:output_lmax + 1]),
-        'BE': pbl @ (theory_pcls[2][output_lmin:output_lmax + 1] + noise_cls[output_lmin:output_lmax + 1]),
-        'BB': pbl @ (theory_pcls[3][output_lmin:output_lmax + 1] + noise_cls[output_lmin:output_lmax + 1])
+        'EE': pbl @ (theory_pcls[0][output_lmin:output_lmax + 1]),
+        'EB': pbl @ (theory_pcls[1][output_lmin:output_lmax + 1]),
+        'BE': pbl @ (theory_pcls[2][output_lmin:output_lmax + 1]),
+        'BB': pbl @ (theory_pcls[3][output_lmin:output_lmax + 1])
     }
 
     bp_save_dir = setup_theory_cls(cl_dir=theory_cl_dir, spectra_type=spectra_type, bin_i=bin_i, bin_j=bin_j)[1]
@@ -1263,7 +1290,7 @@ def execute(pipeline_variables_path):
             process_02_pcls(
                 config_dict=config_dict,
                 theory_cl_dir=theory_cls_dir,
-                noise_cl_dir=obs_noise_cls_dir,
+                noise_cl_dir=noise_cls_dir,
                 spectra_type='gal_E',
                 bin_i=i + 1,
                 bin_j=j + 1,

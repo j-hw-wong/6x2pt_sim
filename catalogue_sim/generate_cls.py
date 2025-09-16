@@ -38,26 +38,39 @@ def CCL_cosmo(pipeline_variables_path):
     Omega_c = float(config['cosmology']['Omega_c'])
     Omega_b = float(config['cosmology']['Omega_b'])
     h = float(config['cosmology']['h'])
-    A_s = float(config['cosmology']['A_s'])
-    # sigma8 = float(config['cosmology']['sigma8'])
     n_s = float(config['cosmology']['n_s'])
     Omega_k = float(config['cosmology']['Omega_k'])
     w0 = float(config['cosmology']['w0'])
     wa = float(config['cosmology']['wa'])
+    try:
+        A_s = float(config['cosmology']['A_s'])
+        # Fiducial cosmology. These parameters could be read in from the config file
+        cosmo = ccl.Cosmology(
+            Omega_c=Omega_c,
+            Omega_b=Omega_b,
+            h=h,
+            A_s=A_s,
+            n_s=n_s,
+            Omega_k=Omega_k,
+            w0=w0,
+            wa=wa,
+            extra_parameters={'camb': {'dark_energy_model': 'ppf'}}
+        )
 
-    # Fiducial cosmology. These parameters could be read in from the config file
-    cosmo = ccl.Cosmology(
-        Omega_c=Omega_c,
-        Omega_b=Omega_b,
-        h=h,
-        A_s=A_s,
-        n_s=n_s,
-        Omega_k=Omega_k,
-        w0=w0,
-        wa=wa,
-        extra_parameters={'camb': {'dark_energy_model': 'ppf'}}
-
-    )
+    except KeyError:
+        sigma8 = float(config['cosmology']['sigma8'])
+        # Fiducial cosmology. These parameters could be read in from the config file
+        cosmo = ccl.Cosmology(
+            Omega_c=Omega_c,
+            Omega_b=Omega_b,
+            h=h,
+            sigma8=sigma8,
+            n_s=n_s,
+            Omega_k=Omega_k,
+            w0=w0,
+            wa=wa,
+            extra_parameters={'camb': {'dark_energy_model': 'ppf'}}
+        )
 
     return cosmo
 
@@ -184,7 +197,7 @@ def setup_systematics_dict(pipeline_variables_path):
         bTA = bTA_dat * np.ones(len(z))
 
     eta1 = float(config['intrinsic_alignment']['eta1'])
-    eta2 = float(config['intrinsic_alignment']['eta1'])
+    eta2 = float(config['intrinsic_alignment']['eta2'])
 
     z0 = float(config['redshift_distribution']['Z0'])
 
@@ -345,6 +358,9 @@ def setup_6x2pt_cls(save_dir, nz_filename, n_zbin, ell_min, ell_max, fid_cosmo, 
     # Convert IA params
     # c_1, c_delta, c_2 = pt.translate_IA_norm(fid_cosmo, z=z, a1=A_1, a1delta=A_1d, a2=A_2, Om_m2_for_c2=False)
 
+    # print('Cosmology setup')
+    # test_start_time = time.time()
+
     Om_m = fid_cosmo['Omega_m']
     rho_crit = ccllib.cvar.constants.RHO_CRITICAL
     gz = ccl.growth_factor(fid_cosmo, 1/(1+z))
@@ -403,6 +419,8 @@ def setup_6x2pt_cls(save_dir, nz_filename, n_zbin, ell_min, ell_max, fid_cosmo, 
 
     # cl_kCMB = ccl.angular_cl(fid_cosmo, k_CMB, k_CMB, ells)
 
+    # print(time.time()-test_start_time)
+
     for i in range(n_zbin):
 
         # Bin i number
@@ -413,10 +431,13 @@ def setup_6x2pt_cls(save_dir, nz_filename, n_zbin, ell_min, ell_max, fid_cosmo, 
         else:
             Dzi = Dzi_dat[i]
 
-        g_i = ccl.NumberCountsTracer(fid_cosmo, has_rsd=False, dndz=(z+Dzi, nz_dat[:, bin_i]), bias=(z, np.ones_like(z)), mag_bias=(z,sz)) # set a simple linear bias of 1 since we deal with the bias at P(k) level
-        y_i = ccl.WeakLensingTracer(fid_cosmo, dndz=(z+Dzi, nz_dat[:, bin_i])) # don't add in IA here? Will have to sort out manually?
+        new_z_i = z+Dzi
+        keep_ids_i = np.where((new_z_i>=0))[0]
 
-        y_i_ia = ccl.WeakLensingTracer(fid_cosmo, dndz=(z+Dzi, nz_dat[:, bin_i]), has_shear=False, ia_bias=(z, np.ones_like(z)), use_A_ia=False) # set a simple IA bias of 1 since we deal with the bias at P(k) level
+        g_i = ccl.NumberCountsTracer(fid_cosmo, has_rsd=False, dndz=(new_z_i[keep_ids_i], nz_dat[:, bin_i][keep_ids_i]), bias=(z, np.ones_like(z)), mag_bias=(z,sz)) # set a simple linear bias of 1 since we deal with the bias at P(k) level
+        y_i = ccl.WeakLensingTracer(fid_cosmo, dndz=(new_z_i[keep_ids_i], nz_dat[:, bin_i][keep_ids_i])) # don't add in IA here? Will have to sort out manually?
+
+        y_i_ia = ccl.WeakLensingTracer(fid_cosmo, dndz=(new_z_i[keep_ids_i], nz_dat[:, bin_i][keep_ids_i]), has_shear=False, ia_bias=(z, np.ones_like(z)), use_A_ia=False) # set a simple IA bias of 1 since we deal with the bias at P(k) level
 
         cl_g_kCMB = ccl.angular_cl(fid_cosmo, g_i, k_CMB, ells, p_of_k_a=pk_gm)
         if mode == 'save':
@@ -455,15 +476,18 @@ def setup_6x2pt_cls(save_dir, nz_filename, n_zbin, ell_min, ell_max, fid_cosmo, 
             if Dzi_dat is None:
                 Dzj = 0
             else:
-                Dzj = Dzi_dat[i]
+                Dzj = Dzi_dat[j]
 
-            g_j = ccl.NumberCountsTracer(fid_cosmo, has_rsd=False, dndz=(z+Dzj, nz_dat[:, bin_j]),
+            new_z_j = z + Dzj
+            keep_ids_j = np.where((new_z_j >= 0))[0]
+
+            g_j = ccl.NumberCountsTracer(fid_cosmo, has_rsd=False, dndz=(new_z_j[keep_ids_j], nz_dat[:, bin_j][keep_ids_j]),
                                          bias=(z, np.ones_like(z)),
                                          mag_bias=(z,sz))  # set a simple linear bias of 1 since we deal with the bias at P(k) level
 
-            y_j = ccl.WeakLensingTracer(fid_cosmo, dndz=(z+Dzj, nz_dat[:, bin_j]))  # don't add in IA here? Will have to sort out manually?
+            y_j = ccl.WeakLensingTracer(fid_cosmo, dndz=(new_z_j[keep_ids_j], nz_dat[:, bin_j][keep_ids_j]))  # don't add in IA here? Will have to sort out manually?
 
-            y_j_ia = ccl.WeakLensingTracer(fid_cosmo, dndz=(z+Dzj, nz_dat[:, bin_j]), has_shear=False,
+            y_j_ia = ccl.WeakLensingTracer(fid_cosmo, dndz=(new_z_j[keep_ids_j], nz_dat[:, bin_j][keep_ids_j]), has_shear=False,
                                            ia_bias=(z, np.ones_like(z)), use_A_ia=False)  # set a simple IA bias of 1 since we deal with the bias at P(k) level
 
             cl_gy = ccl.angular_cl(fid_cosmo, g_i, y_j, ells, p_of_k_a=pk_gm)

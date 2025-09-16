@@ -1,14 +1,11 @@
 import os
 import sys
 import configparser
-import likelihood.convert_noise as convert_noise
+import likelihood.convert_noise_new as convert_noise
 from likelihood.gaussian_pcl_covariance import get_1x2pt_cov_pcl, get_3x2pt_cov_pcl, get_6x2pt_cov_pcl
 
 
 def execute(pipeline_variables_path):
-
-    # pipeline_variables_path = \
-    #     '/raid/scratch/wongj/mywork/3x2pt/6x2pt_sim/set_config/set_variables.ini'
 
     config = configparser.ConfigParser()
     config.read(pipeline_variables_path)
@@ -59,7 +56,7 @@ def execute(pipeline_variables_path):
     obs_field = str(config['measurement_setup']['FIELD'])
 
     # Need to convert partial sky noise Cls to full sky equivalent for use in the improved NKA
-    convert_noise.execute(pipeline_variables_path=pipeline_variables_path)
+    # convert_noise.execute(pipeline_variables_path=pipeline_variables_path)
 
     analytic_cov_dir = save_dir + 'analytic_covariance/'
 
@@ -98,7 +95,7 @@ def execute(pipeline_variables_path):
         get_1x2pt_cov_pcl(
             n_zbin=nbins,
             signal_path=save_dir + 'fiducial_cosmology',
-            noise_path=save_dir + 'NKA_noise_cls',
+            noise_path=save_dir + 'raw_noise_cls',
             field=obs_field,
             lmax_in=input_lmax,
             lmin_in=input_lmin,
@@ -117,7 +114,7 @@ def execute(pipeline_variables_path):
         get_3x2pt_cov_pcl(
             n_zbin=nbins,
             signal_path=save_dir + 'fiducial_cosmology/',
-            noise_path=save_dir + 'NKA_noise_cls/',
+            noise_path=save_dir + 'raw_noise_cls/',
             lmax_in=input_lmax,
             lmin_in=input_lmin,
             lmax_out_nn=output_lmax_galaxy,
@@ -139,7 +136,7 @@ def execute(pipeline_variables_path):
         get_6x2pt_cov_pcl(
             n_zbin=nbins,
             signal_path=save_dir + 'fiducial_cosmology/',
-            noise_path=save_dir + 'NKA_noise_cls/',
+            noise_path=save_dir + 'raw_noise_cls/',
             lmax_in=input_lmax,
             lmin_in=input_lmin,
             lmax_out_nn=output_lmax_galaxy,

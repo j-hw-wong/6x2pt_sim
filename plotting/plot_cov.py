@@ -2,13 +2,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm, SymLogNorm
 
-save_dir = '/raid/scratch/wongj/mywork/3x2pt/6x2pt_sim_data/jw/'
+save_dir = '/raid/scratch/wongj/mywork/3x2pt/6x2pt_sim_data/pcl/'
 n_zbin = 3
 
 n_bps = 10
 
 obs_type = '1x2pt'
-obs_field = 'NK'
+obs_field = 'E'
 
 if obs_type == '6x2pt':
 
@@ -59,8 +59,8 @@ elif obs_type == '1x2pt':
 
 #elif obs_type == '1x2pt':
 
-cov_a = np.load(save_dir + 'analytic_covariance/cov_10bp.npz')['cov']
-cov_n = np.load(save_dir + 'numerical_covariance/cov_10bp.npz')['cov']
+cov_a = np.load(save_dir + 'analytic_covariance_E_NKA_New/cov_10bp.npz')['cov']
+cov_n = np.load(save_dir + 'analytic_covariance_E_NKA_Old/cov_10bp.npz')['cov']
 
 #delta = cov_400 - cov_200
 
@@ -70,8 +70,8 @@ ticks = np.linspace(n_bps/2,(n_spec*n_bps)-(n_bps/2), n_spec)
 
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 6))
 
-ax1.matshow(np.abs(cov_a), norm=LogNorm(), vmin=min_val)
-ax2.matshow(np.abs(cov_n), norm=LogNorm(), vmin=min_val)
+ax1.matshow((cov_a), norm=LogNorm(), vmin=min_val)
+ax2.matshow((cov_n-cov_a)*100/cov_a, norm=LogNorm(), vmin=min_val)
 
 for ax in [ax1, ax2]:
 
@@ -80,5 +80,5 @@ for ax in [ax1, ax2]:
 	ax.set_yticks(ticks=ticks)
 	ax.set_yticklabels(spectra, fontsize=8)
 
-plt.savefig(save_dir + 'covmat_comparison.png')
+plt.savefig(save_dir + 'covmat_comparison_E_new.png')
 plt.show()

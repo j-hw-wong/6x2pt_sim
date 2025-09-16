@@ -59,7 +59,7 @@ def get_6x2pt_mixmats(mask_path, mask_path_cmb, nside, lmin, input_lmax, lmax_ou
     field_spin0_cmb = nmt.NmtField(mask_cmb, None, spin=0, lite=True, lmax_sht=input_lmax)
 
     workspace_spin00 = nmt.NmtWorkspace()
-    print(f'Calculating mixing matrix 1 / 3 at {time.strftime("%c")}')
+    print(f'Calculating mixing matrix 1 / 6 at {time.strftime("%c")}')
     workspace_spin00.compute_coupling_matrix(field_spin0, field_spin0, bins)
     workspace_spin02 = nmt.NmtWorkspace()
     print(f'Calculating mixing matrix 2 / 6 at {time.strftime("%c")}')

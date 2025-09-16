@@ -4,3 +4,6 @@ old/
 dat/
 6x2pt_sim.sif
 6x2pt_sim_mpi.sif
+set_config/set_variables_temp.ini
+set_config/set_variables_temp2.ini
+set_config/set_variables_temp3.ini

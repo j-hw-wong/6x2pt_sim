@@ -38,16 +38,20 @@ def calc_av_cls(cl_dir, ell_min, ell_max, bin_i, bin_j, realisations, err=True):
 
     cls = np.asarray(cls)
 
-    cls_av = np.mean(cls, axis=0)
+    if realisations == 1:
+        cls_av = cls[0]
+    else:
+        cls_av = np.mean(cls, axis=0)
 
     np.savetxt(cl_dir + 'bin_{}_{}.txt'.format(bin_i, bin_j),
                np.transpose(cls_av))
 
-    if err:
-        cls_err = sem(cls, axis=0)
+    if realisations > 1:
+        if err:
+            cls_err = sem(cls, axis=0)
 
-        np.savetxt(cl_dir + 'bin_{}_{}_err.txt'.format(bin_i, bin_j),
-                   np.transpose(cls_err))
+            np.savetxt(cl_dir + 'bin_{}_{}_err.txt'.format(bin_i, bin_j),
+                       np.transpose(cls_err))
 
     np.savetxt(cl_dir + 'ell.txt', np.transpose(ell))
 

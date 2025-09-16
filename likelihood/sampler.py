@@ -9,9 +9,13 @@ import pyccl as ccl
 import pymaster as nmt
 import likelihood.mask as mask
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
 from likelihood.model_pcl import PCl_bandpowers_1x2pt, PCl_bandpowers_3x2pt, PCl_bandpowers_6x2pt
 from catalogue_sim import generate_cls
-
+from plotting import spider_plot
+plt.rcParams["font.family"] = "Times New Roman"
+plt.rcParams['mathtext.fontset'] = 'cm'
+# plt.rcParams['font.serif'] = 'cm'
 
 def parse_nautilus_params_for_ccl(params):
     """
@@ -230,8 +234,8 @@ def sampler_config(pipeline_variables_path):
     Omega_c = float(config['cosmology']['Omega_c'])
     Omega_b = float(config['cosmology']['Omega_b'])
     h = float(config['cosmology']['h'])
-    A_s = float(config['cosmology']['A_s'])
-    # sigma8 = float(config['cosmology']['sigma8'])
+    # A_s = float(config['cosmology']['A_s'])
+    sigma8 = float(config['cosmology']['sigma8'])
     n_s = float(config['cosmology']['n_s'])
     Omega_k = float(config['cosmology']['Omega_k'])
     w0 = float(config['cosmology']['w0'])
@@ -287,8 +291,8 @@ def sampler_config(pipeline_variables_path):
         'Omega_b': Omega_b,
         'h': h,
         'n_s': n_s,
-        'A_s': A_s,
-        # 'sigma8': sigma8,
+        # 'A_s': A_s,
+        'sigma8': sigma8,
         'Omega_k': Omega_k,
         'w0': w0,
         'wa': wa
@@ -361,8 +365,8 @@ def generate_pseudo_bps_model(cosmo_params, pipeline_variables_path, config_dict
     Omega_c = config_dict['Omega_c']
     Omega_b = config_dict['Omega_b']
     h = config_dict['h']
-    A_s = config_dict['A_s']
-    # sigma8 = config_dict['sigma8']
+    # A_s = config_dict['A_s']
+    sigma8 = config_dict['sigma8']
     n_s = config_dict['n_s']
     Omega_k = config_dict['Omega_k']
     w0 = config_dict['w0']
@@ -373,21 +377,21 @@ def generate_pseudo_bps_model(cosmo_params, pipeline_variables_path, config_dict
         'Omega_c': Omega_c,
         'Omega_b': Omega_b,
         'h': h,
-        'A_s': A_s,
-        # 'sigma8': sigma8,
+        # 'A_s': A_s,
+        'sigma8': sigma8,
         'n_s': n_s,
         'Omega_k': Omega_k,
         'w0': w0,
         'wa': wa,
         'extra_parameters': {'camb':{'dark_energy_model':'ppf'}}
     }
-
+    # print(fid_cosmo_dict)
     ccl_params, nuisance_params = split_ccl_parameters(cosmo_params, n_zbin=nbins, bi_marg=bi_marg, mi_marg=mi_marg, Dzi_marg=Dzi_marg, A1i_marg=A1i_marg)
 
     if 'Omega_m' in nuisance_params:
         fid_cosmo_dict['Omega_c'] = nuisance_params['Omega_m'] - Omega_b
     fid_cosmo_dict.update(ccl_params)
-
+    # print(fid_cosmo_dict)
     fid_cosmo = ccl.Cosmology(**fid_cosmo_dict)
 
     # Now we have to make the Cls, PCls, bandpowers, then combined data vector
@@ -582,9 +586,10 @@ def generate_pseudo_bps_model(cosmo_params, pipeline_variables_path, config_dict
     '''
     # Now we need to convert to Pseudo-Cls and then bandpowers
     theory_cls_dir = save_dir + 'inference_chains/'
-    obs_noise_cls_dir = save_dir + 'measured_noise_cls/'
+    obs_noise_cls_dir = save_dir + 'raw_noise_cls/'
 
     # create_null_spectras(nbins=nbins, lmin=input_lmin, lmax=input_lmax, output_dir=theory_cls_dir)
+
 
     if obs_spec == '6X2PT':
         model_bps = PCl_bandpowers_6x2pt(
@@ -658,6 +663,27 @@ def generate_pseudo_bps_model(cosmo_params, pipeline_variables_path, config_dict
 def log_normal_likelihood_ccl(params, config_dict, pipeline_variables_path, mixmats, data_vector, inverse_covariance, bi_marg=False, mi_marg=False, Dzi_marg=False, A1i_marg=False):
 
     model_vector = generate_pseudo_bps_model(cosmo_params=params, pipeline_variables_path=pipeline_variables_path, config_dict=config_dict, mixmats=mixmats, bi_marg=bi_marg, mi_marg=mi_marg, Dzi_marg=Dzi_marg, A1i_marg=A1i_marg)
+    print(model_vector.shape, data_vector.shape)
+    # Need to stack data vector
+    assert model_vector.shape == data_vector.shape
+    n_spec, n_bandpower = model_vector.shape
+
+    n_data = n_spec * n_bandpower
+    model_vector = np.reshape(model_vector, n_data)
+    data_vector = np.reshape(data_vector, n_data)
+    # inverse_covariance = np.diag(np.ones(n_data))
+
+    d_vector = model_vector - data_vector
+    l = -0.5 * d_vector @ inverse_covariance @ d_vector
+    print(l)
+    return -0.5 * d_vector @ inverse_covariance @ d_vector
+
+
+def test(params, config_dict, pipeline_variables_path, mixmats, data_vector, inverse_covariance):
+
+    print('Starting likelihood call')
+    test_start_time = time.time()
+    model_vector = generate_pseudo_bps_model(cosmo_params=params, pipeline_variables_path=pipeline_variables_path, config_dict=config_dict, mixmats=mixmats, Dzi_marg=True)
 
     # Need to stack data vector
     assert model_vector.shape == data_vector.shape
@@ -669,21 +695,8 @@ def log_normal_likelihood_ccl(params, config_dict, pipeline_variables_path, mixm
 
     d_vector = model_vector - data_vector
 
-    return -0.5 * d_vector @ inverse_covariance @ d_vector
-
-
-def test(params, config_dict, pipeline_variables_path, mixmats, data_vector):
-
-    model_vector = generate_pseudo_bps_model(cosmo_params=params, pipeline_variables_path=pipeline_variables_path, config_dict=config_dict, mixmats=mixmats)
-
-    # Need to stack data vector
-    assert model_vector.shape == data_vector.shape
-    n_spec, n_bandpower = model_vector.shape
-
-    n_data = n_spec * n_bandpower
-    model_vector = np.reshape(model_vector, n_data)
-    data_vector = np.reshape(data_vector, n_data)
-
+    l = -0.5 * d_vector @ inverse_covariance @ d_vector
+    print(time.time()-test_start_time)
     xs = np.arange(1, n_bandpower + 1)
 
     for i in range(n_spec):
@@ -801,7 +814,7 @@ def run_nautilus(sampler_config_dict, pipeline_variables_path, mixmats, data_vec
     n_pool = sampler_config_dict['n_pool']
 
     sampler = nautilus.Sampler(
-        prior, log_normal_likelihood_ccl, n_live=100,
+        prior, log_normal_likelihood_ccl, n_live=200,
         likelihood_kwargs={
             "config_dict": sampler_config_dict,
             "pipeline_variables_path": pipeline_variables_path,
@@ -816,23 +829,316 @@ def run_nautilus(sampler_config_dict, pipeline_variables_path, mixmats, data_vec
         filepath=sampler_checkpoint_file,
         pool=n_pool
     )
-    
+
     sampler.run(verbose=True)
-    
+
     points, log_w, log_l = sampler.posterior()
-    # print(points, log_w, log_l)
+
+    # points = points[:,0:]
+    points = points[:,0:7]
 
     # max_like_id = log_l.argmax()
     # print(max_like_id)
     # w0_m, wa_m, Omega_c_m, h_m,  = points[max_like_id]
     # print(w0_m, wa_m, Omega_c_m, h_m)
-    corner.corner(
-        points, weights=np.exp(log_w), bins=30, labels=prior.keys
+
+    one_sigma_1d = 0.683
+
+    q_lower = 1 / 2 - one_sigma_1d / 2
+    q_upper = 1 / 2 + one_sigma_1d / 2
+
+    # hist_bins = [90,90,120,80,90,150,250,500,500,500,500,500,500]
+    hist_bins = [60,40,100,30,40,100,100]
+    # hist_bins = [100,100,100]
+    # hist_bins = [60,40,100,30,40,100,100,3000,100]
+    # hist_bins = [60,100,30,40,100,100,3000,100]
+    # hist_bins = [60,40,100,30,40,100,100,1500, 1500, 500, 500, 500]
+    # hist_bins = [50,30,100,30,40,100,100,1500, 1500, 500, 500, 500]
+    # hist_bins = [50,30,100,30,40,100,250] #,1000,1000,200]
+    figure = corner.corner(
+        points,
+        weights=np.exp(log_w),
+        # bins=250,
+        # bins=[3000,2000,300],
+        # bins=[50,30,100,30,40,100,100,1500, 1500, 500, 500, 500],
+        # bins=[70,100,200,70,70,200,200],
+        bins=hist_bins, #,5000,300],
+        # bins=[50,30,100,30,40,100,250,1000,1000,200],
+        # bins=[50,30,100,30,40,100,100, 300, 300, 100],
+        # labels=prior.keys[0:],
+        plot_density=False,
+        fill_contours=True,
+        color='royalblue',
+        data_kwargs={'color':'0.45','ms':'0'},
+        label_kwargs={'fontsize':'20'},
+        # hist_kwargs={'linewidth':0},
+        # labels=[r'$w_{0}$', r'$w_{a}$', r'$\Omega_{m}$', r'$h$', r'$\Omega_{b}$', r'$n_{s}$', r'$\sigma_{8}$', r'$A_{1}$', r'$A_{2}$', r'$b_{TA}$', r'$\eta_{1}$', r'$\eta_{2}$'],
+        # labels=[r'$w_{0}$', r'$w_{a}$', r'$\Omega_{m}$', r'$h$', r'$\Omega_{b}$', r'$n_{s}$', r'$\sigma_{8}$', r'$A_{1}$', r'$\eta_{1}$'],
+        # labels=[r'$w_{0}$', r'$\Omega_{m}$', r'$h$', r'$\Omega_{b}$', r'$n_{s}$', r'$\sigma_{8}$', r'$A_{1}$', r'$\eta_{1}$'],
+        labels=[r'$w_{0}$', r'$w_{a}$', r'$\Omega_{m}$', r'$h$', r'$\Omega_{b}$', r'$n_{s}$', r'$\sigma_{8}$'],
+        # labels=[r'$w_{0}$', r'$\Omega_{m}$', r'$\sigma_{8}$'],
+        # labels=[r'$w_{0}$', r'$w_{a}$', r'$\Omega_{m}$', r'$h$', r'$\Omega_{b}$', r'$n_{s}$', r'$\sigma_{8}$', r'$b_{1}$', r'$b_{2}$', r'$b_{s}$'],
+        # labels=[r'$w_{0}$', r'$w_{a}$', r'$\Omega_{m}$', r'$h$', r'$\Omega_{b}$', r'$n_{s}$', r'$\sigma_{8}$', r'$b_{1}$', r'$b_{2}$', r'$b_{3}$', r'$b_{4}$', r'$b_{5}$', r'$b_{6}$'],
+        labelpad=0.025,
+        levels=(0.683, 0.955),
+        smooth=1.5,
+        smooth1d=True,
+        # title_quantiles=[q_lower, 0.5, q_upper],
+        # show_titles=True,
+        # title_fmt='.4f'
     )
+
+    # prior2 = nautilus.Prior()
+    # prior2.add_parameter("w0", dist=(-1.05, -0.95))
+    # prior2.add_parameter("wa", dist=(-0.25, 0.25))
+
+    # prior2.add_parameter("w0", (-1.25, -0.75))
+    # prior2.add_parameter("wa", (-0.5, 0.5))
+    # prior2.add_parameter("Omega_m", (0.2, 0.4))
+    # prior2.add_parameter("h", (0.5, 0.8))
+    # prior2.add_parameter("Omega_b", (0.02, 0.08))
+    # prior2.add_parameter("n_s", (0.8, 1.2))
+    # prior2.add_parameter("sigma8", (0.75, 0.9))
+    #
+    # prior2.add_parameter("_A1", (-8, 8))
+    # prior2.add_parameter("_eta1", (-6, 6))
+
+    # prior2 = prior
+    # sampler2 = nautilus.Sampler(
+    #     # prior, log_normal_likelihood_ccl, n_live=200,
+    #     prior2, log_normal_likelihood_ccl, n_live=200,
+    #     likelihood_kwargs={
+    #         "config_dict": sampler_config_dict,
+    #         "pipeline_variables_path": pipeline_variables_path,
+    #         "mixmats": mixmats,
+    #         "data_vector": data_vector,
+    #         "inverse_covariance": inverse_covariance,
+    #         "bi_marg": bi_marg,
+    #         "mi_marg": mi_marg,
+    #         "Dzi_marg": Dzi_marg,
+    #         "A1i_marg": A1i_marg
+    #     },  # could e.g. add bi_marg=True if marginalising over tomographic bin-dependent b parameters
+    #     filepath='/raid/scratch/wongj/mywork/3x2pt/6x2pt_sim_data/b/inference_chains/Cosmology_3x2pt_analytic.hdf5',
+    #     pool=n_pool
+    # )
+
+    # sampler2.run(verbose=True)
+
+    # points2, log_w2, log_l2 = sampler2.posterior()
+    # points2 = points2[:,0:7]
+    #
+    # corner.corner(
+    #     points2,
+    #     weights=np.exp(log_w2),
+    #     # bins=250,
+    #     # bins=[3000, 2000, 300],
+    #     # bins=[50, 30, 100, 30, 40, 100, 250, 1000, 1000, 200],
+    #     # bins=[50,30,100,30,40,100,100,1500, 1500, 500, 500, 500],
+    #     bins=hist_bins, #, 5000, 300],
+    #     plot_density=False,
+    #     no_fill_contours=True,
+    #     color='darkred',
+    #     # contour_kwargs={'linestyles':'--','linewidths':1.5},
+    #     contour_kwargs={'linestyles':'--','linewidths':1.5},
+    #     data_kwargs={'color': '0.45', 'ms': '0'},
+    #     label_kwargs={'fontsize': '20'},
+    #     # labels=[r'$w_{0}$', r'$w_{a}$', r'$\Omega_{m}$', r'$h$', r'$\Omega_{c}$', r'$n_{s}$', r'$\sigma_{8}$',
+    #     #         r'$A_{1}$', r'$A_{2}$', r'$b_{TA}$', r'$\eta_{1}$', r'$\eta_{2}$'],
+    #     labelpad=0.025,
+    #     levels=(0.683, 0.955),
+    #     smooth=1.5,
+    #     smooth1d=True,
+    #     fig=figure,
+    #     # hist_kwargs={'linestyle':'--','linewidth':2.5,'dashes':(5, 6)},
+    #     hist_kwargs={'linestyle':'-','linewidth':1.5},
+    #     # hist2d_kwargs={'contour_kwargs':{'linestyles': '--'}},
+    #     hist2d_kwargs={'contour_kwargs':{'linestyles': '-'}},
+    #     # title_quantiles=[q_lower, 0.5, q_upper],
+    #     # show_titles=True,
+    #     # title_fmt='.4f'
+    # )
+
+    ndim = len(prior.keys[0:7])
+
+    xranges = []
+
+    # for i in range(ndim):
+    #     q_lo, q_mid, q_hi = corner.quantile(
+    #         points[:,i], [q_lower, 0.5, q_upper], weights=np.exp(log_w)
+    #     )
+    #     q_m, q_p = q_mid - q_lo, q_hi - q_mid
+    #
+    #     print(np.array([q_mid, q_p, q_m]))
+    #
+    # for i in range(ndim):
+    #     q_lo, q_mid, q_hi = corner.quantile(
+    #         points2[:,i], [q_lower, 0.5, q_upper], weights=np.exp(log_w2)
+    #     )
+    #     q_m, q_p = q_mid - q_lo, q_hi - q_mid
+    #
+    #     print(np.array([q_mid, q_p, q_m]))
+
+    # one_sigma_1d = 0.999999999919680
+    one_sigma_1d = 0.99999999999999999
+    # one_sigma_1d = 0.99
+
+    q_lower = 1 / 2 - one_sigma_1d / 2
+    q_upper = 1 / 2 + one_sigma_1d / 2
+
+    for i in range(ndim):
+        # print(len(points[:,i]))
+        # print(len(np.exp(log_w)))
+        q_lo, q_mid, q_hi = corner.quantile(
+            points[:,i], [q_lower, 0.5, q_upper], weights=np.exp(log_w)
+        )
+        q_m, q_p = q_mid - q_lo, q_hi - q_mid
+        xranges.append([q_lo, q_hi])
+    # print(xranges)
+    #
+    # # Format the quantile display.
+    # fmt = "{{0:{0}}}".format(title_fmt).format
+    # title = r"${{{0}}}_{{-{1}}}^{{+{2}}}$"
+    # title = title.format(fmt(q_mid), fmt(q_m), fmt(q_p))
+
+    for ax in figure.get_axes():
+        ax.xaxis.set_ticks_position('both')
+        ax.yaxis.set_ticks_position('both')
+        ax.tick_params(axis='both', direction='in',labelsize=20)
+
+    axes = np.array(figure.axes).reshape((ndim,ndim))
+    # print(xranges)
+    # xranges = [priors[p][1] for p in range(len(priors))]
+    # xranges = [[-1.15, -0.85], [-0.4, 0.4], [0.28,0.34], [0.55, 0.80], [0.02,0.07], [0.91, 1.01], [0.82,0.86], [0.58, 0.8], [-1.45,-1.25], [0.7,1.3], [-2.1,-1.3], [-2.1,-1.3]] # for IA
+    # xranges = [[-1.15, -0.85], [-0.4, 0.4], [0.28,0.34], [0.55, 0.80], [0.02,0.07], [0.88, 1.04], [0.81,0.87], [1.95, 2.2], [0.3,0.7], [-1.5,0.25]] # for bias
+    # xranges = [
+    #     [-1.1390991431074178, -0.8614864430873895], [-0.45008765349943214, 0.4203948398332733],
+    #     [0.2920769720310088, 0.3385946457273819], [0.5605128366682348, 0.7954783920595907],
+    #     [0.02041858354543234, 0.06615883786084358], [0.9195099181351285, 0.9933313155491182],
+    #     [0.8264167875194324, 0.8553209133826235], [0.581842574722146, 0.8295851618565178],
+    #     [-1.4764214674201828, -1.2512921101586283], [0.6626333033051865, 1.3735536951789],
+    #     [-2.10791258916056, -1.2916628125374878], [-2.8954472552587878, -2.122759974693125]]
+    # xranges = [
+    #     [-1.199502489274048, -0.7867440358341983],
+    #     [-0.4999142828491949, 0.49999147868940874],
+    #     [0.2813111893420181, 0.3494832657889116],
+    #     [0.5119303393828264, 0.7999730342349741],
+    #     [0.020031018898387015, 0.0725787093784679],
+    #     [0.8992434347089814, 1.0279282252230308],
+    #     [0.8174936257293406, 0.8635702219755874]]
+    # xranges=[
+    #     [-1.199502489274048, -0.7867440358341983],
+    #     [-0.4999142828491949, 0.49999147868940874],
+    #     [0.2813111893420181, 0.3494832657889116],
+    #     [0.5119303393828264, 0.7999730342349741],
+    #     [0.020031018898387015, 0.0725787093784679],
+    #     [0.8992434347089814, 1.0279282252230308],
+    #     [0.8174936257293406, 0.8635702219755874],
+    #     [0.48343353896669466, 0.8787529651998153],
+    #     [-1.5999785092077812, -1.1386689629390465],
+    #     [0.5531661949053119, 1.560211252697805],
+    #     [-2.5962369463664765, -0.8159752193277147],
+    #     [-3.2361310581234783, -1.8170991845488031]]
+    yranges = xranges[1:]
+
+    # fid_vals = [-1, 0]
+    # fid_vals = [-1,0,0.315,0.67,0.045,0.96,0.84048,0.7,-1.7] # for IA
+    # fid_vals = [-1,0.315,0.67,0.045,0.96,0.84048,0.7,-1.7] # for IA
+    # fid_vals = [-1,0,0.315,0.67,0.045,0.96,0.84048] # for cosmo
+    # fid_vals = [-1,0.315,0.84048] # for cosmo
+    # fid_vals = [-1,0,0.315,0.67,0.045,0.96,0.84048, 2.07, 0.5, -0.611] # for nl bias
+    fid_vals = [-1,0,0.315,0.67,0.045,0.96,0.84048, 2.07, 2.07, 2.07, 2.07, 2.07, 2.07] # for bias
+    # fid_vals = [-1,0,0.315,0.67,0.045,0.96,0.84048,0.7,-1.36,1.0,-1.7,-2.5] # for IA
+    # fid_vals = [-1,0,0.315,0.67,0.045,0.96,0.84048,2.07,0.5,-0.611] # for IA
+    # fid_vals = [2.07, 0.5, -0.611]
+    # fid_vals = [-1,0,0.315,0.67,0.045,0.96,0.84048,2.07,0.5,-0.611]
+
+    for i in range(ndim):
+        ax = axes[i,i]
+        ax.set_xlim(xranges[i][0], xranges[i][1])
+        ax.axvline(fid_vals[i], color='0.5', linestyle=':')
+
+    for yi in range(ndim):
+        for xi in range(yi):
+            ax = axes[yi, xi]
+            ax.set_xlim(xranges[xi][0],xranges[xi][1])
+            ax.set_ylim(yranges[yi-1][0],yranges[yi-1][1])
+            ax.axvline(fid_vals[xi],color='0.5', linestyle=':')
+            ax.axhline(fid_vals[yi],color='0.5', linestyle=':')
+
+    # patch1 = mpatches.Patch(color='darkred', label='3'+r'$\times$'+'2pt')
+    patch2 = mpatches.Patch(color='royalblue', label='Stage IV-like 3x2pt + \nSO-like CMB lensing\n(6x2pt)')
+    patch1 = mpatches.Patch(color='darkred', label='Stage IV-like 3x2pt')
+    # patch2 = mpatches.Patch(color='royalblue', label='Stage IV-like 3x2pt (Analytic Covariance)')
+    # patch1 = mpatches.Patch(color='darkred', label='Stage IV-like 3x2pt (Numerical Covariance)')
+
+    figure.legend(handles=[patch1, patch2],loc='center right',fontsize=15)   #legend can be centre right for big plots
+    # save_fig_dir = '/raid/scratch/wongj/mywork/3x2pt/6x2pt_sim_data/ff/inference_chains/bias_l500.png'
+    #
+    # if os.path.exists(save_fig_dir):
+    #     print('WARNING! File exists, did not overwrite')
+    # else:
+    #     plt.savefig(save_fig_dir,dpi=200)
+
     plt.show()
+    #
+    # sampler2 = nautilus.Sampler(
+    #     prior, log_normal_likelihood_ccl, n_live=200,
+    #     likelihood_kwargs={
+    #         "config_dict": sampler_config_dict,
+    #         "pipeline_variables_path": pipeline_variables_path,
+    #         "mixmats": mixmats,
+    #         "data_vector": data_vector,
+    #         "inverse_covariance": inverse_covariance,
+    #         "bi_marg": bi_marg,
+    #         "mi_marg": mi_marg,
+    #         "Dzi_marg": Dzi_marg,
+    #         "A1i_marg": A1i_marg
+    #     },  # could e.g. add bi_marg=True if marginalising over tomographic bin-dependent b parameters
+    #     filepath='/raid/scratch/wongj/mywork/3x2pt/6x2pt_sim_data/ff/inference_chains/Cosmology_IA_3x2pt_numerical.hdf5',
+    #     pool=n_pool
+    # )
+    #
+    # sampler3 = nautilus.Sampler(
+    #     prior, log_normal_likelihood_ccl, n_live=200,
+    #     likelihood_kwargs={
+    #         "config_dict": sampler_config_dict,
+    #         "pipeline_variables_path": pipeline_variables_path,
+    #         "mixmats": mixmats,
+    #         "data_vector": data_vector,
+    #         "inverse_covariance": inverse_covariance,
+    #         "bi_marg": bi_marg,
+    #         "mi_marg": mi_marg,
+    #         "Dzi_marg": Dzi_marg,
+    #         "A1i_marg": A1i_marg
+    #     },  # could e.g. add bi_marg=True if marginalising over tomographic bin-dependent b parameters
+    #     filepath='/raid/scratch/wongj/mywork/3x2pt/6x2pt_sim_data/ff/inference_chains/Cosmology_IA_3x2pt_analytic.hdf5',
+    #     pool=n_pool
+    # )
+    #
+    # sampler4 = nautilus.Sampler(
+    #     prior, log_normal_likelihood_ccl, n_live=200,
+    #     likelihood_kwargs={
+    #         "config_dict": sampler_config_dict,
+    #         "pipeline_variables_path": pipeline_variables_path,
+    #         "mixmats": mixmats,
+    #         "data_vector": data_vector,
+    #         "inverse_covariance": inverse_covariance,
+    #         "bi_marg": bi_marg,
+    #         "mi_marg": mi_marg,
+    #         "Dzi_marg": Dzi_marg,
+    #         "A1i_marg": A1i_marg
+    #     },  # could e.g. add bi_marg=True if marginalising over tomographic bin-dependent b parameters
+    #     filepath='/raid/scratch/wongj/mywork/3x2pt/6x2pt_sim_data/ff/inference_chains/Cosmology_IA_6x2pt_analytic.hdf5',
+    #     pool=n_pool
+    # )
+    #
+    # spider_plot.spiderplot(spider_plot.spider_data4(sampler1=sampler2, sampler2=sampler, sampler3=sampler3, sampler4=sampler4))
+    # #
+    # spider_plot.spiderplot(spider_plot.spider_data(sampler1=sampler2, sampler2=sampler))
 
 
-def execute(pipeline_variables_path, covariance_matrix_type, priors, bi_marg=False, mi_marg=False, Dzi_marg=False, A1i_marg=False):
+
+def execute(pipeline_variables_path, covariance_matrix_type, priors, checkpoint_filename, bi_marg=False, mi_marg=False, Dzi_marg=False, A1i_marg=False):
 
     sampler_config_dict = sampler_config(pipeline_variables_path=pipeline_variables_path)
     # systematics_dict = generate_cls.setup_systematics_dict(pipeline_variables_path=pipeline_variables_path)
@@ -845,7 +1151,7 @@ def execute(pipeline_variables_path, covariance_matrix_type, priors, bi_marg=Fal
         os.makedirs(inference_dir)
 
     data_vector = np.load(save_dir + 'measured_6x2pt_bps/obs_{}bp.npz'.format(n_bps))['obs_bp']
-    sampler_checkpoint_file = inference_dir + "nautilus_inference.h5"
+    sampler_checkpoint_file = inference_dir + checkpoint_filename
 
     if covariance_matrix_type == 'analytic':
         covariance_matrix = np.load(save_dir + 'analytic_covariance/cov_{}bp.npz'.format(n_bps))['cov']
@@ -872,10 +1178,36 @@ def execute(pipeline_variables_path, covariance_matrix_type, priors, bi_marg=Fal
                'mixmat_nn_to_kk': mixmats_all['mixmat_nn_to_kk'],
                'mixmat_ke_to_ke': mixmats_all['mixmat_ke_to_ke']
                }
-
+    '''
     # log_normal_likelihood_ccl({'w0':-1,'wa':0}, sampler_config_dict, mix_mats, data_vector, inverse_covariance)
-
-    # test({'w0':-1,'wa':0}, sampler_config_dict, mixmats, data_vector)
+    log_normal_likelihood_ccl(
+        # {'Omega_c':0.3252,
+        #  'Omega_b':0.0361,
+        #  'h':0.5342,
+        #  'n_s':1.00,
+        #  'sigma8':0.8159,
+        #  'Omega_k':0.0,
+        #  'w0':-0.7559,
+        #  'wa':-0.4476,
+        #  '_A1':0.1803,
+        #  '_eta1':1.2903},
+        {'Omega_c': 0.27,
+         'Omega_b': 0.045,
+         'h': 0.67,
+         'n_s': 0.96,
+         'sigma8': 0.840,
+         'Omega_k': 0.0,
+         'w0': -1.0,
+         'wa': 0.0,
+         '_A1': 0.7,
+         '_eta1': -1.7},
+        config_dict=sampler_config_dict,
+        pipeline_variables_path=pipeline_variables_path,
+        mixmats=mixmats,
+        data_vector=data_vector,
+        inverse_covariance=inverse_covariance)
+    '''
+    # test({'_Dz_1':0.0,'_Dz_2':0.0,'_Dz_3':0.0}, config_dict=sampler_config_dict, pipeline_variables_path=pipeline_variables_path, mixmats=mixmats, data_vector=data_vector, inverse_covariance=inverse_covariance)
 
     run_nautilus(
         sampler_config_dict=sampler_config_dict,

@@ -270,7 +270,7 @@ def expected_bp(theory_cl, theory_lmin, config, noise_cls, pbl_nn, pbl_ne, pbl_e
             this_noise_cl = this_noise_cl[:(input_lmax - theory_lmin + 1)]
             this_noise_cl = np.concatenate((np.zeros(theory_lmin), this_noise_cl, np.zeros(max(mix_lmax - input_lmax, 0))), axis=0)
             this_noise_cl = this_noise_cl[mix_lmin:(mix_lmax + 1)]
-            this_exp_bp = pbl_nn@((mixmat_nn_to_nn@(this_cl))+(this_noise_cl))
+            this_exp_bp = pbl_nn@((mixmat_nn_to_nn@(this_cl + this_noise_cl)))
 
         elif spec in ('NE', 'EN'):
             this_cl = theory_cl[spec_idx]
@@ -278,7 +278,7 @@ def expected_bp(theory_cl, theory_lmin, config, noise_cls, pbl_nn, pbl_ne, pbl_e
             this_noise_cl = this_noise_cl[:(input_lmax - theory_lmin + 1)]
             this_noise_cl = np.concatenate((np.zeros(theory_lmin), this_noise_cl, np.zeros(max(mix_lmax - input_lmax, 0))), axis=0)
             this_noise_cl = this_noise_cl[mix_lmin:(mix_lmax + 1)]
-            this_exp_bp = pbl_ne@((mixmat_ne_to_ne@this_cl)+this_noise_cl)
+            this_exp_bp = pbl_ne@((mixmat_ne_to_ne@(this_cl+this_noise_cl)))
 
         elif spec == 'EE':
             this_cl = theory_cl[spec_idx]
@@ -286,10 +286,8 @@ def expected_bp(theory_cl, theory_lmin, config, noise_cls, pbl_nn, pbl_ne, pbl_e
             this_noise_cl = this_noise_cl[:(input_lmax - theory_lmin + 1)]
             this_noise_cl = np.concatenate((np.zeros(theory_lmin), this_noise_cl, np.zeros(max(mix_lmax - input_lmax, 0))), axis=0)
             this_noise_cl = this_noise_cl[mix_lmin:(mix_lmax + 1)]
-            if spec_idx < 2 * n_zbin:
-                this_exp_bp = pbl_ee@((mixmat_ee_to_ee@this_cl)+this_noise_cl) #Add BB noise contribution to auto-spectra - we don't consider this for JW work
-            else:
-                this_exp_bp = pbl_ee@((mixmat_ee_to_ee@this_cl)+this_noise_cl)
+            this_exp_bp = pbl_ee@((mixmat_ee_to_ee@(this_cl+this_noise_cl))+(mixmat_bb_to_ee @ (this_noise_cl))) #Add BB noise contribution to auto-spectra - we don't consider this for JW work
+
         else:
             raise ValueError('Unexpected spectrum: ' + spec)
         exp_bp[spec_idx] = this_exp_bp
