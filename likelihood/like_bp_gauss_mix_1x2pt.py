@@ -412,6 +412,39 @@ def setup(mixmats, field, mix_lmin, input_lmin, input_lmax, n_zbin, n_bandpower)
     assert len(spectra) == n_spec
     n_data = n_spec * n_bandpower
 
+    if field == 'E':
+        fields_z = [f'E{z}' for z in range(1, n_zbin+1)]
+        n_field = len(fields_z)
+        spec_1 = [fields_z[row] for diag in range(n_field) for row in range(n_field - diag)]
+        spec_2 = [fields_z[row + diag] for diag in range(n_field) for row in range(n_field - diag)]
+
+    elif field == 'N':
+        fields_z = [f'N{z}' for z in range(1, n_zbin + 1)]
+        n_field = len(fields_z)
+        spec_1 = [fields_z[row] for diag in range(n_field) for row in range(n_field - diag)]
+        spec_2 = [fields_z[row + diag] for diag in range(n_field) for row in range(n_field - diag)]
+
+    elif field == 'EK':
+        fields_z = [f'E{z}K1' for z in range(1, n_zbin+1)]
+        spec_1 = [f'E{z}' for z in range(1, n_zbin+1)]
+        spec_2 = ['K1'] * n_zbin
+
+    elif field == 'NK':
+        fields_z = [f'N{z}K1' for z in range(1, n_zbin+1)]
+        spec_1 = [f'N{z}' for z in range(1, n_zbin+1)]
+        spec_2 = ['K1'] * n_zbin
+
+    else:
+        assert field == 'K'
+        spec_1 = ['K1']
+        spec_2 = ['K1']
+
+    # spec_1_field = mysplit(spec_1[spec_id])[0]
+    # spec_1_zbin = mysplit(spec_1[spec_id])[1]
+    #
+    # spec_2_field = mysplit(spec_2[spec_id])[0]
+    # spec_2_zbin = mysplit(spec_2[spec_id])[1]
+
     # Prepare config dictionary
     config = {
         'mix_lmin': mix_lmin,
@@ -458,7 +491,7 @@ def expected_bp(theory_cl, theory_lmin, config, noise_cls, pbl_nn, pbl_ne, pbl_e
     n_zbin = config['n_zbin']
     spectra = config['spectra']
     n_bandpower = config['n_bandpower']
-    mixmat_nn_to_nn = config['mixmat_nn_to_nn']
+    mixmat_nn_to_nn = config['mixmat_nn_to_nn']     # this is a list of nn_to_nn for the autocorrelation of every tomographic bin
     mixmat_ne_to_ne = config['mixmat_ne_to_ne']
     mixmat_ee_to_ee = config['mixmat_ee_to_ee']
     mixmat_bb_to_ee = config['mixmat_bb_to_ee']

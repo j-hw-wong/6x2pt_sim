@@ -13,11 +13,11 @@ plt.rcParams['mathtext.fontset'] = 'cm'
 colors = ['#0077BB', '#33BBEE', '#009988', '#EE7733', '#CC3311', '#EE3377', '#BBBBBB']
 
 measurement_save_dir = '/raid/scratch/wongj/mywork/3x2pt/6x2pt_sim_data/j/'
-simulation_save_dir = '/raid/scratch/wongj/mywork/3x2pt/6x2pt_sim_data/j/'
+simulation_save_dir = '/raid/scratch/wongj/mywork/3x2pt/6x2pt_sim_data/it/'
 # simulation_save_dir2 = '/raid/scratch/wongj/mywork/3x2pt/6x2pt_sim_data/n3/'
 # simulation_save_dir3 = '/raid/scratch/wongj/mywork/3x2pt/6x2pt_sim_data/n3b/'
-simulation_save_dir2 = '/raid/scratch/wongj/mywork/3x2pt/6x2pt_sim_data/bbias/'
-simulation_save_dir3 = '/raid/scratch/wongj/mywork/3x2pt/6x2pt_sim_data/bias_bestfit/'
+simulation_save_dir2 = '/raid/scratch/wongj/mywork/3x2pt/6x2pt_sim_data/it2/'
+simulation_save_dir3 = '/raid/scratch/wongj/mywork/3x2pt/6x2pt_sim_data/it/'
 
 no_realisations = 1
 nbins = 6
@@ -49,81 +49,81 @@ def process_cls(save_dir, save_dir2, save_dir3, type, bin_i=None, bin_j=None):
 
         label = "$\~{C}_\ell^{\,\kappa_{\mathrm{CMB}}\kappa_{\mathrm{CMB}}}$"
         # if n == 0:
-        theory_cls.append(open_dat(save_dir + 'fiducial_cosmology/cmbkappa_cl/ell_bp.txt'))
-        theory_cls.append(open_dat(save_dir + 'fiducial_cosmology/cmbkappa_cl/PCl_Bandpowers_kCMB_kCMB_bin_1_1.txt'))
-        theory_cls.append(open_dat(save_dir2 + 'fiducial_cosmology/cmbkappa_cl/ell_bp.txt'))
-        theory_cls.append(open_dat(save_dir2 + 'fiducial_cosmology/cmbkappa_cl/PCl_Bandpowers_kCMB_kCMB_bin_1_1.txt'))
-        theory_cls.append(open_dat(save_dir3 + 'fiducial_cosmology/cmbkappa_cl/ell_bp.txt'))
-        theory_cls.append(open_dat(save_dir3 + 'fiducial_cosmology/cmbkappa_cl/PCl_Bandpowers_kCMB_kCMB_bin_1_1.txt'))
-
-        measured_cls.append(open_dat(measurement_save_dir + 'measured_6x2pt_bps/cmbkappa_bp/ell.txt'))
-        measured_cls.append(open_dat(measurement_save_dir + 'measured_6x2pt_bps/cmbkappa_bp/bin_1_1.txt'))
-        measured_cls.append(open_dat(measurement_save_dir + 'measured_6x2pt_bps/cmbkappa_bp/bin_1_1_err.txt'))
+        theory_cls.append(open_dat(save_dir + 'fiducial_cosmology/cmbkappa_cl/ell.txt'))
+        theory_cls.append(open_dat(save_dir + 'fiducial_cosmology/cmbkappa_cl/bin_1_1.txt'))
+        theory_cls.append(open_dat(save_dir2 + 'fiducial_cosmology/cmbkappa_cl/ell.txt'))
+        theory_cls.append(open_dat(save_dir2 + 'fiducial_cosmology/cmbkappa_cl/bin_1_1.txt'))
+        # theory_cls.append(open_dat(save_dir3 + 'fiducial_cosmology/cmbkappa_cl/ell_bp.txt'))
+        # theory_cls.append(open_dat(save_dir3 + 'fiducial_cosmology/cmbkappa_cl/PCl_Bandpowers_kCMB_kCMB_bin_1_1.txt'))
+        #
+        # measured_cls.append(open_dat(measurement_save_dir + 'measured_6x2pt_bps/cmbkappa_bp/ell.txt'))
+        # measured_cls.append(open_dat(measurement_save_dir + 'measured_6x2pt_bps/cmbkappa_bp/bin_1_1.txt'))
+        # measured_cls.append(open_dat(measurement_save_dir + 'measured_6x2pt_bps/cmbkappa_bp/bin_1_1_err.txt'))
 
     elif type == 'ky':
         label = "$\~{C}_\ell^{\kappa_{\mathrm{CMB}}\gamma}$"
-        theory_cls.append(open_dat(save_dir + 'fiducial_cosmology/shear_cmbkappa_cl/ell_bp.txt'))
-        theory_cls.append(open_dat(save_dir + 'fiducial_cosmology/shear_cmbkappa_cl/PCl_Bandpowers_kCMB_E_bin_{}_1.txt'.format(bin_i)))
-        theory_cls.append(open_dat(save_dir2 + 'fiducial_cosmology/shear_cmbkappa_cl/ell_bp.txt'))
-        theory_cls.append(open_dat(save_dir2 + 'fiducial_cosmology/shear_cmbkappa_cl/PCl_Bandpowers_kCMB_E_bin_{}_1.txt'.format(bin_i)))
-        theory_cls.append(open_dat(save_dir3 + 'fiducial_cosmology/shear_cmbkappa_cl/ell_bp.txt'))
-        theory_cls.append(open_dat(save_dir3 + 'fiducial_cosmology/shear_cmbkappa_cl/PCl_Bandpowers_kCMB_E_bin_{}_1.txt'.format(bin_i)))
-
-        measured_cls.append(open_dat(measurement_save_dir + 'measured_6x2pt_bps/shear_cmbkappa_bp/kCMB_E/ell.txt'))
-        measured_cls.append(open_dat(measurement_save_dir + 'measured_6x2pt_bps/shear_cmbkappa_bp/kCMB_E/bin_{}_1.txt'.format(bin_i)))
-        measured_cls.append(open_dat(measurement_save_dir + 'measured_6x2pt_bps/shear_cmbkappa_bp/kCMB_E/bin_{}_1_err.txt'.format(bin_i)))
+        theory_cls.append(open_dat(save_dir + 'fiducial_cosmology/shear_cmbkappa_cl/ell.txt'))
+        theory_cls.append(open_dat(save_dir + 'fiducial_cosmology/shear_cmbkappa_cl/bin_{}_1.txt'.format(bin_i)))
+        theory_cls.append(open_dat(save_dir2 + 'fiducial_cosmology/shear_cmbkappa_cl/ell.txt'))
+        theory_cls.append(open_dat(save_dir2 + 'fiducial_cosmology/shear_cmbkappa_cl/bin_{}_1.txt'.format(bin_i)))
+        # theory_cls.append(open_dat(save_dir3 + 'fiducial_cosmology/shear_cmbkappa_cl/ell_bp.txt'))
+        # theory_cls.append(open_dat(save_dir3 + 'fiducial_cosmology/shear_cmbkappa_cl/PCl_Bandpowers_kCMB_E_bin_{}_1.txt'.format(bin_i)))
+        #
+        # measured_cls.append(open_dat(measurement_save_dir + 'measured_6x2pt_bps/shear_cmbkappa_bp/kCMB_E/ell.txt'))
+        # measured_cls.append(open_dat(measurement_save_dir + 'measured_6x2pt_bps/shear_cmbkappa_bp/kCMB_E/bin_{}_1.txt'.format(bin_i)))
+        # measured_cls.append(open_dat(measurement_save_dir + 'measured_6x2pt_bps/shear_cmbkappa_bp/kCMB_E/bin_{}_1_err.txt'.format(bin_i)))
 
     elif type == 'kd':
         label = "$\~{C}_\ell^{\kappa_{\mathrm{CMB}}\delta_{\mathrm{g}}}$"
-        theory_cls.append(open_dat(save_dir + 'fiducial_cosmology/galaxy_cmbkappa_cl/ell_bp.txt'))
-        theory_cls.append(open_dat(save_dir + 'fiducial_cosmology/galaxy_cmbkappa_cl/PCl_Bandpowers_kCMB_gal_bin_{}_1.txt'.format(bin_i)))
-        theory_cls.append(open_dat(save_dir2 + 'fiducial_cosmology/galaxy_cmbkappa_cl/ell_bp.txt'))
-        theory_cls.append(open_dat(save_dir2 + 'fiducial_cosmology/galaxy_cmbkappa_cl/PCl_Bandpowers_kCMB_gal_bin_{}_1.txt'.format(bin_i)))
-        theory_cls.append(open_dat(save_dir3 + 'fiducial_cosmology/galaxy_cmbkappa_cl/ell_bp.txt'))
-        theory_cls.append(open_dat(save_dir3 + 'fiducial_cosmology/galaxy_cmbkappa_cl/PCl_Bandpowers_kCMB_gal_bin_{}_1.txt'.format(bin_i)))
-
-        measured_cls.append(open_dat(measurement_save_dir + 'measured_6x2pt_bps/galaxy_cmbkappa_bp/ell.txt'))
-        measured_cls.append(open_dat(measurement_save_dir + 'measured_6x2pt_bps/galaxy_cmbkappa_bp/bin_{}_1.txt'.format(bin_i)))
-        measured_cls.append(open_dat(measurement_save_dir + 'measured_6x2pt_bps/galaxy_cmbkappa_bp/bin_{}_1_err.txt'.format(bin_i)))
+        theory_cls.append(open_dat(save_dir + 'fiducial_cosmology/galaxy_cmbkappa_cl/ell.txt'))
+        theory_cls.append(open_dat(save_dir + 'fiducial_cosmology/galaxy_cmbkappa_cl/bin_{}_1.txt'.format(bin_i)))
+        theory_cls.append(open_dat(save_dir2 + 'fiducial_cosmology/galaxy_cmbkappa_cl/ell.txt'))
+        theory_cls.append(open_dat(save_dir2 + 'fiducial_cosmology/galaxy_cmbkappa_cl/bin_{}_1.txt'.format(bin_i)))
+        # theory_cls.append(open_dat(save_dir3 + 'fiducial_cosmology/galaxy_cmbkappa_cl/ell_bp.txt'))
+        # theory_cls.append(open_dat(save_dir3 + 'fiducial_cosmology/galaxy_cmbkappa_cl/PCl_Bandpowers_kCMB_gal_bin_{}_1.txt'.format(bin_i)))
+        #
+        # measured_cls.append(open_dat(measurement_save_dir + 'measured_6x2pt_bps/galaxy_cmbkappa_bp/ell.txt'))
+        # measured_cls.append(open_dat(measurement_save_dir + 'measured_6x2pt_bps/galaxy_cmbkappa_bp/bin_{}_1.txt'.format(bin_i)))
+        # measured_cls.append(open_dat(measurement_save_dir + 'measured_6x2pt_bps/galaxy_cmbkappa_bp/bin_{}_1_err.txt'.format(bin_i)))
 
     elif type == 'yy':
         label = "$\~{C}_\ell^{\gamma\gamma}$"
-        theory_cls.append(open_dat(save_dir + 'fiducial_cosmology/shear_cl/ell_bp.txt'))
-        theory_cls.append(open_dat(save_dir + 'fiducial_cosmology/shear_cl/PCl_Bandpowers_EE_bin_{}_{}.txt'.format(bin_i, bin_j)))
-        theory_cls.append(open_dat(save_dir2 + 'fiducial_cosmology/shear_cl/ell_bp.txt'))
-        theory_cls.append(open_dat(save_dir2 + 'fiducial_cosmology/shear_cl/PCl_Bandpowers_EE_bin_{}_{}.txt'.format(bin_i, bin_j)))
-        theory_cls.append(open_dat(save_dir3 + 'fiducial_cosmology/shear_cl/ell_bp.txt'))
-        theory_cls.append(open_dat(save_dir3 + 'fiducial_cosmology/shear_cl/PCl_Bandpowers_EE_bin_{}_{}.txt'.format(bin_i, bin_j)))
-
-        measured_cls.append(open_dat(measurement_save_dir + 'measured_6x2pt_bps/shear_bp/Cl_EE/ell.txt'))
-        measured_cls.append(open_dat(measurement_save_dir + 'measured_6x2pt_bps/shear_bp/Cl_EE/bin_{}_{}.txt'.format(bin_i, bin_j)))
-        measured_cls.append(open_dat(measurement_save_dir + 'measured_6x2pt_bps/shear_bp/Cl_EE/bin_{}_{}_err.txt'.format(bin_i, bin_j)))
+        theory_cls.append(open_dat(save_dir + 'fiducial_cosmology/shear_cl/ell.txt'))
+        theory_cls.append(open_dat(save_dir + 'fiducial_cosmology/shear_cl/bin_{}_{}.txt'.format(bin_i, bin_j)))
+        theory_cls.append(open_dat(save_dir2 + 'fiducial_cosmology/shear_cl/ell.txt'))
+        theory_cls.append(open_dat(save_dir2 + 'fiducial_cosmology/shear_cl/bin_{}_{}.txt'.format(bin_i, bin_j)))
+        # theory_cls.append(open_dat(save_dir3 + 'fiducial_cosmology/shear_cl/ell_bp.txt'))
+        # theory_cls.append(open_dat(save_dir3 + 'fiducial_cosmology/shear_cl/PCl_Bandpowers_EE_bin_{}_{}.txt'.format(bin_i, bin_j)))
+        #
+        # measured_cls.append(open_dat(measurement_save_dir + 'measured_6x2pt_bps/shear_bp/Cl_EE/ell.txt'))
+        # measured_cls.append(open_dat(measurement_save_dir + 'measured_6x2pt_bps/shear_bp/Cl_EE/bin_{}_{}.txt'.format(bin_i, bin_j)))
+        # measured_cls.append(open_dat(measurement_save_dir + 'measured_6x2pt_bps/shear_bp/Cl_EE/bin_{}_{}_err.txt'.format(bin_i, bin_j)))
 
     elif type == 'dd':
         label = "$\~{C}_\ell^{\delta_{\mathrm{g}}\delta_{\mathrm{g}}}$"
-        theory_cls.append(open_dat(save_dir + 'fiducial_cosmology/galaxy_cl/ell_bp.txt'))
-        theory_cls.append(open_dat(save_dir + 'fiducial_cosmology/galaxy_cl/PCl_Bandpowers_gal_gal_bin_{}_{}.txt'.format(bin_i, bin_j)))
-        theory_cls.append(open_dat(save_dir2 + 'fiducial_cosmology/galaxy_cl/ell_bp.txt'))
-        theory_cls.append(open_dat(save_dir2 + 'fiducial_cosmology/galaxy_cl/PCl_Bandpowers_gal_gal_bin_{}_{}.txt'.format(bin_i, bin_j)))
-        theory_cls.append(open_dat(save_dir3 + 'fiducial_cosmology/galaxy_cl/ell_bp.txt'))
-        theory_cls.append(open_dat(save_dir3 + 'fiducial_cosmology/galaxy_cl/PCl_Bandpowers_gal_gal_bin_{}_{}.txt'.format(bin_i, bin_j)))
-
-        measured_cls.append(open_dat(measurement_save_dir + 'measured_6x2pt_bps/galaxy_bp/ell.txt'))
-        measured_cls.append(open_dat(measurement_save_dir + 'measured_6x2pt_bps/galaxy_bp/bin_{}_{}.txt'.format(bin_i, bin_j)))
-        measured_cls.append(open_dat(measurement_save_dir + 'measured_6x2pt_bps/galaxy_bp/bin_{}_{}_err.txt'.format(bin_i, bin_j)))
+        theory_cls.append(open_dat(save_dir + 'fiducial_cosmology/galaxy_cl/ell.txt'))
+        theory_cls.append(open_dat(save_dir + 'fiducial_cosmology/galaxy_cl/bin_{}_{}.txt'.format(bin_i, bin_j)))
+        theory_cls.append(open_dat(save_dir2 + 'fiducial_cosmology/galaxy_cl/ell.txt'))
+        theory_cls.append(open_dat(save_dir2 + 'fiducial_cosmology/galaxy_cl/bin_{}_{}.txt'.format(bin_i, bin_j)))
+        # theory_cls.append(open_dat(save_dir3 + 'fiducial_cosmology/galaxy_cl/ell_bp.txt'))
+        # theory_cls.append(open_dat(save_dir3 + 'fiducial_cosmology/galaxy_cl/PCl_Bandpowers_gal_gal_bin_{}_{}.txt'.format(bin_i, bin_j)))
+        #
+        # measured_cls.append(open_dat(measurement_save_dir + 'measured_6x2pt_bps/galaxy_bp/ell.txt'))
+        # measured_cls.append(open_dat(measurement_save_dir + 'measured_6x2pt_bps/galaxy_bp/bin_{}_{}.txt'.format(bin_i, bin_j)))
+        # measured_cls.append(open_dat(measurement_save_dir + 'measured_6x2pt_bps/galaxy_bp/bin_{}_{}_err.txt'.format(bin_i, bin_j)))
 
     elif type == 'dy':
         label = "$\~{C}_\ell^{\delta_{\mathrm{g}}\gamma}$"
-        theory_cls.append(open_dat(save_dir + 'fiducial_cosmology/galaxy_shear_cl/ell_bp.txt'))
-        theory_cls.append(open_dat(save_dir + 'fiducial_cosmology/galaxy_shear_cl/PCl_Bandpowers_gal_E_bin_{}_{}.txt'.format(bin_i, bin_j)))
-        theory_cls.append(open_dat(save_dir2 + 'fiducial_cosmology/galaxy_shear_cl/ell_bp.txt'))
-        theory_cls.append(open_dat(save_dir2 + 'fiducial_cosmology/galaxy_shear_cl/PCl_Bandpowers_gal_E_bin_{}_{}.txt'.format(bin_i, bin_j)))
-        theory_cls.append(open_dat(save_dir3 + 'fiducial_cosmology/galaxy_shear_cl/ell_bp.txt'))
-        theory_cls.append(open_dat(save_dir3 + 'fiducial_cosmology/galaxy_shear_cl/PCl_Bandpowers_gal_E_bin_{}_{}.txt'.format(bin_i, bin_j)))
-
-        measured_cls.append(open_dat(measurement_save_dir + 'measured_6x2pt_bps/galaxy_shear_bp/ell.txt'))
-        measured_cls.append(open_dat(measurement_save_dir + 'measured_6x2pt_bps/galaxy_shear_bp/bin_{}_{}.txt'.format(bin_i, bin_j)))
-        measured_cls.append(open_dat(measurement_save_dir + 'measured_6x2pt_bps/galaxy_shear_bp/bin_{}_{}_err.txt'.format(bin_i, bin_j)))
+        theory_cls.append(open_dat(save_dir + 'fiducial_cosmology/galaxy_shear_cl/ell.txt'))
+        theory_cls.append(open_dat(save_dir + 'fiducial_cosmology/galaxy_shear_cl/bin_{}_{}.txt'.format(bin_i, bin_j)))
+        theory_cls.append(open_dat(save_dir2 + 'fiducial_cosmology/galaxy_shear_cl/ell.txt'))
+        theory_cls.append(open_dat(save_dir2 + 'fiducial_cosmology/galaxy_shear_cl/bin_{}_{}.txt'.format(bin_i, bin_j)))
+        # theory_cls.append(open_dat(save_dir3 + 'fiducial_cosmology/galaxy_shear_cl/ell_bp.txt'))
+        # theory_cls.append(open_dat(save_dir3 + 'fiducial_cosmology/galaxy_shear_cl/PCl_Bandpowers_gal_E_bin_{}_{}.txt'.format(bin_i, bin_j)))
+        #
+        # measured_cls.append(open_dat(measurement_save_dir + 'measured_6x2pt_bps/galaxy_shear_bp/ell.txt'))
+        # measured_cls.append(open_dat(measurement_save_dir + 'measured_6x2pt_bps/galaxy_shear_bp/bin_{}_{}.txt'.format(bin_i, bin_j)))
+        # measured_cls.append(open_dat(measurement_save_dir + 'measured_6x2pt_bps/galaxy_shear_bp/bin_{}_{}_err.txt'.format(bin_i, bin_j)))
         # measured_cls.append(open_dat(save_dir + 'fiducial_cosmology/galaxy_shear_cl/ell.txt'))
         # measured_cls.append(open_dat(save_dir + 'fiducial_cosmology/galaxy_shear_cl/bin_{}_{}.txt'.format(bin_i, bin_j)))
 
@@ -200,11 +200,12 @@ def plot_tom_xcorr(save_dir, save_dir2, save_dir3, nbins, type):
                     rect = ((i+1)*sz,(j+1)*sz,sz,sz)
                 ax = fig.add_axes(rect)
 
-                plt.plot(theory_cl[0], theory_cl[1],zorder=1,color='0', linewidth=0.8)
-                plt.plot(theory_cl[2], theory_cl[3],zorder=1,color='0', linewidth=0.8,ls='--')
-                plt.plot(theory_cl[4], theory_cl[5],zorder=1,color='0', linewidth=0.8,ls=':')
+                # plt.plot(theory_cl[0], theory_cl[1],zorder=1,color='0', linewidth=0.8)
+                # plt.plot(theory_cl[2], theory_cl[3],zorder=1,color='0', linewidth=0.8,ls='--')
+                plt.plot(theory_cl[0], (theory_cl[3]-theory_cl[1]),zorder=1,color='0', linewidth=0.8,ls='--')
+                # plt.plot(theory_cl[4], theory_cl[5],zorder=1,color='0', linewidth=0.8,ls=':')
                 # plt.plot(measured_cl[0], measured_cl[1],zorder=2,marker='x',linestyle='None')
-                plt.errorbar(measured_cl[0], measured_cl[1],xerr=None,yerr=measured_cl[2],zorder=2,marker='x',markersize=6, ls='None',color=colors[2])
+                # plt.errorbar(measured_cl[0], measured_cl[1],xerr=None,yerr=measured_cl[2],zorder=2,marker='x',markersize=6, ls='None',color=colors[2])
 
                 # print(theory_cl[1])
                 # plt.plot(theory_cl[0], (measured_cl[1] - theory_cl[1])/theory_cl[1],zorder=1,color='0',alpha=0.5)
@@ -326,9 +327,9 @@ def plot_tom_xcorr(save_dir, save_dir2, save_dir3, nbins, type):
     else:
         legend_loc = None
     fig.legend(handles=[line1,line2,line3],loc=legend_loc,fontsize=13.5)
-    plt.savefig(save_dir + '{}.png'.format(type),dpi=200)
+    # plt.savefig(save_dir + '{}.png'.format(type),dpi=200)
     plt.show()
 
 # plot_kCMB(save_dir=simulation_save_dir)
 
-plot_tom_xcorr(save_dir=simulation_save_dir, save_dir2=simulation_save_dir2, save_dir3=simulation_save_dir3, nbins=nbins, type='ky')
+plot_tom_xcorr(save_dir=simulation_save_dir, save_dir2=simulation_save_dir2, save_dir3=simulation_save_dir3, nbins=nbins, type='yy')

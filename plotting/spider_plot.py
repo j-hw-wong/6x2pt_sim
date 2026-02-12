@@ -156,7 +156,7 @@ def spider_data4(sampler1, sampler2, sampler3, sampler4):
     points3, log_w3, log_l3 = sampler3.posterior()
     points4, log_w4, log_l4 = sampler4.posterior()
 
-    ndim = 12
+    ndim = 7
 
     one_sigma_1d = 0.683
     # one_sigma_1d = 0.955
@@ -210,7 +210,7 @@ def spider_data4(sampler1, sampler2, sampler3, sampler4):
     print(np.round(np.asarray(sigmas4)/np.asarray(sigmas3), decimals=2))
 
     data = [
-        [r'$w_{0}$', r'$w_{a}$', r'$\Omega_{m}$', r'$h$', r'$\Omega_{c}$', r'$n_{s}$', r'$\sigma_{8}$', r'$A_{1}$', r'$A_{2}$', r'$b_{TA}$', r'$\eta_{1}$', r'$\eta_{2}$'],
+        [r'$w_{0}$', r'$w_{a}$ ', r'$\Omega_{m}$', r'$h$', r'$\Omega_{b}$', r'$n_{s}$', r'$\sigma_{8}$'], #, r'$A_{1}$', r'$A_{2}$', r'$b_{TA}$', r'$\eta_{1}$', r'$\eta_{2}$'],
         ('6x2pt / 3x2pt', [
             np.round(np.asarray(sigmas_comparison)/np.asarray(sigmas), decimals=5),
             np.round(np.asarray(sigmas4)/np.asarray(sigmas3), decimals=5)
@@ -227,31 +227,39 @@ def spiderplot(data):
 
     spoke_labels = data.pop(0)
 
+    plt.rcParams.update({'font.size': 20})
+    plt.rcParams["font.family"] = "Times New Roman"
+    plt.rcParams['mathtext.fontset'] = 'cm'
+
     fig, ax = plt.subplots(figsize=(9, 9), nrows=1, ncols=1,
                             subplot_kw=dict(projection='radar'))
     # fig.subplots_adjust(wspace=0.25, hspace=0.20, top=0.85, bottom=0.05)
 
-    colors = ['b', 'r', 'g', 'm', 'y']
+    colors = ['r','b', 'g', 'm', 'y']
+    # colors = ['#800074','#298C8C']
+    markers = ['o','^']
     # Plot the four cases from the example data on separate Axes
     # for ax, (title, case_data) in zip(axs.flat, data):
 
     title, case_data = data[0]
+    ax.plot(theta, np.ones(N), color='0',ls='--', label='_nolegend_')
 
-    ax.set_title(title, weight='bold', size='medium', position=(0.5, 1.1),
+    ax.set_title('3 Tomographic Bins\n(Low-'+r'$z$'+')', weight='bold', size='medium', position=(0.5, 1.1),
                  horizontalalignment='center', verticalalignment='center')
-    for d, color in zip(case_data, colors):
-        ax.plot(theta, d, color=color)
-        ax.fill(theta, d, facecolor=color, alpha=0.25, label='_nolegend_')
-    ax.plot(theta, np.ones(N), color='0',ls='--')
+    for d, color, marker in zip(case_data, colors, markers):
+        ax.plot(theta, d, color=color,marker=marker,markersize=7.5)
+        ax.fill(theta, d, facecolor=color, alpha=0.075, label='_nolegend_')
 
     ax.set_varlabels(spoke_labels)
-    ax.set_rgrids([0.2, 0.4, 0.6, 0.8, 1.0])
-    ax.set_ylim(0, 1.1)
+    ax.set_rgrids([0.2, 0.4, 0.6, 0.8, 1.0], va='center')
+    ax.set_ylim(0, 1.15)
     # add legend relative to top-left plot
-    # labels = ('Numerical Covariance Matrix', 'Analytic Covariance Matrix')
+    labels = ['Numerical\nCov. Matrix','Analytic\nCov. Matrix']
+    # labels = ['3 Tomographic Bins','6 Tomographic Bins']
     # labels = ('Ratio of 6x2pt')
-    # legend = ax.legend(labels, loc=(0.9, .95),
-    #                           labelspacing=0.1, fontsize='small')
-
-    # plt.savefig('/raid/scratch/wongj/mywork/3x2pt/6x2pt_sim_data/ff/inference_chains/Spider_bias_3-6.png',dpi=200)
+    # legend = ax.legend(labels, loc=(0.75, 1.),
+    legend = ax.legend(labels, loc=(0.725, .925),
+                              labelspacing=0.1)
+    plt.tight_layout()
+    # plt.savefig('/raid/scratch/wongj/mywork/3x2pt/6x2pt_sim_data/b/inference_chains/Spider_3bin.png',dpi=200)
     plt.show()

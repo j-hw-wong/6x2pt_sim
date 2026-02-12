@@ -6,5 +6,6 @@ import likelihood.like_bp_gauss_mix_6x2pt
 import likelihood.like_bp_gauss_mix_3x2pt
 import likelihood.like_bp_gauss_mix_1x2pt
 import likelihood.sampler
+import likelihood.sampler_new
 import likelihood.mask
 import likelihood.model_pcl

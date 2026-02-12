@@ -51,11 +51,11 @@ def main():
     # priors.append(("_b2", (-5, 5)))
     # priors.append(("_bs", (-5, 5)))
     #
-    priors.append(("_A1", (-8, 8)))
-    priors.append(("_A2", (-8, 8)))
-    priors.append(("_bTA", (-6, 6)))
-    priors.append(("_eta1", (-6, 6)))
-    priors.append(("_eta2", (-6, 6)))
+    # priors.append(("_A1", (-8, 8)))
+    # priors.append(("_A2", (-8, 8)))
+    # priors.append(("_bTA", (-6, 6)))
+    # priors.append(("_eta1", (-6, 6)))
+    # priors.append(("_eta2", (-6, 6)))
 
     # priors.append(("_s0", (-5, 5)))
     # priors.append(("_s1", (-5, 5)))
@@ -69,9 +69,9 @@ def main():
     # priors.append(("_m_5", (-2, 2)))
     # priors.append(("_m_6", (-2, 2)))
     #
-    priors.append(("_Dz_1", norm(loc=0, scale=0.01)))
-    priors.append(("_Dz_2", norm(loc=0, scale=0.01)))
-    priors.append(("_Dz_3", norm(loc=0, scale=0.01)))
+    # priors.append(("_Dz_1", norm(loc=0, scale=0.01)))
+    # priors.append(("_Dz_2", norm(loc=0, scale=0.01)))
+    # priors.append(("_Dz_3", norm(loc=0, scale=0.01)))
     # priors.append(("_Dz_4", norm(loc=0, scale=0.01)))
     # priors.append(("_Dz_5", norm(loc=0, scale=0.01)))
     # priors.append(("_Dz_6", norm(loc=0, scale=0.01)))
@@ -124,12 +124,12 @@ def main():
         pipeline_variables_path,
         covariance_matrix_type=covariance_matrix_type,
         priors=priors,
-        checkpoint_filename='Cosmology_3bin_6x2pt_TATT_Photz.hdf5',
+        checkpoint_filename='Cosmology_6x2pt_analytic.hdf5',
         # checkpoint_filename='Cosmology_3x2pt_numerical.hdf5',
         bi_marg=False,
         b2i_marg=False,
         mi_marg=False,
-        Dzi_marg=True,
+        Dzi_marg=False,
         A1i_marg=False
     )
 

@@ -44,22 +44,27 @@ def measure_bps_config(pipeline_variables_path):
     input_lmax = int(float(config['simulation_setup']['INPUT_ELL_MAX']))
 
     output_lmin_shear = int(float(config['measurement_setup']['OUTPUT_ELL_MIN_EE']))
-    output_lmax_shear = int(float(config['measurement_setup']['OUTPUT_ELL_MAX_EE']))
+    output_lmax_shear_config = config['measurement_setup']['OUTPUT_ELL_MAX_EE']
+    output_lmax_shear = [int(float(i)) for i in output_lmax_shear_config.split(',')]
 
     output_lmin_galaxy_shear = int(float(config['measurement_setup']['OUTPUT_ELL_MIN_NE']))
-    output_lmax_galaxy_shear = int(float(config['measurement_setup']['OUTPUT_ELL_MAX_NE']))
+    output_lmax_galaxy_shear_config = config['measurement_setup']['OUTPUT_ELL_MAX_NE']
+    output_lmax_galaxy_shear = [int(float(i)) for i in output_lmax_galaxy_shear_config.split(',')]
 
     output_lmin_galaxy = int(float(config['measurement_setup']['OUTPUT_ELL_MIN_NN']))
-    output_lmax_galaxy = int(float(config['measurement_setup']['OUTPUT_ELL_MAX_NN']))
+    output_lmax_galaxy_config = config['measurement_setup']['OUTPUT_ELL_MAX_NN']
+    output_lmax_galaxy = [int(float(i)) for i in output_lmax_galaxy_config.split(',')]
 
     output_lmin_cmbkk = int(float(config['measurement_setup']['OUTPUT_ELL_MIN_CMBKK']))
     output_lmax_cmbkk = int(float(config['measurement_setup']['OUTPUT_ELL_MAX_CMBKK']))
 
     output_lmin_cmbkk_galaxy = int(float(config['measurement_setup']['OUTPUT_ELL_MIN_CMBKK_N']))
-    output_lmax_cmbkk_galaxy = int(float(config['measurement_setup']['OUTPUT_ELL_MAX_CMBKK_N']))
+    output_lmax_cmbkk_galaxy_config = config['measurement_setup']['OUTPUT_ELL_MAX_CMBKK_N']
+    output_lmax_cmbkk_galaxy = [int(float(i)) for i in output_lmax_cmbkk_galaxy_config.split(',')]
 
     output_lmin_cmbkk_shear = int(float(config['measurement_setup']['OUTPUT_ELL_MIN_CMBKK_E']))
-    output_lmax_cmbkk_shear = int(float(config['measurement_setup']['OUTPUT_ELL_MAX_CMBKK_E']))
+    output_lmax_cmbkk_shear_config = config['measurement_setup']['OUTPUT_ELL_MAX_CMBKK_E']
+    output_lmax_cmbkk_shear = [int(float(i)) for i in output_lmax_cmbkk_shear_config.split(',')]
 
     n_bandpowers = int(float(config['measurement_setup']['N_BANDPOWERS']))
     bandpower_spacing = str(config['measurement_setup']['BANDPOWER_SPACING'])
@@ -70,22 +75,21 @@ def measure_bps_config(pipeline_variables_path):
         sys.exit()
 
     elif bandpower_spacing == 'log':
-        # bp_bin_edges = np.logspace(np.log10(output_lmin + 1e-5), np.log10(output_lmax + 1e-5), n_bandpowers + 1)
-        bp_bin_edges_galaxy = np.logspace(np.log10(output_lmin_galaxy + 1e-5), np.log10(output_lmax_galaxy + 1e-5), n_bandpowers + 1)
-        bp_bin_edges_galaxy_shear = np.logspace(np.log10(output_lmin_galaxy_shear + 1e-5), np.log10(output_lmax_galaxy_shear + 1e-5), n_bandpowers + 1)
-        bp_bin_edges_shear = np.logspace(np.log10(output_lmin_shear + 1e-5), np.log10(output_lmax_shear + 1e-5), n_bandpowers + 1)
+        bp_bin_edges_galaxy = [np.logspace(np.log10(output_lmin_galaxy + 1e-5), np.log10(output_lmax_galaxy_i + 1e-5), n_bandpowers + 1) for output_lmax_galaxy_i in output_lmax_galaxy]
+        bp_bin_edges_galaxy_shear = [np.logspace(np.log10(output_lmin_galaxy_shear + 1e-5), np.log10(output_lmax_galaxy_shear_i + 1e-5), n_bandpowers + 1) for output_lmax_galaxy_shear_i in output_lmax_galaxy_shear]
+        bp_bin_edges_shear = [np.logspace(np.log10(output_lmin_shear + 1e-5), np.log10(output_lmax_shear_i + 1e-5), n_bandpowers + 1) for output_lmax_shear_i in output_lmax_shear]
         bp_bin_edges_cmbkk = np.logspace(np.log10(output_lmin_cmbkk + 1e-5), np.log10(output_lmax_cmbkk + 1e-5), n_bandpowers + 1)
-        bp_bin_edges_cmbkk_galaxy = np.logspace(np.log10(output_lmin_cmbkk_galaxy + 1e-5), np.log10(output_lmax_cmbkk_galaxy + 1e-5), n_bandpowers + 1)
-        bp_bin_edges_cmbkk_shear = np.logspace(np.log10(output_lmin_cmbkk_shear + 1e-5), np.log10(output_lmax_cmbkk_shear + 1e-5), n_bandpowers + 1)
+        bp_bin_edges_cmbkk_galaxy = [np.logspace(np.log10(output_lmin_cmbkk_galaxy + 1e-5), np.log10(output_lmax_cmbkk_galaxy_i + 1e-5), n_bandpowers + 1) for output_lmax_cmbkk_galaxy_i in output_lmax_cmbkk_galaxy]
+        bp_bin_edges_cmbkk_shear = [np.logspace(np.log10(output_lmin_cmbkk_shear + 1e-5), np.log10(output_lmax_cmbkk_shear_i + 1e-5), n_bandpowers + 1) for output_lmax_cmbkk_shear_i in output_lmax_cmbkk_shear]
 
     elif bandpower_spacing == 'lin':
         # bp_bin_edges = np.linspace(output_lmin + 1e-5, output_lmax + 1e-5, n_bandpowers + 1)
-        bp_bin_edges_galaxy = np.linspace(output_lmin_galaxy + 1e-5, output_lmax_galaxy + 1e-5, n_bandpowers + 1)
-        bp_bin_edges_galaxy_shear = np.linspace(output_lmin_galaxy_shear + 1e-5, output_lmax_galaxy_shear + 1e-5, n_bandpowers + 1)
-        bp_bin_edges_shear = np.linspace(output_lmin_shear + 1e-5, output_lmax_shear + 1e-5, n_bandpowers + 1)
+        bp_bin_edges_galaxy = [np.linspace(output_lmin_galaxy + 1e-5, output_lmax_galaxy_i + 1e-5, n_bandpowers + 1) for output_lmax_galaxy_i in output_lmax_galaxy]
+        bp_bin_edges_galaxy_shear = [np.linspace(output_lmin_galaxy_shear + 1e-5, output_lmax_galaxy_shear_i + 1e-5, n_bandpowers + 1) for output_lmax_galaxy_shear_i in output_lmax_galaxy_shear]
+        bp_bin_edges_shear = [np.linspace(output_lmin_shear + 1e-5, output_lmax_shear_i + 1e-5, n_bandpowers + 1) for output_lmax_shear_i in output_lmax_shear]
         bp_bin_edges_cmbkk = np.linspace(output_lmin_cmbkk + 1e-5, output_lmax_cmbkk + 1e-5, n_bandpowers + 1)
-        bp_bin_edges_cmbkk_galaxy = np.linspace(output_lmin_cmbkk_galaxy + 1e-5, output_lmax_cmbkk_galaxy + 1e-5, n_bandpowers + 1)
-        bp_bin_edges_cmbkk_shear = np.linspace(output_lmin_cmbkk_shear + 1e-5, output_lmax_cmbkk_shear + 1e-5, n_bandpowers + 1)
+        bp_bin_edges_cmbkk_galaxy = [np.linspace(output_lmin_cmbkk_galaxy + 1e-5, output_lmax_cmbkk_galaxy_i + 1e-5, n_bandpowers + 1) for output_lmax_cmbkk_galaxy_i in output_lmax_cmbkk_galaxy]
+        bp_bin_edges_cmbkk_shear = [np.linspace(output_lmin_cmbkk_shear + 1e-5, output_lmax_cmbkk_shear_i + 1e-5, n_bandpowers + 1) for output_lmax_cmbkk_shear_i in output_lmax_cmbkk_shear]
 
     elif bandpower_spacing == 'custom':
         # Placeholder at the moment!!!
@@ -110,53 +114,53 @@ def measure_bps_config(pipeline_variables_path):
         # Bandpower type not recognised
         sys.exit()
 
-    bp_bins_galaxy = nmt.NmtBin.from_edges(
-        ell_ini=np.ceil(bp_bin_edges_galaxy).astype(int)[:-1],
-        ell_end=np.ceil(bp_bin_edges_galaxy).astype(int)[1:])
-    ell_arr_galaxy = bp_bins_galaxy.get_effective_ells()
+    bp_bins_galaxy = [nmt.NmtBin.from_edges(
+        ell_ini=np.ceil(bp_bin_edges_galaxy_i).astype(int)[:-1],
+        ell_end=np.ceil(bp_bin_edges_galaxy_i).astype(int)[1:]) for bp_bin_edges_galaxy_i in bp_bin_edges_galaxy]
+    ell_arr_galaxy = [bp_bins_galaxy_i.get_effective_ells() for bp_bins_galaxy_i in bp_bins_galaxy]
 
-    bp_bins_galaxy_shear = nmt.NmtBin.from_edges(
-        ell_ini=np.ceil(bp_bin_edges_galaxy_shear).astype(int)[:-1],
-        ell_end=np.ceil(bp_bin_edges_galaxy_shear).astype(int)[1:])
-    ell_arr_galaxy_shear = bp_bins_galaxy_shear.get_effective_ells()
+    bp_bins_galaxy_shear = [nmt.NmtBin.from_edges(
+        ell_ini=np.ceil(bp_bin_edges_galaxy_shear_i).astype(int)[:-1],
+        ell_end=np.ceil(bp_bin_edges_galaxy_shear_i).astype(int)[1:]) for bp_bin_edges_galaxy_shear_i in bp_bin_edges_galaxy_shear]
+    ell_arr_galaxy_shear = [bp_bins_galaxy_shear_i.get_effective_ells() for bp_bins_galaxy_shear_i in bp_bins_galaxy_shear]
 
-    bp_bins_shear = nmt.NmtBin.from_edges(
-        ell_ini=np.ceil(bp_bin_edges_shear).astype(int)[:-1],
-        ell_end=np.ceil(bp_bin_edges_shear).astype(int)[1:])
-    ell_arr_shear = bp_bins_shear.get_effective_ells()
+    bp_bins_shear = [nmt.NmtBin.from_edges(
+        ell_ini=np.ceil(bp_bin_edges_shear_i).astype(int)[:-1],
+        ell_end=np.ceil(bp_bin_edges_shear_i).astype(int)[1:]) for bp_bin_edges_shear_i in bp_bin_edges_shear]
+    ell_arr_shear = [bp_bins_shear_i.get_effective_ells() for bp_bins_shear_i in bp_bins_shear]
 
     bp_bins_cmbkk = nmt.NmtBin.from_edges(
         ell_ini=np.ceil(bp_bin_edges_cmbkk).astype(int)[:-1],
         ell_end=np.ceil(bp_bin_edges_cmbkk).astype(int)[1:])
     ell_arr_cmbkk = bp_bins_cmbkk.get_effective_ells()
 
-    bp_bins_cmbkk_galaxy = nmt.NmtBin.from_edges(
-        ell_ini=np.ceil(bp_bin_edges_cmbkk_galaxy).astype(int)[:-1],
-        ell_end=np.ceil(bp_bin_edges_cmbkk_galaxy).astype(int)[1:])
-    ell_arr_cmbkk_galaxy = bp_bins_cmbkk_galaxy.get_effective_ells()
+    bp_bins_cmbkk_galaxy = [nmt.NmtBin.from_edges(
+        ell_ini=np.ceil(bp_bin_edges_cmbkk_galaxy_i).astype(int)[:-1],
+        ell_end=np.ceil(bp_bin_edges_cmbkk_galaxy_i).astype(int)[1:]) for bp_bin_edges_cmbkk_galaxy_i in bp_bin_edges_cmbkk_galaxy]
+    ell_arr_cmbkk_galaxy = [bp_bins_cmbkk_galaxy_i.get_effective_ells() for bp_bins_cmbkk_galaxy_i in bp_bins_cmbkk_galaxy]
 
-    bp_bins_cmbkk_shear = nmt.NmtBin.from_edges(
-        ell_ini=np.ceil(bp_bin_edges_cmbkk_shear).astype(int)[:-1],
-        ell_end=np.ceil(bp_bin_edges_cmbkk_shear).astype(int)[1:])
-    ell_arr_cmbkk_shear = bp_bins_cmbkk_shear.get_effective_ells()
+    bp_bins_cmbkk_shear = [nmt.NmtBin.from_edges(
+        ell_ini=np.ceil(bp_bin_edges_cmbkk_shear_i).astype(int)[:-1],
+        ell_end=np.ceil(bp_bin_edges_cmbkk_shear_i).astype(int)[1:]) for bp_bin_edges_cmbkk_shear_i in bp_bin_edges_cmbkk_shear]
+    ell_arr_cmbkk_shear = [bp_bins_cmbkk_shear_i.get_effective_ells() for bp_bins_cmbkk_shear_i in bp_bins_cmbkk_shear]
 
-    pbl_shear = mask.get_binning_matrix(
+    pbl_shear = [mask.get_binning_matrix(
         n_bandpowers=n_bandpowers,
         output_lmin=output_lmin_shear,
-        output_lmax=output_lmax_shear,
-        bp_spacing=bandpower_spacing)
+        output_lmax=output_lmax_shear_i,
+        bp_spacing=bandpower_spacing) for output_lmax_shear_i in output_lmax_shear]
 
-    pbl_galaxy_shear = mask.get_binning_matrix(
+    pbl_galaxy_shear = [mask.get_binning_matrix(
         n_bandpowers=n_bandpowers,
         output_lmin=output_lmin_galaxy_shear,
-        output_lmax=output_lmax_galaxy_shear,
-        bp_spacing=bandpower_spacing)
+        output_lmax=output_lmax_galaxy_shear_i,
+        bp_spacing=bandpower_spacing) for output_lmax_galaxy_shear_i in output_lmax_galaxy_shear]
 
-    pbl_galaxy = mask.get_binning_matrix(
+    pbl_galaxy = [mask.get_binning_matrix(
         n_bandpowers=n_bandpowers,
         output_lmin=output_lmin_galaxy,
-        output_lmax=output_lmax_galaxy,
-        bp_spacing=bandpower_spacing)
+        output_lmax=output_lmax_galaxy_i,
+        bp_spacing=bandpower_spacing) for output_lmax_galaxy_i in output_lmax_galaxy]
 
     pbl_cmbkk = mask.get_binning_matrix(
         n_bandpowers=n_bandpowers,
@@ -164,17 +168,17 @@ def measure_bps_config(pipeline_variables_path):
         output_lmax=output_lmax_cmbkk,
         bp_spacing=bandpower_spacing)
 
-    pbl_cmbkk_galaxy = mask.get_binning_matrix(
+    pbl_cmbkk_galaxy = [mask.get_binning_matrix(
         n_bandpowers=n_bandpowers,
         output_lmin=output_lmin_cmbkk_galaxy,
-        output_lmax=output_lmax_cmbkk_galaxy,
-        bp_spacing=bandpower_spacing)
+        output_lmax=output_lmax_cmbkk_galaxy_i,
+        bp_spacing=bandpower_spacing) for output_lmax_cmbkk_galaxy_i in output_lmax_cmbkk_galaxy]
 
-    pbl_cmbkk_shear = mask.get_binning_matrix(
+    pbl_cmbkk_shear = [mask.get_binning_matrix(
         n_bandpowers=n_bandpowers,
         output_lmin=output_lmin_cmbkk_shear,
-        output_lmax=output_lmax_cmbkk_shear,
-        bp_spacing=bandpower_spacing)
+        output_lmax=output_lmax_cmbkk_shear_i,
+        bp_spacing=bandpower_spacing) for output_lmax_cmbkk_shear_i in output_lmax_cmbkk_shear]
 
     # Prepare config dictionary
     config_dict = {
@@ -255,10 +259,10 @@ def measured_cls_to_obs_cls(measured_cls_dir, obs_cls_dir, bin_i, bin_j, lmin_ou
     measured_ell = np.loadtxt(measured_cls_dir + 'ell.txt')
     obs_ell = measured_ell[lmin_out:lmax_out + 1]
 
-    np.savetxt(obs_cls_dir + 'ell.txt', np.transpose(obs_ell))
+    np.savetxt(obs_cls_dir + 'ell_bin_{}_{}.txt'.format(bin_i,bin_j), np.transpose(obs_ell))
 
 
-def cl_to_bp(cl_dir, bp_dir, bin_i, bin_j, pbl):
+def cl_to_bp(cl_dir, bp_dir, bin_i, bin_j, pbl, ell_arr=None):
 
     """
     Function to convert measured power spectra to bandpowers
@@ -285,6 +289,8 @@ def cl_to_bp(cl_dir, bp_dir, bin_i, bin_j, pbl):
 
     np.savetxt(bp_dir + 'bin_{}_{}.txt'.format(bin_i, bin_j), this_bp)
 
+    if ell_arr is not None:
+        np.savetxt(bp_dir + 'ell_bp_bin_{}_{}.txt'.format(bin_i, bin_j), ell_arr)
 
 def calc_stdem_bps(bp_dir, n_bps, bin_i, bin_j, realisations):
 
@@ -438,7 +444,7 @@ def create_null_spectras(nbins, lmin, lmax, output_dir):
 
 
 def process_00_pcls(config_dict, theory_cl_dir, noise_cl_dir, spectra_type, bin_i, bin_j, obs_mask_path, output_lmin,
-                    output_lmax, bp_bins, ell_arr, pbl):
+                    output_lmax, ell_arr, pbl):
 
     """
     Function to convert fiducial full-sky 00 components of the 3x2pt power spectra into predicted Pseudo-bandpowers.
@@ -528,13 +534,13 @@ def process_00_pcls(config_dict, theory_cl_dir, noise_cl_dir, spectra_type, bin_
     np.savetxt(bp_save_dir + 'PCl_Bandpowers_{}_bin_{}_{}.txt'.format(spectra_type, bin_i, bin_j),
                np.transpose(binned_theory_pcl))
 
-    if os.path.isfile(bp_save_dir + 'ell_bp.txt') is False:
-        np.savetxt(bp_save_dir + 'ell_bp.txt',
+    if os.path.isfile(bp_save_dir + 'ell_bp_bin_{}_{}.txt'.format(bin_i,bin_j)) is False:
+        np.savetxt(bp_save_dir + 'ell_bp_bin_{}_{}.txt'.format(bin_i,bin_j),
                    np.transpose(ell_arr))
 
 
 def process_02_pcls(config_dict, theory_cl_dir, noise_cl_dir, spectra_type, bin_i, bin_j, obs_mask_path, output_lmin,
-                    output_lmax, bp_bins, ell_arr, pbl):
+                    output_lmax, ell_arr, pbl):
 
     """
     Function to convert fiducial full-sky 02 components of the 3x2pt power spectra into predicted Pseudo-bandpowers.
@@ -731,13 +737,22 @@ def process_02_pcls(config_dict, theory_cl_dir, noise_cl_dir, spectra_type, bin_
     np.savetxt(bp_save_dir + 'PCl_Bandpowers_{}_bin_{}_{}.txt'.format(spectra_type, bin_i, bin_j),
                np.transpose(binned_theory_pcls[spectra_type]))
 
-    if os.path.isfile(bp_save_dir + 'ell_bp.txt') is False:
-        np.savetxt(bp_save_dir + 'ell_bp.txt',
+    # if bin_i == bin_j:
+    #     if os.path.isfile(bp_save_dir + 'ell_bp_bin_{}.txt'.format(bin_i)) is False:
+    #         np.savetxt(bp_save_dir + 'ell_bp_bin_{}.txt'.format(bin_i),
+    #                    np.transpose(ell_arr))
+    #
+    # if os.path.isfile(bp_save_dir + 'ell_bp.txt') is False:
+    #     np.savetxt(bp_save_dir + 'ell_bp.txt',
+    #                np.transpose(ell_arr))
+
+    if os.path.isfile(bp_save_dir + 'ell_bp_bin_{}_{}.txt'.format(bin_i,bin_j)) is False:
+        np.savetxt(bp_save_dir + 'ell_bp_bin_{}_{}.txt'.format(bin_i,bin_j),
                    np.transpose(ell_arr))
 
 
 def process_22_pcls(config_dict, theory_cl_dir, noise_cl_dir, spectra_type, bin_i, bin_j, obs_mask_path, output_lmin,
-                    output_lmax, bp_bins, ell_arr, pbl):
+                    output_lmax, ell_arr, pbl):
 
     """
     Function to convert fiducial full-sky 22 components of the 3x2pt power spectra into predicted Pseudo-bandpowers.
@@ -824,8 +839,17 @@ def process_22_pcls(config_dict, theory_cl_dir, noise_cl_dir, spectra_type, bin_
     np.savetxt(bp_save_dir + 'PCl_Bandpowers_{}_bin_{}_{}.txt'.format(spectra_type, bin_i, bin_j),
                np.transpose(binned_theory_pcls[spectra_type]))
 
-    if os.path.isfile(bp_save_dir + 'ell_bp.txt') is False:
-        np.savetxt(bp_save_dir + 'ell_bp.txt',
+    # if bin_i == bin_j:
+    #     if os.path.isfile(bp_save_dir + 'ell_bp_bin_{}.txt'.format(bin_i)) is False:
+    #         np.savetxt(bp_save_dir + 'ell_bp_bin_{}.txt'.format(bin_i),
+    #                    np.transpose(ell_arr))
+
+    # if os.path.isfile(bp_save_dir + 'ell_bp.txt') is False:
+    #     np.savetxt(bp_save_dir + 'ell_bp.txt',
+    #                np.transpose(ell_arr))
+
+    if os.path.isfile(bp_save_dir + 'ell_bp_bin_{}_{}.txt'.format(bin_i,bin_j)) is False:
+        np.savetxt(bp_save_dir + 'ell_bp_bin_{}_{}.txt'.format(bin_i,bin_j),
                    np.transpose(ell_arr))
 
 
@@ -854,37 +878,31 @@ def execute(pipeline_variables_path):
     output_lmin_shear = config_dict['output_lmin_shear']
     output_lmax_shear = config_dict['output_lmax_shear']
     pbl_shear = config_dict['pbl_shear']
-    bp_bins_shear = config_dict['bp_bins_shear']
     ell_arr_shear = config_dict['ell_arr_shear']
 
     output_lmin_galaxy_shear = config_dict['output_lmin_galaxy_shear']
     output_lmax_galaxy_shear = config_dict['output_lmax_galaxy_shear']
     pbl_galaxy_shear = config_dict['pbl_galaxy_shear']
-    bp_bins_galaxy_shear = config_dict['bp_bins_galaxy_shear']
     ell_arr_galaxy_shear = config_dict['ell_arr_galaxy_shear']
 
     output_lmin_galaxy = config_dict['output_lmin_galaxy']
     output_lmax_galaxy = config_dict['output_lmax_galaxy']
     pbl_galaxy = config_dict['pbl_galaxy']
-    bp_bins_galaxy = config_dict['bp_bins_galaxy']
     ell_arr_galaxy = config_dict['ell_arr_galaxy']
 
     output_lmin_cmbkk = config_dict['output_lmin_cmbkk']
     output_lmax_cmbkk = config_dict['output_lmax_cmbkk']
     pbl_cmbkk = config_dict['pbl_cmbkk']
-    bp_bins_cmbkk = config_dict['bp_bins_cmbkk']
     ell_arr_cmbkk = config_dict['ell_arr_cmbkk']
 
     output_lmin_cmbkk_galaxy = config_dict['output_lmin_cmbkk_galaxy']
     output_lmax_cmbkk_galaxy = config_dict['output_lmax_cmbkk_galaxy']
     pbl_cmbkk_galaxy = config_dict['pbl_cmbkk_galaxy']
-    bp_bins_cmbkk_galaxy = config_dict['bp_bins_cmbkk_galaxy']
     ell_arr_cmbkk_galaxy = config_dict['ell_arr_cmbkk_galaxy']
 
     output_lmin_cmbkk_shear = config_dict['output_lmin_cmbkk_shear']
     output_lmax_cmbkk_shear = config_dict['output_lmax_cmbkk_shear']
     pbl_cmbkk_shear = config_dict['pbl_cmbkk_shear']
-    bp_bins_cmbkk_shear = config_dict['bp_bins_cmbkk_shear']
     ell_arr_cmbkk_shear = config_dict['ell_arr_cmbkk_shear']
 
     # Define some paths to extract data on disk and save measured quantities.
@@ -910,41 +928,48 @@ def execute(pipeline_variables_path):
     kCMB_E_bps_dir = obs_cat_bps_dir + 'shear_cmbkappa_bp/kCMB_E/'
     kCMB_B_bps_dir = obs_cat_bps_dir + 'shear_cmbkappa_bp/kCMB_B/'
 
-    for folder in [gal_bps_dir]:
-        if not os.path.exists(folder):
-            os.makedirs(folder)
-        np.savetxt(folder + 'ell.txt',
-                   np.transpose(ell_arr_galaxy))
-
-    for folder in [gal_shear_bps_dir]:
-        if not os.path.exists(folder):
-            os.makedirs(folder)
-        np.savetxt(folder + 'ell.txt',
-                   np.transpose(ell_arr_galaxy_shear))
-
-    for folder in [shear_bps_dir, k_bps_dir, y1_bps_dir, y1y2_bps_dir, y2y1_bps_dir, y2_bps_dir]:
-        if not os.path.exists(folder):
-            os.makedirs(folder)
-        np.savetxt(folder + 'ell.txt',
-                   np.transpose(ell_arr_shear))
-
-    for folder in [kCMB_bps_dir]:
-        if not os.path.exists(folder):
-            os.makedirs(folder)
-        np.savetxt(folder + 'ell.txt',
-                   np.transpose(ell_arr_cmbkk))
-
-    for folder in [kCMB_gal_bps_dir]:
-        if not os.path.exists(folder):
-            os.makedirs(folder)
-        np.savetxt(folder + 'ell.txt',
-                   np.transpose(ell_arr_cmbkk_galaxy))
-
-    for folder in [kCMB_E_bps_dir, kCMB_B_bps_dir]:
-        if not os.path.exists(folder):
-            os.makedirs(folder)
-        np.savetxt(folder + 'ell.txt',
-                   np.transpose(ell_arr_cmbkk_shear))
+    # for folder in [gal_bps_dir]:
+    #     if not os.path.exists(folder):
+    #         os.makedirs(folder)
+    #     for i in range(nbins):
+    #         np.savetxt(folder + 'ell_bin_{}.txt'.format(i+1),
+    #                    np.transpose(ell_arr_galaxy[i]))
+    #
+    # for folder in [gal_shear_bps_dir]:
+    #     if not os.path.exists(folder):
+    #         os.makedirs(folder)
+    #     for i in range(nbins):
+    #         np.savetxt(folder + 'ell_bin_{}.txt'.format(i+1),
+    #                    np.transpose(ell_arr_galaxy_shear[i]))
+    #
+    # for folder in [shear_bps_dir, k_bps_dir, y1_bps_dir, y1y2_bps_dir, y2y1_bps_dir, y2_bps_dir]:
+    #     if not os.path.exists(folder):
+    #         os.makedirs(folder)
+    #     for i in range(nbins):
+    #         np.savetxt(folder + 'ell_bin_{}.txt'.format(i+1),
+    #                    np.transpose(ell_arr_shear[i]))
+    #
+    # for folder in [kCMB_bps_dir]:
+    #     if not os.path.exists(folder):
+    #         os.makedirs(folder)
+    #     np.savetxt(folder + 'ell_bin_1.txt',
+    #                np.transpose(ell_arr_cmbkk))
+    #
+    # for folder in [kCMB_gal_bps_dir]:
+    #     if not os.path.exists(folder):
+    #         os.makedirs(folder)
+    #     for i in range(nbins):
+    #         np.savetxt(folder + 'ell_bin_{}.txt'.format(i+1),
+    #                    np.transpose(ell_arr_cmbkk_galaxy[i]))
+    #
+    # for folder in [kCMB_E_bps_dir, kCMB_B_bps_dir]:
+    #     if not os.path.exists(folder):
+    #         os.makedirs(folder)
+    #
+    #     for i in range(nbins):
+    #         np.savetxt(folder + 'ell_bin_{}.txt'.format(i+1),
+    #                    np.transpose(ell_arr_cmbkk_shear[i]))
+    #
 
     gal_cl_dir = recov_cat_cls_dir + 'galaxy_cl/'
     shear_cl_dir = recov_cat_cls_dir + 'shear_cl/'
@@ -964,20 +989,23 @@ def execute(pipeline_variables_path):
 
     theory_cls_dir = save_dir + 'fiducial_cosmology/'
     noise_cls_dir = save_dir + 'raw_noise_cls/'
-    mix_mats_save_path = save_dir + 'mixmats.npz'
 
-    mask.get_6x2pt_mixmats(mask_path=mask_path,
-                           mask_path_cmb=cmb_mask_path,
-                           nside=nside,
-                           lmin=input_lmin,
-                           input_lmax=input_lmax,
-                           lmax_out_nn=output_lmax_galaxy,
-                           lmax_out_ne=output_lmax_galaxy_shear,
-                           lmax_out_ee=output_lmax_shear,
-                           lmax_out_ek=output_lmax_cmbkk_shear,
-                           lmax_out_nk=output_lmax_cmbkk_galaxy,
-                           lmax_out_kk=output_lmax_cmbkk,
-                           save_path=mix_mats_save_path)
+    for i in range(nbins):
+
+        mix_mats_save_path = save_dir + 'mixmats_bin{}.npz'.format(i+1)
+
+        mask.get_6x2pt_mixmats(mask_path=mask_path,
+                               mask_path_cmb=cmb_mask_path,
+                               nside=nside,
+                               lmin=input_lmin,
+                               input_lmax=input_lmax,
+                               lmax_out_nn=output_lmax_galaxy[i],
+                               lmax_out_ne=output_lmax_galaxy_shear[i],
+                               lmax_out_ee=output_lmax_shear[i],
+                               lmax_out_ek=output_lmax_cmbkk_shear[i],
+                               lmax_out_nk=output_lmax_cmbkk_galaxy[i],
+                               lmax_out_kk=output_lmax_cmbkk,
+                               save_path=mix_mats_save_path)
 
     # Create null spectra
     create_null_spectras(nbins=nbins, lmin=input_lmin, lmax=input_lmax, output_dir=theory_cls_dir)
@@ -1032,13 +1060,13 @@ def execute(pipeline_variables_path):
                 bin_i=i+1,
                 bin_j=1,
                 lmin_out=output_lmin_cmbkk_galaxy,
-                lmax_out=output_lmax_cmbkk_galaxy)
+                lmax_out=output_lmax_cmbkk_galaxy[i])
             # Convert 'observed' PCls to bandpowers for each realisation of galaxy_cmbkappa
             cl_to_bp(cl_dir=obs_cmbkk_gal_cl_dir + 'iter_{}/'.format(it + 1),
                      bp_dir=cmbkk_gal_bp_it_dir,
                      bin_i=i+1,
                      bin_j=1,
-                     pbl=pbl_cmbkk_galaxy)
+                     pbl=pbl_cmbkk_galaxy[i])
 
             # Convert raw PCls to measured PCls for each realisation of cmbkappa_shear-E
             measured_cls_to_obs_cls(
@@ -1047,13 +1075,13 @@ def execute(pipeline_variables_path):
                 bin_i=i+1,
                 bin_j=1,
                 lmin_out=output_lmin_cmbkk_shear,
-                lmax_out=output_lmax_cmbkk_shear)
+                lmax_out=output_lmax_cmbkk_shear[i])
             # Convert 'observed' PCls to bandpowers for each realisation of cmbkappa_shear-E
             cl_to_bp(cl_dir=obs_cmbkk_E_cl_dir + 'iter_{}/'.format(it + 1),
                      bp_dir=cmbkk_E_bp_it_dir,
                      bin_i=i+1,
                      bin_j=1,
-                     pbl=pbl_cmbkk_shear)
+                     pbl=pbl_cmbkk_shear[i])
 
             # Convert raw PCls to measured PCls for each realisation of cmbkappa_shear-B
             measured_cls_to_obs_cls(
@@ -1062,13 +1090,13 @@ def execute(pipeline_variables_path):
                 bin_i=i+1,
                 bin_j=1,
                 lmin_out=output_lmin_cmbkk_shear,
-                lmax_out=output_lmax_cmbkk_shear)
+                lmax_out=output_lmax_cmbkk_shear[i])
             # Convert 'observed' PCls to bandpowers for each realisation of cmbkappa_shear-B
             cl_to_bp(cl_dir=obs_cmbkk_B_cl_dir + 'iter_{}/'.format(it + 1),
                      bp_dir=cmbkk_B_bp_it_dir,
                      bin_i=i+1,
                      bin_j=1,
-                     pbl=pbl_cmbkk_shear)
+                     pbl=pbl_cmbkk_shear[i])
 
             for j in range(nbins):
 
@@ -1079,13 +1107,19 @@ def execute(pipeline_variables_path):
                     bin_i=i + 1,
                     bin_j=j + 1,
                     lmin_out=output_lmin_galaxy_shear,
-                    lmax_out=output_lmax_galaxy_shear)
+                    lmax_out=min(output_lmax_galaxy_shear[i], output_lmax_galaxy_shear[j]))
                 # Convert 'observed' PCls to bandpowers for each realisation of galaxy_shear
+                if output_lmax_galaxy_shear[i] < output_lmax_galaxy_shear[j]:
+                    this_pbl_galaxy_shear = pbl_galaxy_shear[i]
+                else:
+                    this_pbl_galaxy_shear = pbl_galaxy_shear[j]
+
                 cl_to_bp(cl_dir=obs_gal_shear_cl_dir + 'iter_{}/'.format(it + 1),
                          bp_dir=gal_shear_bp_it_dir,
                          bin_i=i + 1,
                          bin_j=j + 1,
-                         pbl=pbl_galaxy_shear)
+                         pbl=this_pbl_galaxy_shear)
+
                 if i >= j:
 
                     # Convert raw PCls to measured PCls for each realisation of galaxy_galaxy
@@ -1095,13 +1129,19 @@ def execute(pipeline_variables_path):
                         bin_i=i + 1,
                         bin_j=j + 1,
                         lmin_out=output_lmin_galaxy,
-                        lmax_out=output_lmax_galaxy)
+                        lmax_out=min(output_lmax_galaxy[i], output_lmax_galaxy[j]))
                     # Convert 'observed' PCls to bandpowers for each realisation of galaxy_galaxy
+
+                    if output_lmax_galaxy[i] < output_lmax_galaxy[j]:
+                        this_pbl_galaxy = pbl_galaxy[i]
+                    else:
+                        this_pbl_galaxy = pbl_galaxy[j]
+
                     cl_to_bp(cl_dir=obs_gal_cl_dir + 'iter_{}/'.format(it + 1),
                              bp_dir=gal_bp_it_dir,
                              bin_i=i + 1,
                              bin_j=j + 1,
-                             pbl=pbl_galaxy)
+                             pbl=this_pbl_galaxy)
 
                     for shear_component_dir in ['Cl_TT/', 'Cl_EE/', 'Cl_EB/', 'Cl_BE/', 'Cl_BB/']:
                         shear_cl_it_dir = shear_cl_dir + shear_component_dir + 'iter_{}/'.format(it + 1)
@@ -1114,13 +1154,19 @@ def execute(pipeline_variables_path):
                             bin_i=i + 1,
                             bin_j=j + 1,
                             lmin_out=output_lmin_shear,
-                            lmax_out=output_lmax_shear)
+                            lmax_out=min(output_lmax_shear[i], output_lmax_shear[j]))
                         # Convert 'observed' PCls to bandpowers for each realisation of shear_shear (per component)
+
+                        if output_lmax_shear[i] < output_lmax_shear[j]:
+                            this_pbl_shear = pbl_shear[i]
+                        else:
+                            this_pbl_shear = pbl_shear[j]
+
                         cl_to_bp(cl_dir=obs_shear_cl_dir + shear_component_dir + 'iter_{}/'.format(it + 1),
                                  bp_dir=shear_bp_it_dir,
                                  bin_i=i + 1,
                                  bin_j=j + 1,
-                                 pbl=pbl_shear)
+                                 pbl=this_pbl_shear)
 
     # Now convert Cls to bandpowers for the average Cl quantities, and generate theoretical prediction for bandpowers
 
@@ -1150,7 +1196,7 @@ def execute(pipeline_variables_path):
         lmin_out=output_lmin_cmbkk,
         lmax_out=output_lmax_cmbkk)
 
-    cl_to_bp(cl_dir=obs_cmbkk_cl_dir, bp_dir=kCMB_bps_dir, bin_i=1, bin_j=1, pbl=pbl_cmbkk)
+    cl_to_bp(cl_dir=obs_cmbkk_cl_dir, bp_dir=kCMB_bps_dir, bin_i=1, bin_j=1, pbl=pbl_cmbkk, ell_arr=ell_arr_cmbkk)
     calc_stdem_bps(bp_dir=kCMB_bps_dir, n_bps=n_bandpowers, bin_i=1, bin_j=1, realisations=no_iter)
 
     process_00_pcls(
@@ -1163,7 +1209,6 @@ def execute(pipeline_variables_path):
         obs_mask_path=cmb_mask_path,
         output_lmin=output_lmin_cmbkk,
         output_lmax=output_lmax_cmbkk,
-        bp_bins=bp_bins_cmbkk,
         ell_arr=ell_arr_cmbkk,
         pbl=pbl_cmbkk)
 
@@ -1176,7 +1221,7 @@ def execute(pipeline_variables_path):
             bin_i=i+1,
             bin_j=1,
             lmin_out=output_lmin_cmbkk_galaxy,
-            lmax_out=output_lmax_cmbkk_galaxy)
+            lmax_out=output_lmax_cmbkk_galaxy[i])
 
         measured_cls_to_obs_cls(
             measured_cls_dir=noise_cls_dir + 'galaxy_cmbkappa_cl/',
@@ -1184,9 +1229,9 @@ def execute(pipeline_variables_path):
             bin_i=i+1,
             bin_j=1,
             lmin_out=output_lmin_cmbkk_galaxy,
-            lmax_out=output_lmax_cmbkk_galaxy)
+            lmax_out=output_lmax_cmbkk_galaxy[i])
 
-        cl_to_bp(cl_dir=obs_cmbkk_gal_cl_dir, bp_dir=kCMB_gal_bps_dir, bin_i=i+1, bin_j=1, pbl=pbl_cmbkk_galaxy)
+        cl_to_bp(cl_dir=obs_cmbkk_gal_cl_dir, bp_dir=kCMB_gal_bps_dir, bin_i=i+1, bin_j=1, pbl=pbl_cmbkk_galaxy[i],ell_arr=ell_arr_cmbkk_galaxy[i])
         calc_stdem_bps(bp_dir=kCMB_gal_bps_dir, n_bps=n_bandpowers, bin_i=i+1, bin_j=1, realisations=no_iter)
 
         process_00_pcls(
@@ -1198,10 +1243,9 @@ def execute(pipeline_variables_path):
             bin_j=1,
             obs_mask_path=[mask_path, cmb_mask_path],
             output_lmin=output_lmin_cmbkk_galaxy,
-            output_lmax=output_lmax_cmbkk_galaxy,
-            bp_bins=bp_bins_cmbkk_galaxy,
-            ell_arr=ell_arr_cmbkk_galaxy,
-            pbl=pbl_cmbkk_galaxy)
+            output_lmax=output_lmax_cmbkk_galaxy[i],
+            ell_arr=ell_arr_cmbkk_galaxy[i],
+            pbl=pbl_cmbkk_galaxy[i])
 
         # shear_cmbkappa (E mode component)
         measured_cls_to_obs_cls(
@@ -1210,7 +1254,7 @@ def execute(pipeline_variables_path):
             bin_i=i+1,
             bin_j=1,
             lmin_out=output_lmin_cmbkk_shear,
-            lmax_out=output_lmax_cmbkk_shear)
+            lmax_out=output_lmax_cmbkk_shear[i])
 
         measured_cls_to_obs_cls(
             measured_cls_dir=noise_cls_dir + 'shear_cmbkappa_cl/',
@@ -1218,9 +1262,9 @@ def execute(pipeline_variables_path):
             bin_i=i+1,
             bin_j=1,
             lmin_out=output_lmin_cmbkk_shear,
-            lmax_out=output_lmax_cmbkk_shear)
+            lmax_out=output_lmax_cmbkk_shear[i])
 
-        cl_to_bp(cl_dir=obs_cmbkk_E_cl_dir, bp_dir=kCMB_E_bps_dir, bin_i=i+1, bin_j=1, pbl=pbl_cmbkk_shear)
+        cl_to_bp(cl_dir=obs_cmbkk_E_cl_dir, bp_dir=kCMB_E_bps_dir, bin_i=i+1, bin_j=1, pbl=pbl_cmbkk_shear[i],ell_arr=ell_arr_cmbkk_shear[i])
         calc_stdem_bps(bp_dir=kCMB_E_bps_dir, n_bps=n_bandpowers, bin_i=i+1, bin_j=1, realisations=no_iter)
 
         process_02_pcls(
@@ -1232,10 +1276,9 @@ def execute(pipeline_variables_path):
             bin_j=1,
             obs_mask_path=[mask_path, cmb_mask_path],
             output_lmin=output_lmin_cmbkk_shear,
-            output_lmax=output_lmax_cmbkk_shear,
-            bp_bins=bp_bins_cmbkk_shear,
-            ell_arr=ell_arr_cmbkk_shear,
-            pbl=pbl_cmbkk_shear)
+            output_lmax=output_lmax_cmbkk_shear[i],
+            ell_arr=ell_arr_cmbkk_shear[i],
+            pbl=pbl_cmbkk_shear[i])
 
         # shear_cmbkappa (B mode component)
         measured_cls_to_obs_cls(
@@ -1244,9 +1287,9 @@ def execute(pipeline_variables_path):
             bin_i=i+1,
             bin_j=1,
             lmin_out=output_lmin_cmbkk_shear,
-            lmax_out=output_lmax_cmbkk_shear)
+            lmax_out=output_lmax_cmbkk_shear[i])
 
-        cl_to_bp(cl_dir=obs_cmbkk_B_cl_dir, bp_dir=kCMB_B_bps_dir, bin_i=i+1, bin_j=1, pbl=pbl_cmbkk_shear)
+        cl_to_bp(cl_dir=obs_cmbkk_B_cl_dir, bp_dir=kCMB_B_bps_dir, bin_i=i+1, bin_j=1, pbl=pbl_cmbkk_shear[i],ell_arr=ell_arr_cmbkk_shear[i])
         calc_stdem_bps(bp_dir=kCMB_B_bps_dir, n_bps=n_bandpowers, bin_i=i+1, bin_j=1, realisations=no_iter)
 
         process_02_pcls(
@@ -1258,10 +1301,9 @@ def execute(pipeline_variables_path):
             bin_j=1,
             obs_mask_path=[mask_path, cmb_mask_path],
             output_lmin=output_lmin_cmbkk_shear,
-            output_lmax=output_lmax_cmbkk_shear,
-            bp_bins=bp_bins_cmbkk_shear,
-            ell_arr=ell_arr_cmbkk_shear,
-            pbl=pbl_cmbkk_shear)
+            output_lmax=output_lmax_cmbkk_shear[i],
+            ell_arr=ell_arr_cmbkk_shear[i],
+            pbl=pbl_cmbkk_shear[i])
 
         for j in range(nbins):
 
@@ -1272,7 +1314,7 @@ def execute(pipeline_variables_path):
                 bin_i=i + 1,
                 bin_j=j + 1,
                 lmin_out=output_lmin_galaxy_shear,
-                lmax_out=output_lmax_galaxy_shear)
+                lmax_out=min(output_lmax_galaxy_shear[i],output_lmax_galaxy_shear[j]))
 
             measured_cls_to_obs_cls(
                 measured_cls_dir=noise_cls_dir + 'galaxy_shear_cl/',
@@ -1280,10 +1322,17 @@ def execute(pipeline_variables_path):
                 bin_i=i + 1,
                 bin_j=j + 1,
                 lmin_out=output_lmin_galaxy_shear,
-                lmax_out=output_lmax_galaxy_shear)
+                lmax_out=min(output_lmax_galaxy_shear[i],output_lmax_galaxy_shear[j]))
+
+            if output_lmax_galaxy_shear[i] < output_lmax_galaxy_shear[j]:
+                this_pbl_galaxy_shear = pbl_galaxy_shear[i]
+                this_ell_arr_galaxy_shear = ell_arr_galaxy_shear[i]
+            else:
+                this_pbl_galaxy_shear = pbl_galaxy_shear[j]
+                this_ell_arr_galaxy_shear = ell_arr_galaxy_shear[j]
 
             # Convert Pseudo-Cl for measured GGL into bandpower
-            cl_to_bp(cl_dir=obs_gal_shear_cl_dir, bp_dir=gal_shear_bps_dir, bin_i=i + 1, bin_j=j + 1, pbl=pbl_galaxy_shear)
+            cl_to_bp(cl_dir=obs_gal_shear_cl_dir, bp_dir=gal_shear_bps_dir, bin_i=i + 1, bin_j=j + 1, pbl=this_pbl_galaxy_shear, ell_arr=this_ell_arr_galaxy_shear)
             calc_stdem_bps(bp_dir=gal_shear_bps_dir, n_bps=n_bandpowers, bin_i=i + 1, bin_j=j + 1, realisations=no_iter)
 
             # Calculate the theoretical PCl bandpower for the fiducial full-sky GGL
@@ -1296,10 +1345,9 @@ def execute(pipeline_variables_path):
                 bin_j=j + 1,
                 obs_mask_path=mask_path,
                 output_lmin=output_lmin_galaxy_shear,
-                output_lmax=output_lmax_galaxy_shear,
-                bp_bins=bp_bins_galaxy_shear,
-                ell_arr=ell_arr_galaxy_shear,
-                pbl=pbl_galaxy_shear)
+                output_lmax=min(output_lmax_galaxy_shear[i],output_lmax_galaxy_shear[j]),
+                ell_arr=this_ell_arr_galaxy_shear,
+                pbl=this_pbl_galaxy_shear)
 
             if i >= j:
 
@@ -1309,7 +1357,7 @@ def execute(pipeline_variables_path):
                     bin_i=i + 1,
                     bin_j=j + 1,
                     lmin_out=output_lmin_galaxy,
-                    lmax_out=output_lmax_galaxy)
+                    lmax_out=min(output_lmax_galaxy[i],output_lmax_galaxy[j]))
 
                 measured_cls_to_obs_cls(
                     measured_cls_dir=noise_cls_dir + 'galaxy_cl/',
@@ -1317,9 +1365,16 @@ def execute(pipeline_variables_path):
                     bin_i=i + 1,
                     bin_j=j + 1,
                     lmin_out=output_lmin_galaxy,
-                    lmax_out=output_lmax_galaxy)
+                    lmax_out=min(output_lmax_galaxy[i],output_lmax_galaxy[j]))
 
-                cl_to_bp(cl_dir=obs_gal_cl_dir, bp_dir=gal_bps_dir, bin_i=i + 1, bin_j=j + 1, pbl=pbl_galaxy)
+                if output_lmax_galaxy[i] < output_lmax_galaxy[j]:
+                    this_pbl_galaxy = pbl_galaxy[i]
+                    this_ell_arr_galaxy = ell_arr_galaxy[i]
+                else:
+                    this_pbl_galaxy = pbl_galaxy[j]
+                    this_ell_arr_galaxy = ell_arr_galaxy[j]
+
+                cl_to_bp(cl_dir=obs_gal_cl_dir, bp_dir=gal_bps_dir, bin_i=i + 1, bin_j=j + 1, pbl=this_pbl_galaxy,ell_arr=this_ell_arr_galaxy)
                 calc_stdem_bps(bp_dir=gal_bps_dir, n_bps=n_bandpowers, bin_i=i + 1, bin_j=j + 1,
                                realisations=no_iter)
 
@@ -1332,10 +1387,9 @@ def execute(pipeline_variables_path):
                     bin_j=j + 1,
                     obs_mask_path=mask_path,
                     output_lmin=output_lmin_galaxy,
-                    output_lmax=output_lmax_galaxy,
-                    bp_bins=bp_bins_galaxy,
-                    ell_arr=ell_arr_galaxy,
-                    pbl=pbl_galaxy)
+                    output_lmax=min(output_lmax_galaxy[i],output_lmax_galaxy[j]),
+                    ell_arr=this_ell_arr_galaxy,
+                    pbl=this_pbl_galaxy)
 
                 measured_cls_to_obs_cls(
                     measured_cls_dir=noise_cls_dir + 'shear_cl/',
@@ -1343,7 +1397,7 @@ def execute(pipeline_variables_path):
                     bin_i=i + 1,
                     bin_j=j + 1,
                     lmin_out=output_lmin_shear,
-                    lmax_out=output_lmax_shear)
+                    lmax_out=min(output_lmax_shear[i],output_lmax_shear[j]))
 
                 for shear_component_dir in ['Cl_TT/', 'Cl_EE/', 'Cl_EB/', 'Cl_BE/', 'Cl_BB/']:
                     measured_cls_to_obs_cls(
@@ -1352,14 +1406,23 @@ def execute(pipeline_variables_path):
                         bin_i=i + 1,
                         bin_j=j + 1,
                         lmin_out=output_lmin_shear,
-                        lmax_out=output_lmax_shear)
+                        lmax_out=min(output_lmax_shear[i],output_lmax_shear[j]))
+
+                    if output_lmax_shear[i] < output_lmax_shear[j]:
+                        this_pbl_shear = pbl_shear[i]
+                        this_ell_arr_shear = ell_arr_shear[i]
+                    else:
+                        this_pbl_shear = pbl_shear[j]
+                        this_ell_arr_shear = ell_arr_shear[j]
 
                     cl_to_bp(
                         cl_dir=obs_shear_cl_dir + shear_component_dir,
                         bp_dir=shear_bps_dir + shear_component_dir,
                         bin_i=i + 1,
                         bin_j=j + 1,
-                        pbl=pbl_shear)
+                        pbl=this_pbl_shear,
+                        ell_arr=this_ell_arr_shear
+                    )
 
                     calc_stdem_bps(bp_dir=shear_bps_dir + shear_component_dir, n_bps=n_bandpowers, bin_i=i + 1,
                                    bin_j=j + 1, realisations=no_iter)
@@ -1374,10 +1437,9 @@ def execute(pipeline_variables_path):
                         bin_j=j + 1,
                         obs_mask_path=mask_path,
                         output_lmin=output_lmin_shear,
-                        output_lmax=output_lmax_shear,
-                        bp_bins=bp_bins_shear,
-                        ell_arr=ell_arr_shear,
-                        pbl=pbl_shear)
+                        output_lmax=min(output_lmax_shear[i],output_lmax_shear[j]),
+                        ell_arr=this_ell_arr_shear,
+                        pbl=this_pbl_shear)
 
 
 # if __name__ == '__main__':
