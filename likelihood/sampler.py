@@ -791,45 +791,6 @@ def run_nautilus(sampler_config_dict, pipeline_variables_path, mixmats, data_vec
     for p in range(n_params):
         prior.add_parameter(priors[p][0], dist=priors[p][1])
 
-    # prior = nautilus.Prior()
-    # prior.add_parameter("w0", dist=(-1.5, -0.5))
-    # prior.add_parameter("wa", dist=(-0.5, 0.5))
-    # prior.add_parameter("Omega_m", dist=(0.2, 0.4))
-    # prior.add_parameter("h", dist=(0.5, 0.8))
-
-    # For a constant global galaxy bias, we can have e.g.
-    # prior.add_parameter('_b1', dist=(0,3))   # for a constant global galaxy bias
-
-    # Or we specify b1 as a constant that is different for each bin, e.g for a 3 bin analysis.
-    # prior.add_parameter('_b1_1', dist=(0,3))   # for a constant galaxy bias in bin 1
-    # prior.add_parameter('_b1_2', dist=(0,3))   # for a constant galaxy bias in bin 2
-    # prior.add_parameter('_b1_3', dist=(0,3))   # for a constant galaxy bias in bin 3
-    # and in this case we need to have bi_marg=True in the sampler args below
-
-    # Can also repeat this for m-bias marginalisation. If a global m-bias (independent of tomographic bin)
-    # then we have to do
-    # prior.add_parameter('_m', dist=(0,3))   # for a constant global m-bias
-    # Otherwise, we set the m-bias per tomographic bin, i.e
-    # prior.add_parameter('_m_1', dist=(0,3))   # for a constant m-bias in bin 1
-    # prior.add_parameter('_m_2', dist=(0,3))   # for a constant m-bias in bin 2
-    # prior.add_parameter('_m_3', dist=(0,3))   # for a constant m-bias in bin 3
-    # and in this case we need to set mi_marg=True in the sampler args below
-
-    # Can also repeat this for the A1 amplitude of IA TATT/NLA model. If a global A1 value (independent of tomographic
-    # bin) then we have to do
-    # prior.add_parameter('_A1', dist=(0,3))   # for a constant global m-bias
-    # Otherwise, we set the A1 value per tomographic bin, i.e
-    # prior.add_parameter('_A1_1', dist=(0,3))   # for a constant A1 in bin 1
-    # prior.add_parameter('_A1_2', dist=(0,3))   # for a constant A1 in bin 2
-    # prior.add_parameter('_A1_3', dist=(0,3))   # for a constant A1 in bin 3
-    # and in this case we need to set A1i_marg=True in the sampler args below
-
-    # For marginalisation over shift paramaters for the n(z) we have to add a shift parameter per bin, i.e
-    # prior.add_parameter('_Dz_1', dist=(0,3))   # for a constant m-bias in bin 1
-    # prior.add_parameter('_Dz_2', dist=(0,3))   # for a constant m-bias in bin 2
-    # prior.add_parameter('_Dz_3', dist=(0,3))   # for a constant m-bias in bin 3
-    # and we need to set Dzi_marg=True in the sampler args below
-
     n_pool = sampler_config_dict['n_pool']
 
     sampler = nautilus.Sampler(
@@ -847,13 +808,18 @@ def run_nautilus(sampler_config_dict, pipeline_variables_path, mixmats, data_vec
             "A1i_marg": A1i_marg
         },  # could e.g. add bi_marg=True if marginalising over tomographic bin-dependent b parameters
         filepath=sampler_checkpoint_file,
-        # pool=8
         pool=n_pool
         # pool=MPIPoolExecutor()
-        #pool=MPIPoolExecutor()  #n_pool
     )
 
     # sampler.run(verbose=True,discard_exploration=True)
+
+    '''
+    The below code is just used for plotting purposes. In order to extract the posterior sampling point, you can just
+    use load an instance of nautilus.sampler. But there is probably a better way to do this instead of putting this
+    in the run_nautilus function - e.g. make a separate plotting function that loads in the posterior information
+    directly from a given file.
+    '''
 
     points, log_w, log_l = sampler.posterior()
     # print(points, log_w, log_l)
