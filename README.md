@@ -11,7 +11,7 @@ Chisari et al. 2019), and their dependencies. The data vector includes both cont
 and a range of systematic effects (see [reference] and the `set_config` module for more details).</li>
 <li>measure Pseudo-$C_{\ell}$ bandpowers for the $6\times2\mathrm{pt}$ signal over a given survey footprint (using `NaMaster`, 
 <https://github.com/LSSTDESC/NaMaster>, Alonso et al. 2019)</li>
-<li>propagate the measured $6\times2\mathrm{pt}$ bandpowers into cosmological parameter constraints on $w_{0}w_{a}$CDM. This 
+<li>propagate the measured $6\times2\mathrm{pt}$ bandpowers into cosmological parameter constraints on $w_{0}w_{a}\mathrm{CDM}$. This 
 includes:
 
 <ul>
