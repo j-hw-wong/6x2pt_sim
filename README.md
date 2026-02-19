@@ -6,7 +6,7 @@ weak lensing/cosmic shear, photometric galaxy clustering, and CMB lensing. From 
 
 <ul>
 <li>generate correlated (tomographic) realisations of the $6\times2\mathrm{pt}$ signal from their harmonic power spectra, using 
-`Flask` (<https://github.com/hsxavier/flask>, Xavier et al. 2016) and `CCL` (<https://github.com/LSSTDESC/CCL>, 
+`Flask` (https://github.com/hsxavier/flask, Xavier et al. 2016) and `CCL` (<https://github.com/LSSTDESC/CCL>, 
 Chisari et al. 2019), and their dependencies. The data vector includes both contributions from the cosmological signal, 
 and a range of systematic effects (see [reference] and the `set_config` module for more details).</li>
 <li>measure Pseudo-$C_{\ell}$ bandpowers for the $6\times2\mathrm{pt}$ signal over a given survey footprint (using `NaMaster`, 
