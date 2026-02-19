@@ -7,3 +7,7 @@ dat/
 set_config/set_variables_temp.ini
 set_config/set_variables_temp2.ini
 set_config/set_variables_temp3.ini
+run_likelihood_temp.py
+run_likelihood_temp2.py
+run_realisations.py
+run_pcl_measurement.py
