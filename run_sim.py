@@ -26,7 +26,7 @@ def run_catalogue_sim(pipeline_variables_path, clean=True):
     print('Generating fiducial cosmology...')
     catalogue_sim.generate_cls.execute(pipeline_variables_path)
     print('Done')
-    '''
+
     # Convert fiducial Cls to Flask format
     print('Converting fiducial Cls to Flask input format...')
     catalogue_sim.conv_fields_cosmosis_flask.execute(pipeline_variables_path)
@@ -59,7 +59,7 @@ def run_catalogue_sim(pipeline_variables_path, clean=True):
     # print('Parallel PCl')
     # pool = multiprocessing.Pool(4)
     # zip(*pool.starmap(pcl_measurement.measure_spectra.execute, zip(repeat(pipeline_variables_path), range(1, no_realisations+1))))
-    '''
+
 
 def measure_pcls(pipeline_variables_path, clean=True, cov_iter=False):
 
@@ -81,44 +81,44 @@ def measure_pcls(pipeline_variables_path, clean=True, cov_iter=False):
 
     # # Average Cls over all realisations
     print('Averaging Cls over realisations...')
-    # pcl_measurement.av_cls.execute(pipeline_variables_path)
+    pcl_measurement.av_cls.execute(pipeline_variables_path)
     print('Done')
 
     # # Convert Cls to bandpowers
     print('Converting Pseudo-Cls to bandpowers...')
-    # pcl_measurement.measure_cat_bps.execute(pipeline_variables_path)
+    pcl_measurement.measure_cat_bps.execute(pipeline_variables_path)
     print('Done')
 
-    # Convert bandpower data vector to 1D
-    print('Combining to joint data vector...')
-    pcl_measurement.conv_bps.execute(pipeline_variables_path)
-    print('Done')
-
-    if not cov_iter:
-        # Calculate numerical covariance matrix
-        print('Calculating numerical covariance matrix...')
-        # pcl_measurement.cov_fromsim.execute(pipeline_variables_path)
-        print('Done')
-
-    else:
-        # If we want to calculate covariance matrix for different numbers of realisations
-        cov_iter_nos = [1, 2, 3]
-        for cov_iter_no in cov_iter_nos:
-            print('Calculating numerical covariance matrix - {} realisations ...'.format(cov_iter_no))
-            # pcl_measurement.cov_fromsim.execute_iters(pipeline_variables_path, cov_iter_no)
-            print('Done')
+    # # Convert bandpower data vector to 1D
+    # print('Combining to joint data vector...')
+    # pcl_measurement.conv_bps.execute(pipeline_variables_path)
+    # print('Done')
+    #
+    # if not cov_iter:
+    #     # Calculate numerical covariance matrix
+    #     print('Calculating numerical covariance matrix...')
+    #     # pcl_measurement.cov_fromsim.execute(pipeline_variables_path)
+    #     print('Done')
+    #
+    # else:
+    #     # If we want to calculate covariance matrix for different numbers of realisations
+    #     cov_iter_nos = [1, 2, 3]
+    #     for cov_iter_no in cov_iter_nos:
+    #         print('Calculating numerical covariance matrix - {} realisations ...'.format(cov_iter_no))
+    #         # pcl_measurement.cov_fromsim.execute_iters(pipeline_variables_path, cov_iter_no)
+    #         print('Done')
 
 
 def main():
 
     pipeline_variables_path = \
-        '/raid/scratch/wongj/mywork/3x2pt/6x2pt_sim/set_config/set_variables_3bin_3x2pt_TATT.ini'
+        '/raid/scratch/wongj/mywork/3x2pt/6x2pt_sim/set_config/set_variables.ini'
 
     # # Create catalogues
     run_catalogue_sim(pipeline_variables_path, clean=True)
 
     # # Measure Pseudo-Cls
-    # measure_pcls(pipeline_variables_path, clean=True, cov_iter=False)
+    measure_pcls(pipeline_variables_path, clean=True, cov_iter=False)
 
     now = datetime.datetime.now()
     print(now)
