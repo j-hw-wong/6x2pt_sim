@@ -1,0 +1,91 @@
+BootStrap: library
+From: ubuntu:22.04
+
+%environment
+    export PATH=/opt/anaconda3/envs/py36/bin:$PATH
+    export FITSDIR=/opt/anaconda3/envs/py38/lib
+    export OMPI_DIR=/opt/ompi
+    export SINGULARITY_OMPI_DIR=$OMPI_DIR
+    export SINGULARITYENV_APPEND_PATH=$OMPI_DIR/bin
+    export SINGULARITYENV_APPEND_LD_LIBRARY_PATH=$OMPI_DIR/lib
+
+%files
+    Makefile
+    setup.cfg
+
+%post
+    # Install Ubuntu commands
+    apt-get -y update
+    apt-get install wget unzip build-essential make libcurl4-gnutls-dev libhdf5-dev zlib1g-dev gfortran git bc python3-pip automake -y
+    
+    # Some packages for this build are significantly more well-behaved as a conda package
+    # So we will download Anaconda and install everything within a conda environment
+    wget https://repo.anaconda.com/archive/Anaconda3-2024.10-1-Linux-x86_64.sh
+    bash ./Anaconda3-2024.10-1-Linux-x86_64.sh -b -p "/opt/anaconda3"
+    chmod --recursive a+rw /opt/anaconda3
+    . /opt/anaconda3/etc/profile.d/conda.sh
+    
+    ln -s /opt/anaconda3/etc/profile.d/conda.sh /etc/profile.d/conda.sh
+    
+    # Create a specific version of Python that works for the 6x2pt sim base code
+    conda create --name py36 python=3.6 -y
+    conda activate py36
+    conda install -c conda-forge namaster=1.2.2
+    conda install -c conda-forge cfitsio=3.470 -y
+    conda install -c conda-forge gsl=2.7.0 -y
+
+    # We need a base installation of Healpix in order to use Flask later on
+    wget https://sourceforge.net/projects/healpix/files/Healpix_3.83/Healpix_3.83_2024Nov13.zip/download
+    unzip download
+    cd Healpix_3.83/
+    
+    # cfitisio libraries should be found in conda library
+    export FITSDIR=/opt/anaconda3/envs/py36/lib/
+    ./configure -L --auto=profile,sharp,c,cxx,idl
+    make
+    make test
+    cd ../
+    
+    wget https://github.com/ucl-cosmoparticles/flask/archive/refs/heads/master.zip
+    unzip master.zip
+    cp Makefile /flask-master/src/Makefile
+    cd flask-master/src
+    apt-get install git bc -y
+    export LD_LIBRARY_PATH=/opt/anaconda3/envs/py36/lib/:$LD_LIBRARY_PATH
+    make
+    cd ../../
+    cp setup.cfg /flask-master/setup.cfg
+    cd flask-master/
+    pip3 install .
+    cd ../
+    
+    pip install --upgrade healpy
+    
+    pip install nautilus-sampler==1.0.2
+    conda install h5py=2.10.0
+    conda install pyccl=2.3.0
+    python -m pip install corner
+    pip install wurlitzer
+    conda install --channel=conda-forge libxcrypt
+
+    echo "Installing Open MPI"
+    export OMPI_DIR=/opt/ompi
+    export OMPI_VERSION=4.1.1
+    mkdir -p /tmp/ompi
+    mkdir -p /opt
+    # Download
+    cd /tmp/ompi && wget https://download.open-mpi.org/release/open-mpi/v4.1/openmpi-4.1.1.tar.gz
+    tar -xf /tmp/ompi/openmpi-4.1.1.tar.gz
+    # Compile and install
+    cd /tmp/ompi/openmpi-$OMPI_VERSION && ./configure --prefix=$OMPI_DIR && make install
+    # Set env variables so we can compile our application
+    export PATH=$OMPI_DIR/bin:$PATH
+    export LD_LIBRARY_PATH=$OMPI_DIR/lib:$LD_LIBRARY_PATH
+    export MANPATH=$OMPI_DIR/share/man:$MANPATH
+
+%runscript
+
+    python "$@"
+    . /opt/anaconda3/etc/profile.d/conda.sh
+    conda activate py36
+
