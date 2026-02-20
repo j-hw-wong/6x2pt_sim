@@ -1,9 +1,12 @@
-# Here we will set parameters to define the global cosmology for the ```SWEPT``` analysis.
+# Here we will set parameters to define the global cosmology and simulation parameters for the ```6x2pt_sim``` analysis.
 
-The global cosmology is used to generate the mock catalogue data, measure the Pseudo-Cl power spectra, and perform the inference analysis to derive
-constraints on w0-wa. (For the likelihood analysis for the latter, all cosmological parameters are fixed except for w0, wa). For each of the files here:
+The global cosmology and simulation parameters are used to make a fiducial 6x2pt data vector, which is fed into `Flask`
+in order to make realisations on the sky. Systematic effects are added either on the power spectrum or map level (see
+Wong 2025, PhD thesis for further details). 
 
-- ```cosmosis_config``` - the config file used to specify which routines to run in ```CosmoSIS```. For the setup presented in Wong+24, this does not need to be changed
-- ```cosmosis_params``` - used to specify the cosmological parameters (e.g. $\Omega_{\mathrm{m}}, n_{s}, A_{s}$) in CosmoSIS. These parameters are as specified in Sect.4 in Wong+24 but can be changed to an arbitrary cosmology
-- ```flask_3x2pt.config``` - a template of parameters used to run ```FLASK```. Note that this is just a template that is necessary for ```FLASK``` to be run - the parameters are overwritten in ```catalogue_sim.run_flask``` based on the ```catalogue_sim/set_variables_cat.ini``` config file. So the file here should not ever need to be changed! To run ```FLASK``` with different parameters (e.g. $\ell$ ranges, this can be controlled in the ```catalogue_sim/set_variables_cat.ini``` config file 
-- ```run_cosmosis.sh``` - a shell script to run ```CosmoSIS``` based on the routines specified in ```cosmosis_config```
+The parameters are defined using a config file - please see one of the `set_variables.ini` files for guidance on 
+the different parameters and how they propagate into the analysis. Note that the format of the config file is identical
+for both the data vector generation, and the parameter sampling. However, for the purposes of e.g. ``mismodelling``
+effects, you may wish to have different parameter/measurement values for the sampling routine. In this case, you can 
+point the sampler to a different config file than was used for the data vector simulation. Note that for parameters 
+that are actually sampled through, the sampler will overwrite values defined in the config file.

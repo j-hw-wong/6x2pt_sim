@@ -36,4 +36,62 @@ parameters from a config file (this does not have to be identical to the paramet
 synthetic data, in case you want to explore biases etc.) and also defines which other parameters are sampled and
 marginalised over. Please read the guidelines in this script for further details on its use.
 
+## Instructions for Use
+
+To execute the simulation that generates a mock $3\times2\mathrm{pt}$ or $6\times2\mathrm{pt}$ data vector, use the 
+`run_sim.py` script. The instructions to use this are as follows:
+
+1. Set up a config file detailing the simulation and cosmological parameters for the synthetic data. This can be made
+using a template `.ini` file in the `set_config` directory. Here, you will find further information on each parameter
+and how they can be defined.
+2. In `run_sim.py`, set the `pipeline_variables_path` variable to the path of your template config file.
+3. If you want to save all map by-products from `Flask`, set `clean=False` in the `main` function in `run_sim.py`.
+Otherwise, set `clean=True`, which will delete the maps (recommended to save disk space).
+4. If there are some steps of the analysis that are not needd (e.g. if you just want the maps but don't want to measure 
+the Pseudo- $C_{\ell}$ power spectra), comment out the relevant parts of the chain in `run_sim.py`.
+5. Execute `run_sim.py` after ensuring that Python dependencies/requirements are met (see `requirements.txt` for further
+details).
+
+To execute the parameter sampling to constrain $w_{0}w_{a}\mathrm{CDM}$ parameters and/or nuisance parameters from the
+synthetic data generated from `run_sim.py`, use the `run_likelihood.py` script. The instructions to use this are as
+follows:
+
+1. Set up a config file detailing the simulation and cosmological parameters for the synthetic data. This can be made
+using a template `.ini` file in the `set_config` directory. Here, you will find further information on each parameter
+and how they can be defined. Note that the config file does not need to be identical to the config file used for 
+simulating the synthetic data (useful for exploring biases etc). The format of the config file must be the same, hoever.
+**Also note that for parameters that are sampled over (see steps 2, 3), the sampler will 
+overwrite the fiducial values defined in the `.ini` file.**
+2. In `run_likelihood.py`, set the `pipeline_variables_path` variable to the path of your template config file for the
+sampling routine.
+3. Set the `covariance_matrix_type` in `run_likelihood.py` to either `analytic` or `numerical` (to use either an
+analytic or numerical covariance matrix). If this is `numerical`, the sampler will find a numerical covariance matrix
+saved on disk that has been generated as an automatic by-product of `run_sim.py`. If `analytic` is chosen, the code will
+generate a (mode-coupled) analytic covariance matrix using the improved narrow kernel approximation.
+4. Set and define the parameters to sample over, and their priors. In order to define a parameter to sample, you will
+need to append a tuple to the `priors` list (examples are shown in the `run_likelihood.py` script). The first element
+in the tuple is a string describing the given parameter. The string must match the string name convention in the config
+`.ini` file (e.g. ``w0`` for $w_{0}$). The second element of the tuple is the prior. For a uniform prior, this is just
+another tuple, e.g. `(a,b)` for prior boundaries `a,b`, and for a Gaussian prior, you can use 
+`scipy.stats.norm(loc=mu,scale=sigma)`.
+5. Note that the sampling for some parameters is dependent on tomographic bin. These are:
+
+   * `b1` - linear galaxy bias term
+   * `m` - shear bias
+   * `Delta_z` - photo-z uncertainty
+   * `A1` - IA tidal alignment amplitude term
+   
+   for these parameters, you will need to add a parameter/prior for each bin, labelling with an underscore, e.g 
+  `[m_1, m_2, m_3]` for the $m$ -bias parameters for an analysis with 3 tomographic bins. **Also note that if you want
+  to sample through a per-bin value for any of these parameters, you must then set 
+  `bi_marg, mi_marg, Dzi_marg, A1i_marg=True` (respectively) in the `sampler.execute` function in `run_likelihood.py`.**
+6. After setting the priors, execute the parameter sampling via nautilus by running `run_likelihood.py` (again after 
+ensuring that Python dependencies/requirements are met - see `requirements.txt` for further details).
+7. Generate corner plots using the `plotting.plot_posteriors.py` routines. An example for using this is shown in the
+`run_likelihood.py` script. 
+
+
+
+
+
 

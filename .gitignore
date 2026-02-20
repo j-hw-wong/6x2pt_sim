@@ -15,3 +15,5 @@ plotting/plotting_new2.py
 plotting/plotting_new_residuals.py
 plotting/plotting_temp.py
 likelihood/sampler_old.py
+set_config/set_variables_3bin_3x2pt_TATT.ini
+set_config/set_variables_3bin_6x2pt_TATT.ini

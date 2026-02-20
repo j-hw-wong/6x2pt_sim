@@ -18,13 +18,15 @@ def main():
     print('Performing likelihood analysis...')
     print(now)
 
+    # If using the analytic covariance matrix, generate from parameter values defined in variables config file
     covariance_matrix_type = 'analytic'     # Must be 'analytic' or 'numerical'
 
     # if covariance_matrix_type == 'analytic':
     #     likelihood.analytic_covariance.execute(pipeline_variables_path=pipeline_variables_path)
 
     # Need to add in fitting parameters and priors here instead of in sampler.py
-    # Just define a tuple with the parameter and dist variable for the shape/width of the prior
+    # Just define a tuple with the parameter and dist variable for the shape/width of the prior. The prior can itself
+    # be a tuple (for a uniform prior) or e.g. scipy.stats.norm for a Gaussian prior
     priors = []
 
     # priors.append(("w0", (-1.5, -0.5))) # for a shape to the prior, this could be e.g ["w0", scipy.stats.norm(loc=2.0, scale=0.5)] as in nautilus documentation
