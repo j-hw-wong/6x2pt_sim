@@ -7,6 +7,19 @@ from likelihood.gaussian_pcl_covariance import get_1x2pt_cov_pcl, get_3x2pt_cov_
 
 def execute(pipeline_variables_path):
 
+    """
+    Generate analytic covariance matrix using the improved narrow kernel approximation to account for mode-coupling
+    due to partial sky coverage
+
+    Parameters
+    ----------
+    pipeline_variables_path (str): Path to location of pipeline variables file (e.g. 'set_variables_3x2pt_measurement.ini')
+
+    Returns
+    -------
+    Saves npz file of analytic covariance matrix 
+    """
+
     config = configparser.ConfigParser()
     config.read(pipeline_variables_path)
 

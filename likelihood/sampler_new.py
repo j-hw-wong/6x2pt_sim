@@ -1,3 +1,7 @@
+'''
+This is some new code trying to implement different scale cuts per tomographic bin. In progress 20/02/2026.
+'''
+
 import os
 import sys
 import time
@@ -50,10 +54,6 @@ def split_ccl_parameters(params, n_zbin, bi_marg=False, mi_marg=False, Dzi_marg=
         '_s3'
     ]
 
-    # nuisance_params['bi_marg'] = bi_marg
-    # nuisance_params['mi_marg'] = mi_marg
-    # nuisance_params['A1i_marg'] = A1i_marg
-
     if bi_marg:
         for i in range(n_zbin):
             are_nuisance_params.append('_b1_{}'.format(i + 1))
@@ -70,7 +70,7 @@ def split_ccl_parameters(params, n_zbin, bi_marg=False, mi_marg=False, Dzi_marg=
 
     for key, val in params.items():
         # Nautilus passes parameters as unshaped arrays
-        # JW - I am not sure what these lines do
+        # JW - I am unsure if these lines are necessary
         # if isinstance(val, np.ndarray):
         #     assert x.shape == (), "Only unshaped arrays are supported"
         #     val = val[()]
@@ -115,25 +115,6 @@ def sampler_config(pipeline_variables_path):
     input_lmin = int(float(config['simulation_setup']['INPUT_ELL_MIN']))
     input_lmax = int(float(config['simulation_setup']['INPUT_ELL_MAX']))
 
-    # output_lmin_shear = int(float(config['measurement_setup']['OUTPUT_ELL_MIN_EE']))
-    # output_lmax_shear = int(float(config['measurement_setup']['OUTPUT_ELL_MAX_EE']))
-    #
-    # output_lmin_galaxy_shear = int(float(config['measurement_setup']['OUTPUT_ELL_MIN_NE']))
-    # output_lmax_galaxy_shear = int(float(config['measurement_setup']['OUTPUT_ELL_MAX_NE']))
-    #
-    # output_lmin_galaxy = int(float(config['measurement_setup']['OUTPUT_ELL_MIN_NN']))
-    # output_lmax_galaxy = int(float(config['measurement_setup']['OUTPUT_ELL_MAX_NN']))
-    #
-    # output_lmin_cmbkk = int(float(config['measurement_setup']['OUTPUT_ELL_MIN_CMBKK']))
-    # output_lmax_cmbkk = int(float(config['measurement_setup']['OUTPUT_ELL_MAX_CMBKK']))
-    #
-    # output_lmin_cmbkk_galaxy = int(float(config['measurement_setup']['OUTPUT_ELL_MIN_CMBKK_N']))
-    # output_lmax_cmbkk_galaxy = int(float(config['measurement_setup']['OUTPUT_ELL_MAX_CMBKK_N']))
-    #
-    # output_lmin_cmbkk_shear = int(float(config['measurement_setup']['OUTPUT_ELL_MIN_CMBKK_E']))
-    # output_lmax_cmbkk_shear = int(float(config['measurement_setup']['OUTPUT_ELL_MAX_CMBKK_E']))
-
-
     output_lmin_shear = int(float(config['measurement_setup']['OUTPUT_ELL_MIN_EE']))
     output_lmax_shear_config = config['measurement_setup']['OUTPUT_ELL_MAX_EE']
     output_lmax_shear = [int(float(i)) for i in output_lmax_shear_config.split(',')]
@@ -167,34 +148,6 @@ def sampler_config(pipeline_variables_path):
     if bandpower_spacing not in accepted_bp_spacings:
         print('Error! Bandpower Spacing Not Recognised - Exiting...')
         sys.exit()
-    #
-    # elif bandpower_spacing == 'log':
-    #     # bp_bin_edges = np.logspace(np.log10(output_lmin + 1e-5), np.log10(output_lmax + 1e-5), n_bandpowers + 1)
-    #     bp_bin_edges_galaxy = np.logspace(np.log10(output_lmin_galaxy + 1e-5), np.log10(output_lmax_galaxy + 1e-5),
-    #                                       n_bandpowers + 1)
-    #     bp_bin_edges_galaxy_shear = np.logspace(np.log10(output_lmin_galaxy_shear + 1e-5),
-    #                                             np.log10(output_lmax_galaxy_shear + 1e-5), n_bandpowers + 1)
-    #     bp_bin_edges_shear = np.logspace(np.log10(output_lmin_shear + 1e-5), np.log10(output_lmax_shear + 1e-5),
-    #                                      n_bandpowers + 1)
-    #     bp_bin_edges_cmbkk = np.logspace(np.log10(output_lmin_cmbkk + 1e-5), np.log10(output_lmax_cmbkk + 1e-5),
-    #                                      n_bandpowers + 1)
-    #     bp_bin_edges_cmbkk_galaxy = np.logspace(np.log10(output_lmin_cmbkk_galaxy + 1e-5),
-    #                                             np.log10(output_lmax_cmbkk_galaxy + 1e-5), n_bandpowers + 1)
-    #     bp_bin_edges_cmbkk_shear = np.logspace(np.log10(output_lmin_cmbkk_shear + 1e-5),
-    #                                            np.log10(output_lmax_cmbkk_shear + 1e-5), n_bandpowers + 1)
-    #
-    # elif bandpower_spacing == 'lin':
-    #     # bp_bin_edges = np.linspace(output_lmin + 1e-5, output_lmax + 1e-5, n_bandpowers + 1)
-    #     bp_bin_edges_galaxy = np.linspace(output_lmin_galaxy + 1e-5, output_lmax_galaxy + 1e-5, n_bandpowers + 1)
-    #     bp_bin_edges_galaxy_shear = np.linspace(output_lmin_galaxy_shear + 1e-5, output_lmax_galaxy_shear + 1e-5,
-    #                                             n_bandpowers + 1)
-    #     bp_bin_edges_shear = np.linspace(output_lmin_shear + 1e-5, output_lmax_shear + 1e-5, n_bandpowers + 1)
-    #     bp_bin_edges_cmbkk = np.linspace(output_lmin_cmbkk + 1e-5, output_lmax_cmbkk + 1e-5, n_bandpowers + 1)
-    #     bp_bin_edges_cmbkk_galaxy = np.linspace(output_lmin_cmbkk_galaxy + 1e-5, output_lmax_cmbkk_galaxy + 1e-5,
-    #                                             n_bandpowers + 1)
-    #     bp_bin_edges_cmbkk_shear = np.linspace(output_lmin_cmbkk_shear + 1e-5, output_lmax_cmbkk_shear + 1e-5,
-    #                                            n_bandpowers + 1)
-
 
     elif bandpower_spacing == 'log':
         bp_bin_edges_galaxy = [np.logspace(np.log10(output_lmin_galaxy + 1e-5), np.log10(output_lmax_galaxy_i + 1e-5), n_bandpowers + 1) for output_lmax_galaxy_i in output_lmax_galaxy]
@@ -216,73 +169,6 @@ def sampler_config(pipeline_variables_path):
     else:
         # Bandpower type not recognised
         sys.exit()
-
-    # bp_bins_galaxy = nmt.NmtBin.from_edges(
-    #     ell_ini=np.ceil(bp_bin_edges_galaxy).astype(int)[:-1],
-    #     ell_end=np.ceil(bp_bin_edges_galaxy).astype(int)[1:])
-    # ell_arr_galaxy = bp_bins_galaxy.get_effective_ells()
-    #
-    # bp_bins_galaxy_shear = nmt.NmtBin.from_edges(
-    #     ell_ini=np.ceil(bp_bin_edges_galaxy_shear).astype(int)[:-1],
-    #     ell_end=np.ceil(bp_bin_edges_galaxy_shear).astype(int)[1:])
-    # ell_arr_galaxy_shear = bp_bins_galaxy_shear.get_effective_ells()
-    #
-    # bp_bins_shear = nmt.NmtBin.from_edges(
-    #     ell_ini=np.ceil(bp_bin_edges_shear).astype(int)[:-1],
-    #     ell_end=np.ceil(bp_bin_edges_shear).astype(int)[1:])
-    # ell_arr_shear = bp_bins_shear.get_effective_ells()
-    #
-    # bp_bins_cmbkk = nmt.NmtBin.from_edges(
-    #     ell_ini=np.ceil(bp_bin_edges_cmbkk).astype(int)[:-1],
-    #     ell_end=np.ceil(bp_bin_edges_cmbkk).astype(int)[1:])
-    # ell_arr_cmbkk = bp_bins_cmbkk.get_effective_ells()
-    #
-    # bp_bins_cmbkk_galaxy = nmt.NmtBin.from_edges(
-    #     ell_ini=np.ceil(bp_bin_edges_cmbkk_galaxy).astype(int)[:-1],
-    #     ell_end=np.ceil(bp_bin_edges_cmbkk_galaxy).astype(int)[1:])
-    # ell_arr_cmbkk_galaxy = bp_bins_cmbkk_galaxy.get_effective_ells()
-    #
-    # bp_bins_cmbkk_shear = nmt.NmtBin.from_edges(
-    #     ell_ini=np.ceil(bp_bin_edges_cmbkk_shear).astype(int)[:-1],
-    #     ell_end=np.ceil(bp_bin_edges_cmbkk_shear).astype(int)[1:])
-    # ell_arr_cmbkk_shear = bp_bins_cmbkk_shear.get_effective_ells()
-    #
-    # pbl_shear = mask.get_binning_matrix(
-    #     n_bandpowers=n_bandpowers,
-    #     output_lmin=output_lmin_shear,
-    #     output_lmax=output_lmax_shear,
-    #     bp_spacing=bandpower_spacing)
-    #
-    # pbl_galaxy_shear = mask.get_binning_matrix(
-    #     n_bandpowers=n_bandpowers,
-    #     output_lmin=output_lmin_galaxy_shear,
-    #     output_lmax=output_lmax_galaxy_shear,
-    #     bp_spacing=bandpower_spacing)
-    #
-    # pbl_galaxy = mask.get_binning_matrix(
-    #     n_bandpowers=n_bandpowers,
-    #     output_lmin=output_lmin_galaxy,
-    #     output_lmax=output_lmax_galaxy,
-    #     bp_spacing=bandpower_spacing)
-    #
-    # pbl_cmbkk = mask.get_binning_matrix(
-    #     n_bandpowers=n_bandpowers,
-    #     output_lmin=output_lmin_cmbkk,
-    #     output_lmax=output_lmax_cmbkk,
-    #     bp_spacing=bandpower_spacing)
-    #
-    # pbl_cmbkk_galaxy = mask.get_binning_matrix(
-    #     n_bandpowers=n_bandpowers,
-    #     output_lmin=output_lmin_cmbkk_galaxy,
-    #     output_lmax=output_lmax_cmbkk_galaxy,
-    #     bp_spacing=bandpower_spacing)
-    #
-    # pbl_cmbkk_shear = mask.get_binning_matrix(
-    #     n_bandpowers=n_bandpowers,
-    #     output_lmin=output_lmin_cmbkk_shear,
-    #     output_lmax=output_lmax_cmbkk_shear,
-    #     bp_spacing=bandpower_spacing)
-
 
     bp_bins_galaxy = [nmt.NmtBin.from_edges(
         ell_ini=np.ceil(bp_bin_edges_galaxy_i).astype(int)[:-1],
@@ -508,16 +394,7 @@ def generate_pseudo_bps_model(cosmo_params, pipeline_variables_path, config_dict
     fid_cosmo_dict.update(ccl_params)
     # print(fid_cosmo_dict)
     fid_cosmo = ccl.Cosmology(**fid_cosmo_dict)
-    start_time = time.time()
-    # Now we have to make the Cls, PCls, bandpowers, then combined data vector
-    # cls_dict = {'galaxy_cl': {'ell':ells},
-    #             'shear_cl': {'ell':ells},
-    #             'galaxy_shear_cl': {'ell':ells},
-    #             'cmbkappa_cl': {'ell':ells},
-    #             'galaxy_cmbkappa_cl': {'ell':ells},
-    #             'shear_cmbkappa_cl': {'ell':ells},
-    #             'null_spectra': {'ell':ells}
-    #             }
+    # start_time = time.time()
 
     nz_boundaries = np.loadtxt(f"{save_dir}z_boundaries.txt")
 
@@ -619,87 +496,8 @@ def generate_pseudo_bps_model(cosmo_params, pipeline_variables_path, config_dict
         mode='dict',
         Dzi_dat=Dzi_dat)
 
-    print(time.time() - start_time)
-    '''
-    b_1 = systematics_dict['b_1']
-    b_2 = systematics_dict['b_2']
-    b_s = systematics_dict['b_s']
-    A_1 = systematics_dict['A_1']
-    A_2 = systematics_dict['A_2']
-    A_1d = systematics_dict['A_1d']
-    c_1 = systematics_dict['c_1']
-    c_delta = systematics_dict['c_delta']
-    c_2 = systematics_dict['c_2']
-    mi_dat = systematics_dict['mi']
-    s0 = systematics_dict['s0']
-    s1 = systematics_dict['s1']
-    s2 = systematics_dict['s2']
-    s3 = systematics_dict['s3']
-    sz = systematics_dict['sz']
+    # print(time.time() - start_time)
 
-    # These parameters can probably be read in from a config file
-    # Galaxy bias
-    b = np.ones_like(z)
-    # bz = 0.95/ccl.growth_factor(fid_cosmo,1./(1+z))
-
-    # Intrinsic alignment amplitude
-    A_IA = nuisance_params['A1'] * np.ones_like(z)
-    # print(A_IA)
-    # Magnification bias
-    sz = np.ones_like(z)
-
-    # CMB lensing
-    k_CMB = ccl.CMBLensingTracer(fid_cosmo, z_source=1100)
-
-    cl_kCMB = ccl.angular_cl(fid_cosmo, k_CMB, k_CMB, ells)
-    cls_dict['cmbkappa_cl']['bin_1_1'] = cl_kCMB
-
-    for i in range(nbins):
-
-        # Bin i number
-        bin_i = i + 1
-
-        # Galaxy clustering bin i
-        g_i = ccl.NumberCountsTracer(fid_cosmo, has_rsd=False, dndz=(z, nz_dat[:, bin_i]), bias=(z, b))
-
-        # Cosmic shear with intrinsic alignments bin i
-        y_i = ccl.WeakLensingTracer(fid_cosmo, dndz=(z, nz_dat[:, bin_i]), has_shear=True, ia_bias=(z, A_IA))
-
-        # Galaxy clustering - CMB kappa Cl cross-correlation
-        cl_g_kCMB = ccl.angular_cl(fid_cosmo, g_i, k_CMB, ells)
-        cls_dict['galaxy_cmbkappa_cl']['bin_{}_1'.format(bin_i)] = cl_g_kCMB
-
-        # Cosmic shear - CMB kappa Cl cross-correlation
-        cl_y_kCMB = ccl.angular_cl(fid_cosmo, y_i, k_CMB, ells)
-        cls_dict['shear_cmbkappa_cl']['bin_{}_1'.format(bin_i)] = cl_y_kCMB
-
-        for j in range(nbins):
-
-            # Bin j number
-            bin_j = j+1
-
-            cls_dict['null_spectra']['bin_{}_{}'.format(bin_i, bin_j)] = np.zeros(len(ells))
-
-            # Galaxy clustering bin j
-            g_j = ccl.NumberCountsTracer(fid_cosmo, has_rsd=False, dndz=(z, nz_dat[:,bin_j]), bias=(z, b))
-
-            # Cosmic shear with intrinsic alignments bin j
-            y_j = ccl.WeakLensingTracer(fid_cosmo, dndz=(z, nz_dat[:,bin_j]), has_shear=True, ia_bias=(z, A_IA))
-
-            # Tomographic galaxy-galaxy lensing Cl
-            cl_gy = ccl.angular_cl(fid_cosmo, g_i, y_j, ells)
-            cls_dict['galaxy_shear_cl']['bin_{}_{}'.format(bin_i, bin_j)] = cl_gy
-
-            if i >= j:
-
-                # Tomographic angular clustering Cl
-                cl_gg = ccl.angular_cl(fid_cosmo, g_i, g_j, ells)
-                cls_dict['galaxy_cl']['bin_{}_{}'.format(bin_i, bin_j)] = cl_gg
-
-                # Tomographic cosmic shear Cl
-                cl_yy = ccl.angular_cl(fid_cosmo, y_i, y_j, ells)
-                cls_dict['shear_cl']['bin_{}_{}'.format(bin_i, bin_j)] = cl_yy
-    '''
     # Now we need to convert to Pseudo-Cls and then bandpowers
     theory_cls_dir = save_dir + 'inference_chains/'
     obs_noise_cls_dir = save_dir + 'raw_noise_cls/'
@@ -815,58 +613,6 @@ def test(params, config_dict, pipeline_variables_path, mixmats, data_vector):
         plt.show()
     '''
 
-
-'''
-def generate_mixmats(sampler_config_dict):
-
-    save_dir = sampler_config_dict['save_dir']
-    inference_dir = save_dir + 'inference_chains/'
-
-    nside = sampler_config_dict['nside']
-    input_lmin = sampler_config_dict['input_lmin']
-    input_lmax = sampler_config_dict['input_lmax']
-
-    output_lmin_galaxy = sampler_config_dict['output_lmin_galaxy']
-    output_lmax_galaxy = sampler_config_dict['output_lmax_galaxy']
-
-    output_lmin_galaxy_shear = sampler_config_dict['output_lmin_galaxy_shear']
-    output_lmax_galaxy_shear = sampler_config_dict['output_lmax_galaxy_shear']
-
-    output_lmin_shear = sampler_config_dict['output_lmin_shear']
-    output_lmax_shear = sampler_config_dict['output_lmax_shear']
-
-    output_lmin_cmbkk = sampler_config_dict['output_lmin_cmbkk']
-    output_lmax_cmbkk = sampler_config_dict['output_lmax_cmbkk']
-
-    output_lmin_cmbkk_galaxy = sampler_config_dict['output_lmin_cmbkk_galaxy']
-    output_lmax_cmbkk_galaxy = sampler_config_dict['output_lmax_cmbkk_galaxy']
-
-    output_lmin_cmbkk_shear = sampler_config_dict['output_lmin_cmbkk_shear']
-    output_lmax_cmbkk_shear = sampler_config_dict['output_lmax_cmbkk_shear']
-
-    obs_type = sampler_config_dict['obs_spec']
-    obs_field = sampler_config_dict['obs_field']
-
-    # Need to create this directory somewhere!
-    mask_dir = sampler_config_dict['mask_path']
-    mask_dir_cmb = sampler_config_dict['mask_path_cmb']
-
-    mix_mats_save_path = inference_dir + 'mixmats.npz'
-
-    # Calculate mixing matrices from mask
-    mask.get_6x2pt_mixmats(mask_path=mask_dir,
-                           mask_path_cmb=mask_dir_cmb,
-                           nside=nside,
-                           lmin=input_lmin,
-                           input_lmax=input_lmax,
-                           lmax_out_nn=output_lmax_galaxy,
-                           lmax_out_ne=output_lmax_galaxy_shear,
-                           lmax_out_ee=output_lmax_shear,
-                           lmax_out_ek=output_lmax_cmbkk_shear,
-                           lmax_out_nk=output_lmax_cmbkk_galaxy,
-                           lmax_out_kk=output_lmax_cmbkk,
-                           save_path=mix_mats_save_path)
-'''
 
 def run_nautilus(sampler_config_dict, pipeline_variables_path, mixmats, data_vector, inverse_covariance,
                  sampler_checkpoint_file, priors, bi_marg=False, mi_marg=False, Dzi_marg=False, A1i_marg=False):

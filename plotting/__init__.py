@@ -1,1 +1,2 @@
 import plotting.spider_plot
+import plotting.plot_posteriors

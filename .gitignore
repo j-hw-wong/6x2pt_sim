@@ -10,3 +10,8 @@ run_likelihood_temp.py
 run_likelihood_temp2.py
 run_realisations.py
 run_pcl_measurement.py
+plotting/plotting_new.py
+plotting/plotting_new2.py
+plotting/plotting_new_residuals.py
+plotting/plotting_temp.py
+likelihood/sampler_old.py
