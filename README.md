@@ -63,7 +63,7 @@ follows:
 using a template `.ini` file in the `set_config` directory. Here, you will find further information on each parameter
 and how they can be defined. Note that the config file does not need to be identical to the config file used for 
 simulating the synthetic data (useful for exploring biases etc). The format of the config file must be the same, hoever.
-**Also note that for parameters that are sampled over (see steps 2, 3), the sampler will 
+**Also note that for parameters that are sampled over (see steps 4, 5), the sampler will 
 overwrite the fiducial values defined in the `.ini` file.**
 2. In `run_likelihood.py`, set the `pipeline_variables_path` variable to the path of your template config file for the
 sampling routine.
