@@ -10,3 +10,6 @@ for both the data vector generation, and the parameter sampling. However, for th
 effects, you may wish to have different parameter/measurement values for the sampling routine. In this case, you can 
 point the sampler to a different config file than was used for the data vector simulation. Note that for parameters 
 that are actually sampled through, the sampler will overwrite values defined in the config file.
+
+Also note that the `flask_3x2pt.config` file does not need to be changed. A file in this format is necessary to run
+`Flask`, but parameters are written onto the `flask_3x2pt.config` file from the `set_variables.ini` file.

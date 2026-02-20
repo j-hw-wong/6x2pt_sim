@@ -93,8 +93,28 @@ ensuring that Python dependencies/requirements are met - see `requirements.txt` 
 7. Generate corner plots using the `plotting.plot_posteriors.py` routines. An example for using this is shown in the
 `run_likelihood.py` script. 
 
+##Notes
 
+###Paralellisation
+The parameter sampling can be performed using parallel computing (a helpful feature of `nautilus`). The instructions for 
+use are as follows:
 
+* For a laptop/desktop machine, sampler parallelisation is achieved using `OpenMP`, and is controlled by the `n_pool` 
+variable in the `.ini` config files. Here, `n_pool` should be the number of cores to use for parallel sampling
+
+* For HPC, parallelisation is achieved using `MPI`. In this instance, you must change `pool=n_pool` in 
+`likelihood.sampler.run_nautilus` to `pool=MPIPoolExecutor()` (uncomment the example line). Then to run the sampler
+using MPI through a scheduler, you can use a submission script - a template for Slurm is shown in 
+`run_likelihood_parallel.sh`. Here, you will need to set the number of tasks (parallel processes), the number of cpus
+to use for each task, and then finally the number of tasks per node. The example works best for a homogeneous cluster,
+but can be reconfigured to suit compute availability.
+
+###Singularity 
+**Note that this is a feature that is currently in testing**
+
+In order to install all dependencies, packages etc. so that `6x2pt_sim` can be used, we provide a singularity
+definition file (and required config/Makefiles) in the `singularity` directory. This creates a singularity container 
+in which the `run_sim.py` and `run_likelihood.py` scripts for `6x2pt_sim` should be able to run. 
 
 
 
