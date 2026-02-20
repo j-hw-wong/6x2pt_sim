@@ -93,9 +93,9 @@ ensuring that Python dependencies/requirements are met - see `requirements.txt` 
 7. Generate corner plots using the `plotting.plot_posteriors.py` routines. An example for using this is shown in the
 `run_likelihood.py` script. 
 
-##Notes
+## Notes
 
-###Paralellisation
+### Paralellisation
 The parameter sampling can be performed using parallel computing (a helpful feature of `nautilus`). The instructions for 
 use are as follows:
 
@@ -109,7 +109,7 @@ using MPI through a scheduler, you can use a submission script - a template for 
 to use for each task, and then finally the number of tasks per node. The example works best for a homogeneous cluster,
 but can be reconfigured to suit compute availability.
 
-###Singularity 
+### Singularity 
 **Note that this is a feature that is currently in testing**
 
 In order to install all dependencies, packages etc. so that `6x2pt_sim` can be used, we provide a singularity
