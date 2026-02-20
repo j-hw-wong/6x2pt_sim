@@ -74,7 +74,7 @@ generate a (mode-coupled) analytic covariance matrix using the improved narrow k
 4. Set and define the parameters to sample over, and their priors. In order to define a parameter to sample, you will
 need to append a tuple to the `priors` list (examples are shown in the `run_likelihood.py` script). The first element
 in the tuple is a string describing the given parameter. The string must match the string name convention in the config
-`.ini` file (e.g. ``w0`` for $w_{0}$). The second element of the tuple is the prior. For a uniform prior, this is just
+`.ini` file (e.g. 'w0' for $w_{0}$). The second element of the tuple is the prior. For a uniform prior, this is just
 another tuple, e.g. `(a,b)` for prior boundaries `a,b`, and for a Gaussian prior, you can use 
 `scipy.stats.norm(loc=mu,scale=sigma)`.
 5. Note that the sampling for some parameters is dependent on tomographic bin. These are:
