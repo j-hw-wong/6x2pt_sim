@@ -38,6 +38,7 @@ marginalised over. Please read the guidelines in this script for further details
 
 ## Instructions for Use
 
+### Simulation and generation of $6\times2\mathrm{pt}$ data vector
 To execute the simulation that generates a mock $3\times2\mathrm{pt}$ or $6\times2\mathrm{pt}$ data vector, use the 
 `run_sim.py` script. The instructions to use this are as follows:
 
@@ -51,6 +52,8 @@ Otherwise, set `clean=True`, which will delete the maps (recommended to save dis
 the Pseudo- $C_{\ell}$ power spectra), comment out the relevant parts of the chain in `run_sim.py`.
 5. Execute `run_sim.py` after ensuring that Python dependencies/requirements are met (see `requirements.txt` for further
 details).
+
+### Bayesian parameter sampling on $w_{0}w_{a}\mathrm{CDM}$
 
 To execute the parameter sampling to constrain $w_{0}w_{a}\mathrm{CDM}$ parameters and/or nuisance parameters from the
 synthetic data generated from `run_sim.py`, use the `run_likelihood.py` script. The instructions to use this are as
