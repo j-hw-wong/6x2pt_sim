@@ -334,6 +334,7 @@ def generate_pseudo_bps_model(cosmo_params, pipeline_variables_path, config_dict
     input_lmax = config_dict['input_lmax']
     nbins = config_dict['nbins']
 
+    # output lmaxs are lists of lmax per bin for each field/observable
     output_lmin_shear = config_dict['output_lmin_shear']
     output_lmax_shear = config_dict['output_lmax_shear']
 
