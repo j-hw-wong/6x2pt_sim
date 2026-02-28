@@ -42,21 +42,6 @@ def PCl_bandpowers_6x2pt(cls_dict, n_bp, n_zbin, lmax_like_galaxy, lmin_like_gal
     n_ell_in = lmax_in - lmin_in + 1
     ell_in = np.arange(lmin_in, lmax_in + 1)
 
-    # Form list of power spectra
-    # fields = [f'{f}{z}' for z in range(1, n_zbin + 1) for f in ['N', 'E']]
-    # # assert len(fields) == n_field
-    #
-    # spectra = [fields[row] + fields[row + diag] for diag in range(n_field) for row in range(n_field - diag)]
-    #
-    # for i in range(n_zbin):
-    #     spectra.append('E{}K1'.format(i+1))
-    #     spectra.append('N{}K1'.format(i+1))
-    #
-    # spectra.append('K1K1')
-
-    # Load mixing matrices
-    # with np.load(mixmats_path) as data:
-
     mixmats_nn_to_nn = {}
     mixmats_ne_to_ne = {}
     mixmats_ee_to_ee = {}
@@ -106,12 +91,6 @@ def PCl_bandpowers_6x2pt(cls_dict, n_bp, n_zbin, lmax_like_galaxy, lmin_like_gal
             output_lmax=lmax_like_shear_i,
             bp_spacing=bandpower_spacing)
 
-    # pbl_shear = [mask.get_binning_matrix(
-    #     n_bandpowers=n_bp,
-    #     output_lmin=lmin_like_shear,
-    #     output_lmax=lmax_like_shear_i,
-    #     bp_spacing=bandpower_spacing) for lmax_like_shear_i in lmax_like_shear]
-
     pbl_galaxy_shear = {}
     for count, lmax_like_galaxy_shear_i in enumerate(lmax_like_galaxy_shear):
         pbl_galaxy_shear['Bin_{}'.format(count+1)] = mask.get_binning_matrix(
@@ -120,12 +99,6 @@ def PCl_bandpowers_6x2pt(cls_dict, n_bp, n_zbin, lmax_like_galaxy, lmin_like_gal
             output_lmax=lmax_like_galaxy_shear_i,
             bp_spacing=bandpower_spacing)
 
-    # pbl_galaxy_shear = [mask.get_binning_matrix(
-    #     n_bandpowers=n_bp,
-    #     output_lmin=lmin_like_galaxy_shear,
-    #     output_lmax=lmax_like_galaxy_shear_i,
-    #     bp_spacing=bandpower_spacing) for lmax_like_galaxy_shear_i in lmax_like_galaxy_shear]
-
     pbl_galaxy = {}
     for count, lmax_like_galaxy_i in enumerate(lmax_like_galaxy):
         pbl_galaxy['Bin_{}'.format(count+1)] = mask.get_binning_matrix(
@@ -133,12 +106,6 @@ def PCl_bandpowers_6x2pt(cls_dict, n_bp, n_zbin, lmax_like_galaxy, lmin_like_gal
             output_lmin=lmin_like_galaxy,
             output_lmax=lmax_like_galaxy_i,
             bp_spacing=bandpower_spacing)
-
-    # pbl_galaxy = [mask.get_binning_matrix(
-    #     n_bandpowers=n_bp,
-    #     output_lmin=lmin_like_galaxy,
-    #     output_lmax=lmax_like_galaxy_i,
-    #     bp_spacing=bandpower_spacing) for lmax_like_galaxy_i in lmax_like_galaxy]
 
     pbl_cmbkk = mask.get_binning_matrix(
         n_bandpowers=n_bp,
@@ -154,12 +121,6 @@ def PCl_bandpowers_6x2pt(cls_dict, n_bp, n_zbin, lmax_like_galaxy, lmin_like_gal
             output_lmax=lmax_like_galaxy_kCMB_i,
             bp_spacing=bandpower_spacing)
 
-    # pbl_cmbkk_galaxy = [mask.get_binning_matrix(
-    #     n_bandpowers=n_bp,
-    #     output_lmin=lmin_like_galaxy_kCMB,
-    #     output_lmax=lmax_like_galaxy_kCMB_i,
-    #     bp_spacing=bandpower_spacing) for lmax_like_galaxy_kCMB_i in lmax_like_galaxy_kCMB]
-
     pbl_cmbkk_shear = {}
     for count, lmax_like_shear_kCMB_i in enumerate(lmax_like_shear_kCMB):
         pbl_cmbkk_shear['Bin_{}'.format(count+1)] = mask.get_binning_matrix(
@@ -167,12 +128,6 @@ def PCl_bandpowers_6x2pt(cls_dict, n_bp, n_zbin, lmax_like_galaxy, lmin_like_gal
             output_lmin=lmin_like_shear_kCMB,
             output_lmax=lmax_like_shear_kCMB_i,
             bp_spacing=bandpower_spacing)
-
-    # pbl_cmbkk_shear = [mask.get_binning_matrix(
-    #     n_bandpowers=n_bp,
-    #     output_lmin=lmin_like_shear_kCMB,
-    #     output_lmax=lmax_like_shear_kCMB_i,
-    #     bp_spacing=bandpower_spacing) for lmax_like_shear_kCMB_i in lmax_like_shear_kCMB]
 
     for i in range(n_zbin):
         if pbl_shear['Bin_{}'.format(i+1)].ndim == 1:
@@ -329,37 +284,43 @@ def PCl_bandpowers_3x2pt(cls_dict, n_bp, n_zbin, lmax_like_nn, lmin_like_nn, lma
 
     assert bandpower_spacing == 'log' or bandpower_spacing == 'lin'
 
-    pbl_ee = [mask.get_binning_matrix(
-        n_bandpowers=n_bp,
-        output_lmin=lmin_like_ee,
-        output_lmax=lmax_like_ee_i,
-        bp_spacing=bandpower_spacing) for lmax_like_ee_i in lmax_like_ee]
+    pbl_ee = {}
+    for count, lmax_like_ee_i in enumerate(lmax_like_ee):
+        pbl_ee['Bin_{}'.format(count+1)] = mask.get_binning_matrix(
+            n_bandpowers=n_bp,
+            output_lmin=lmin_like_ee,
+            output_lmax=lmax_like_ee_i,
+            bp_spacing=bandpower_spacing)
 
-    pbl_ne = [mask.get_binning_matrix(
-        n_bandpowers=n_bp,
-        output_lmin=lmin_like_ne,
-        output_lmax=lmax_like_ne_i,
-        bp_spacing=bandpower_spacing) for lmax_like_ne_i in lmax_like_ne]
+    pbl_ne = {}
+    for count, lmax_like_ne_i in enumerate(lmax_like_ne):
+        pbl_ne['Bin_{}'.format(count+1)] = mask.get_binning_matrix(
+            n_bandpowers=n_bp,
+            output_lmin=lmin_like_ne,
+            output_lmax=lmax_like_ne_i,
+            bp_spacing=bandpower_spacing)
 
-    pbl_nn = [mask.get_binning_matrix(
-        n_bandpowers=n_bp,
-        output_lmin=lmin_like_nn,
-        output_lmax=lmax_like_nn_i,
-        bp_spacing=bandpower_spacing) for lmax_like_nn_i in lmax_like_nn]
+    pbl_nn = {}
+    for count, lmax_like_nn_i in enumerate(lmax_like_nn):
+        pbl_nn['Bin_{}'.format(count+1)] = mask.get_binning_matrix(
+            n_bandpowers=n_bp,
+            output_lmin=lmin_like_nn,
+            output_lmax=lmax_like_nn_i,
+            bp_spacing=bandpower_spacing)
 
     for i in range(n_zbin):
-        if pbl_nn[i].ndim == 1:
-            pbl_nn[i] = pbl_nn[i][np.newaxis, :]
+        if pbl_nn['Bin_{}'.format(i+1)].ndim == 1:
+            pbl_nn['Bin_{}'.format(i+1)] = pbl_nn['Bin_{}'.format(i+1)][np.newaxis, :]
 
-        if pbl_ne[i].ndim == 1:
-            pbl_ne[i] = pbl_ne[i][np.newaxis, :]
+        if pbl_ne['Bin_{}'.format(i+1)].ndim == 1:
+            pbl_ne['Bin_{}'.format(i+1)] = pbl_ne['Bin_{}'.format(i+1)][np.newaxis, :]
 
-        if pbl_ee[i].ndim == 1:
-            pbl_ee[i] = pbl_ee[i][np.newaxis, :]
+        if pbl_ee['Bin_{}'.format(i+1)].ndim == 1:
+            pbl_ee['Bin_{}'.format(i+1)] = pbl_ee['Bin_{}'.format(i+1)][np.newaxis, :]
 
-        assert pbl_nn[i].shape == (n_bp, lmax_like_nn[i] - lmin_like_nn + 1)
-        assert pbl_ne[i].shape == (n_bp, lmax_like_ne[i] - lmin_like_ne + 1)
-        assert pbl_ee[i].shape == (n_bp, lmax_like_ee[i] - lmin_like_ee + 1)
+        assert pbl_nn['Bin_{}'.format(i+1)].shape == (n_bp, lmax_like_nn[i] - lmin_like_nn + 1)
+        assert pbl_ne['Bin_{}'.format(i+1)].shape == (n_bp, lmax_like_ne[i] - lmin_like_ne + 1)
+        assert pbl_ee['Bin_{}'.format(i+1)].shape == (n_bp, lmax_like_ee[i] - lmin_like_ee + 1)
 
     config = like_bp_mix_3x2pt.setup(
         mixmats=[mixmats_nn_to_nn, mixmats_ne_to_ne, mixmats_ee_to_ee, mixmats_bb_to_ee],
@@ -512,24 +473,29 @@ def PCl_bandpowers_1x2pt(cls_dict, n_bp, n_zbin, lmax_like_galaxy, lmin_like_gal
 
     assert bandpower_spacing == 'log' or bandpower_spacing == 'lin'
 
+    pbl_shear = {}
+    for count, lmax_like_shear_i in enumerate(lmax_like_shear):
+        pbl_shear['Bin_{}'.format(count+1)] = mask.get_binning_matrix(
+            n_bandpowers=n_bp,
+            output_lmin=lmin_like_shear,
+            output_lmax=lmax_like_shear_i,
+            bp_spacing=bandpower_spacing)
 
-    pbl_shear = [mask.get_binning_matrix(
-        n_bandpowers=n_bp,
-        output_lmin=lmin_like_shear,
-        output_lmax=lmax_like_shear_i,
-        bp_spacing=bandpower_spacing) for lmax_like_shear_i in lmax_like_shear]
+    pbl_galaxy_shear = {}
+    for count, lmax_like_galaxy_shear_i in enumerate(lmax_like_galaxy_shear):
+        pbl_galaxy_shear['Bin_{}'.format(count+1)] = mask.get_binning_matrix(
+            n_bandpowers=n_bp,
+            output_lmin=lmin_like_galaxy_shear,
+            output_lmax=lmax_like_galaxy_shear_i,
+            bp_spacing=bandpower_spacing)
 
-    pbl_galaxy_shear = [mask.get_binning_matrix(
-        n_bandpowers=n_bp,
-        output_lmin=lmin_like_galaxy_shear,
-        output_lmax=lmax_like_galaxy_shear_i,
-        bp_spacing=bandpower_spacing) for lmax_like_galaxy_shear_i in lmax_like_galaxy_shear]
-
-    pbl_galaxy = [mask.get_binning_matrix(
-        n_bandpowers=n_bp,
-        output_lmin=lmin_like_galaxy,
-        output_lmax=lmax_like_galaxy_i,
-        bp_spacing=bandpower_spacing) for lmax_like_galaxy_i in lmax_like_galaxy]
+    pbl_galaxy = {}
+    for count, lmax_like_galaxy_i in enumerate(lmax_like_galaxy):
+        pbl_galaxy['Bin_{}'.format(count+1)] = mask.get_binning_matrix(
+            n_bandpowers=n_bp,
+            output_lmin=lmin_like_galaxy,
+            output_lmax=lmax_like_galaxy_i,
+            bp_spacing=bandpower_spacing)
 
     pbl_cmbkk = mask.get_binning_matrix(
         n_bandpowers=n_bp,
@@ -537,45 +503,48 @@ def PCl_bandpowers_1x2pt(cls_dict, n_bp, n_zbin, lmax_like_galaxy, lmin_like_gal
         output_lmax=lmax_like_kCMB,
         bp_spacing=bandpower_spacing)
 
-    pbl_cmbkk_galaxy = [mask.get_binning_matrix(
-        n_bandpowers=n_bp,
-        output_lmin=lmin_like_galaxy_kCMB,
-        output_lmax=lmax_like_galaxy_kCMB_i,
-        bp_spacing=bandpower_spacing) for lmax_like_galaxy_kCMB_i in lmax_like_galaxy_kCMB]
+    pbl_cmbkk_galaxy = {}
+    for count, lmax_like_galaxy_kCMB_i in enumerate(lmax_like_galaxy_kCMB):
+        pbl_cmbkk_galaxy['Bin_{}'.format(count+1)] = mask.get_binning_matrix(
+            n_bandpowers=n_bp,
+            output_lmin=lmin_like_galaxy_kCMB,
+            output_lmax=lmax_like_galaxy_kCMB_i,
+            bp_spacing=bandpower_spacing)
 
-    pbl_cmbkk_shear = [mask.get_binning_matrix(
-        n_bandpowers=n_bp,
-        output_lmin=lmin_like_shear_kCMB,
-        output_lmax=lmax_like_shear_kCMB_i,
-        bp_spacing=bandpower_spacing) for lmax_like_shear_kCMB_i in lmax_like_shear_kCMB]
+    pbl_cmbkk_shear = {}
+    for count, lmax_like_shear_kCMB_i in enumerate(lmax_like_shear_kCMB):
+        pbl_cmbkk_shear['Bin_{}'.format(count+1)] = mask.get_binning_matrix(
+            n_bandpowers=n_bp,
+            output_lmin=lmin_like_shear_kCMB,
+            output_lmax=lmax_like_shear_kCMB_i,
+            bp_spacing=bandpower_spacing)
 
     for i in range(n_zbin):
-        if pbl_shear[i].ndim == 1:
-            pbl_shear[i] = pbl_shear[i][np.newaxis, :]
+        if pbl_shear['Bin_{}'.format(i+1)].ndim == 1:
+            pbl_shear['Bin_{}'.format(i+1)] = pbl_shear['Bin_{}'.format(i+1)][np.newaxis, :]
 
-        if pbl_galaxy_shear[i].ndim == 1:
-            pbl_galaxy_shear[i] = pbl_galaxy_shear[i][np.newaxis, :]
+        if pbl_galaxy_shear['Bin_{}'.format(i+1)].ndim == 1:
+            pbl_galaxy_shear['Bin_{}'.format(i+1)] = pbl_galaxy_shear['Bin_{}'.format(i+1)][np.newaxis, :]
 
-        if pbl_galaxy[i].ndim == 1:
-            pbl_galaxy[i] = pbl_galaxy[i][np.newaxis, :]
+        if pbl_galaxy['Bin_{}'.format(i+1)].ndim == 1:
+            pbl_galaxy['Bin_{}'.format(i+1)] = pbl_galaxy['Bin_{}'.format(i+1)][np.newaxis, :]
 
-        if pbl_cmbkk_galaxy[i].ndim == 1:
-            pbl_cmbkk_galaxy[i] = pbl_cmbkk_galaxy[i][np.newaxis, :]
+        if pbl_cmbkk_galaxy['Bin_{}'.format(i+1)].ndim == 1:
+            pbl_cmbkk_galaxy['Bin_{}'.format(i+1)] = pbl_cmbkk_galaxy['Bin_{}'.format(i+1)][np.newaxis, :]
 
-        if pbl_cmbkk_shear[i].ndim == 1:
-            pbl_cmbkk_shear[i] = pbl_cmbkk_shear[i][np.newaxis, :]
+        if pbl_cmbkk_shear['Bin_{}'.format(i+1)].ndim == 1:
+            pbl_cmbkk_shear['Bin_{}'.format(i+1)] = pbl_cmbkk_shear['Bin_{}'.format(i+1)][np.newaxis, :]
 
-        assert pbl_shear[i].shape == (n_bp, lmax_like_shear[i] - lmin_like_shear + 1)
-        assert pbl_galaxy_shear[i].shape == (n_bp, lmax_like_galaxy_shear[i] - lmin_like_galaxy_shear + 1)
-        assert pbl_galaxy[i].shape == (n_bp, lmax_like_galaxy[i] - lmin_like_galaxy + 1)
-        assert pbl_cmbkk_shear[i].shape == (n_bp, lmax_like_shear_kCMB[i] - lmin_like_shear_kCMB + 1)
-        assert pbl_cmbkk_galaxy[i].shape == (n_bp, lmax_like_galaxy_kCMB[i] - lmin_like_galaxy_kCMB + 1)
+        assert pbl_shear['Bin_{}'.format(i+1)].shape == (n_bp, lmax_like_shear[i] - lmin_like_shear + 1)
+        assert pbl_galaxy_shear['Bin_{}'.format(i+1)].shape == (n_bp, lmax_like_galaxy_shear[i] - lmin_like_galaxy_shear + 1)
+        assert pbl_galaxy['Bin_{}'.format(i+1)].shape == (n_bp, lmax_like_galaxy[i] - lmin_like_galaxy + 1)
+        assert pbl_cmbkk_shear['Bin_{}'.format(i+1)].shape == (n_bp, lmax_like_shear_kCMB[i] - lmin_like_shear_kCMB + 1)
+        assert pbl_cmbkk_galaxy['Bin_{}'.format(i+1)].shape == (n_bp, lmax_like_galaxy_kCMB[i] - lmin_like_galaxy_kCMB + 1)
 
     if pbl_cmbkk.ndim == 1:
         pbl_cmbkk = pbl_cmbkk[np.newaxis, :]
 
     assert pbl_cmbkk.shape == (n_bp, lmax_like_kCMB - lmin_like_kCMB + 1)
-
 
     '''
     # Load mixing matrices
