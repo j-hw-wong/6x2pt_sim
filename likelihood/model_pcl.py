@@ -5,6 +5,7 @@ import likelihood.like_bp_gauss_mix_6x2pt as like_bp_mix_6x2pt
 import likelihood.like_bp_gauss_mix_3x2pt as like_bp_mix_3x2pt
 import likelihood.like_bp_gauss_mix_1x2pt as like_bp_mix_1x2pt
 
+# lmaxs are lists, mixmats is a dictionary ordered by bin ID
 
 def PCl_bandpowers_6x2pt(cls_dict, n_bp, n_zbin, lmax_like_galaxy, lmin_like_galaxy, lmax_like_galaxy_shear,
                          lmin_like_galaxy_shear, lmax_like_shear, lmin_like_shear, lmax_like_galaxy_kCMB,
@@ -55,48 +56,89 @@ def PCl_bandpowers_6x2pt(cls_dict, n_bp, n_zbin, lmax_like_galaxy, lmin_like_gal
 
     # Load mixing matrices
     # with np.load(mixmats_path) as data:
-    mixmat_nn_to_nn = mixmats['mixmat_nn_to_nn'][lmin_like_galaxy - lmin_in:, :]
-    mixmat_ne_to_ne = mixmats['mixmat_ne_to_ne'][lmin_like_galaxy_shear - lmin_in:, :]
-    mixmat_ee_to_ee = mixmats['mixmat_ee_to_ee'][lmin_like_shear - lmin_in:, :]
-    mixmat_bb_to_ee = mixmats['mixmat_bb_to_ee'][lmin_like_shear - lmin_in:, :]
-    mixmat_kk_to_kk = mixmats['mixmat_kk_to_kk'][lmin_like_kCMB - lmin_in:, :]
-    mixmat_nn_to_kk = mixmats['mixmat_nn_to_kk'][lmin_like_galaxy_kCMB - lmin_in:, :]
-    mixmat_ke_to_ke = mixmats['mixmat_ke_to_ke'][lmin_like_shear_kCMB - lmin_in:, :]
 
-    mixmat_shape_nn = (lmax_like_galaxy - lmin_like_galaxy + 1, n_ell_in)
-    mixmat_shape_ne = (lmax_like_galaxy_shear - lmin_like_galaxy_shear + 1, n_ell_in)
-    mixmat_shape_ee = (lmax_like_shear - lmin_like_shear + 1, n_ell_in)
+    mixmats_nn_to_nn = {}
+    mixmats_ne_to_ne = {}
+    mixmats_ee_to_ee = {}
+    mixmats_bb_to_ee = {}
+    mixmats_nn_to_kk = {}
+    mixmats_ke_to_ke = {}
+
+    mixmat_kk_to_kk = mixmats['Bin_1']['mixmat_kk_to_kk'][lmin_like_kCMB - lmin_in:, :]
     mixmat_shape_kk = (lmax_like_kCMB - lmin_like_kCMB + 1, n_ell_in)
-    mixmat_shape_nnkk = (lmax_like_galaxy_kCMB - lmin_like_galaxy_kCMB + 1, n_ell_in)
-    mixmat_shape_ke = (lmax_like_shear_kCMB - lmin_like_shear_kCMB + 1, n_ell_in)
-
-    assert mixmat_nn_to_nn.shape == mixmat_shape_nn, (mixmat_nn_to_nn.shape, mixmat_shape_nn)
-    assert mixmat_ne_to_ne.shape == mixmat_shape_ne, (mixmat_ne_to_ne.shape, mixmat_shape_ne)
-    assert mixmat_ee_to_ee.shape == mixmat_shape_ee, (mixmat_ee_to_ee.shape, mixmat_shape_ee)
-    assert mixmat_bb_to_ee.shape == mixmat_shape_ee, (mixmat_bb_to_ee.shape, mixmat_shape_ee)
     assert mixmat_kk_to_kk.shape == mixmat_shape_kk, (mixmat_kk_to_kk.shape, mixmat_shape_kk)
-    assert mixmat_nn_to_kk.shape == mixmat_shape_nnkk, (mixmat_nn_to_kk.shape, mixmat_shape_nnkk)
-    assert mixmat_ke_to_ke.shape == mixmat_shape_ke, (mixmat_ke_to_ke.shape, mixmat_shape_ke)
+
+    for i in range(n_zbin):
+        mixmat_nn_to_nn = mixmats['Bin_{}'.format(i+1)]['mixmat_nn_to_nn'][lmin_like_galaxy - lmin_in:, :]
+        mixmat_ne_to_ne = mixmats['Bin_{}'.format(i+1)]['mixmat_ne_to_ne'][lmin_like_galaxy_shear - lmin_in:, :]
+        mixmat_ee_to_ee = mixmats['Bin_{}'.format(i+1)]['mixmat_ee_to_ee'][lmin_like_shear - lmin_in:, :]
+        mixmat_bb_to_ee = mixmats['Bin_{}'.format(i+1)]['mixmat_bb_to_ee'][lmin_like_shear - lmin_in:, :]
+        mixmat_nn_to_kk = mixmats['Bin_{}'.format(i+1)]['mixmat_nn_to_kk'][lmin_like_galaxy_kCMB - lmin_in:, :]
+        mixmat_ke_to_ke = mixmats['Bin_{}'.format(i+1)]['mixmat_ke_to_ke'][lmin_like_shear_kCMB - lmin_in:, :]
+
+        mixmat_shape_nn = (lmax_like_galaxy[i] - lmin_like_galaxy + 1, n_ell_in)
+        mixmat_shape_ne = (lmax_like_galaxy_shear[i] - lmin_like_galaxy_shear + 1, n_ell_in)
+        mixmat_shape_ee = (lmax_like_shear[i] - lmin_like_shear + 1, n_ell_in)
+        mixmat_shape_nnkk = (lmax_like_galaxy_kCMB[i] - lmin_like_galaxy_kCMB + 1, n_ell_in)
+        mixmat_shape_ke = (lmax_like_shear_kCMB[i] - lmin_like_shear_kCMB + 1, n_ell_in)
+
+        assert mixmat_nn_to_nn.shape == mixmat_shape_nn, (mixmat_nn_to_nn.shape, mixmat_shape_nn)
+        assert mixmat_ne_to_ne.shape == mixmat_shape_ne, (mixmat_ne_to_ne.shape, mixmat_shape_ne)
+        assert mixmat_ee_to_ee.shape == mixmat_shape_ee, (mixmat_ee_to_ee.shape, mixmat_shape_ee)
+        assert mixmat_bb_to_ee.shape == mixmat_shape_ee, (mixmat_bb_to_ee.shape, mixmat_shape_ee)
+        assert mixmat_nn_to_kk.shape == mixmat_shape_nnkk, (mixmat_nn_to_kk.shape, mixmat_shape_nnkk)
+        assert mixmat_ke_to_ke.shape == mixmat_shape_ke, (mixmat_ke_to_ke.shape, mixmat_shape_ke)
+
+        mixmats_nn_to_nn['Bin_{}'.format(i+1)] = mixmat_nn_to_nn
+        mixmats_ne_to_ne['Bin_{}'.format(i+1)] = mixmat_ne_to_ne
+        mixmats_ee_to_ee['Bin_{}'.format(i+1)] = mixmat_ee_to_ee
+        mixmats_bb_to_ee['Bin_{}'.format(i+1)] = mixmat_bb_to_ee
+        mixmats_nn_to_kk['Bin_{}'.format(i+1)] = mixmat_nn_to_kk
+        mixmats_ke_to_ke['Bin_{}'.format(i+1)] = mixmat_ke_to_ke
 
     assert bandpower_spacing == 'log' or bandpower_spacing == 'lin'
 
-    pbl_shear = mask.get_binning_matrix(
-        n_bandpowers=n_bp,
-        output_lmin=lmin_like_shear,
-        output_lmax=lmax_like_shear,
-        bp_spacing=bandpower_spacing)
+    pbl_shear = {}
+    for count, lmax_like_shear_i in enumerate(lmax_like_shear):
+        pbl_shear['Bin_{}'.format(count+1)] = mask.get_binning_matrix(
+            n_bandpowers=n_bp,
+            output_lmin=lmin_like_shear,
+            output_lmax=lmax_like_shear_i,
+            bp_spacing=bandpower_spacing)
 
-    pbl_galaxy_shear = mask.get_binning_matrix(
-        n_bandpowers=n_bp,
-        output_lmin=lmin_like_galaxy_shear,
-        output_lmax=lmax_like_galaxy_shear,
-        bp_spacing=bandpower_spacing)
+    # pbl_shear = [mask.get_binning_matrix(
+    #     n_bandpowers=n_bp,
+    #     output_lmin=lmin_like_shear,
+    #     output_lmax=lmax_like_shear_i,
+    #     bp_spacing=bandpower_spacing) for lmax_like_shear_i in lmax_like_shear]
 
-    pbl_galaxy = mask.get_binning_matrix(
-        n_bandpowers=n_bp,
-        output_lmin=lmin_like_galaxy,
-        output_lmax=lmax_like_galaxy,
-        bp_spacing=bandpower_spacing)
+    pbl_galaxy_shear = {}
+    for count, lmax_like_galaxy_shear_i in enumerate(lmax_like_galaxy_shear):
+        pbl_galaxy_shear['Bin_{}'.format(count+1)] = mask.get_binning_matrix(
+            n_bandpowers=n_bp,
+            output_lmin=lmin_like_galaxy_shear,
+            output_lmax=lmax_like_galaxy_shear_i,
+            bp_spacing=bandpower_spacing)
+
+    # pbl_galaxy_shear = [mask.get_binning_matrix(
+    #     n_bandpowers=n_bp,
+    #     output_lmin=lmin_like_galaxy_shear,
+    #     output_lmax=lmax_like_galaxy_shear_i,
+    #     bp_spacing=bandpower_spacing) for lmax_like_galaxy_shear_i in lmax_like_galaxy_shear]
+
+    pbl_galaxy = {}
+    for count, lmax_like_galaxy_i in enumerate(lmax_like_galaxy):
+        pbl_galaxy['Bin_{}'.format(count+1)] = mask.get_binning_matrix(
+            n_bandpowers=n_bp,
+            output_lmin=lmin_like_galaxy,
+            output_lmax=lmax_like_galaxy_i,
+            bp_spacing=bandpower_spacing)
+
+    # pbl_galaxy = [mask.get_binning_matrix(
+    #     n_bandpowers=n_bp,
+    #     output_lmin=lmin_like_galaxy,
+    #     output_lmax=lmax_like_galaxy_i,
+    #     bp_spacing=bandpower_spacing) for lmax_like_galaxy_i in lmax_like_galaxy]
 
     pbl_cmbkk = mask.get_binning_matrix(
         n_bandpowers=n_bp,
@@ -104,46 +146,64 @@ def PCl_bandpowers_6x2pt(cls_dict, n_bp, n_zbin, lmax_like_galaxy, lmin_like_gal
         output_lmax=lmax_like_kCMB,
         bp_spacing=bandpower_spacing)
 
-    pbl_cmbkk_galaxy = mask.get_binning_matrix(
-        n_bandpowers=n_bp,
-        output_lmin=lmin_like_galaxy_kCMB,
-        output_lmax=lmax_like_galaxy_kCMB,
-        bp_spacing=bandpower_spacing)
+    pbl_cmbkk_galaxy = {}
+    for count, lmax_like_galaxy_kCMB_i in enumerate(lmax_like_galaxy_kCMB):
+        pbl_cmbkk_galaxy['Bin_{}'.format(count+1)] = mask.get_binning_matrix(
+            n_bandpowers=n_bp,
+            output_lmin=lmin_like_galaxy_kCMB,
+            output_lmax=lmax_like_galaxy_kCMB_i,
+            bp_spacing=bandpower_spacing)
 
-    pbl_cmbkk_shear = mask.get_binning_matrix(
-        n_bandpowers=n_bp,
-        output_lmin=lmin_like_shear_kCMB,
-        output_lmax=lmax_like_shear_kCMB,
-        bp_spacing=bandpower_spacing)
+    # pbl_cmbkk_galaxy = [mask.get_binning_matrix(
+    #     n_bandpowers=n_bp,
+    #     output_lmin=lmin_like_galaxy_kCMB,
+    #     output_lmax=lmax_like_galaxy_kCMB_i,
+    #     bp_spacing=bandpower_spacing) for lmax_like_galaxy_kCMB_i in lmax_like_galaxy_kCMB]
 
-    if pbl_shear.ndim == 1:
-        pbl_shear = pbl_shear[np.newaxis, :]
+    pbl_cmbkk_shear = {}
+    for count, lmax_like_shear_kCMB_i in enumerate(lmax_like_shear_kCMB):
+        pbl_cmbkk_shear['Bin_{}'.format(count+1)] = mask.get_binning_matrix(
+            n_bandpowers=n_bp,
+            output_lmin=lmin_like_shear_kCMB,
+            output_lmax=lmax_like_shear_kCMB_i,
+            bp_spacing=bandpower_spacing)
 
-    if pbl_galaxy_shear.ndim == 1:
-        pbl_galaxy_shear = pbl_galaxy_shear[np.newaxis, :]
+    # pbl_cmbkk_shear = [mask.get_binning_matrix(
+    #     n_bandpowers=n_bp,
+    #     output_lmin=lmin_like_shear_kCMB,
+    #     output_lmax=lmax_like_shear_kCMB_i,
+    #     bp_spacing=bandpower_spacing) for lmax_like_shear_kCMB_i in lmax_like_shear_kCMB]
 
-    if pbl_galaxy.ndim == 1:
-        pbl_galaxy = pbl_galaxy[np.newaxis, :]
+    for i in range(n_zbin):
+        if pbl_shear['Bin_{}'.format(i+1)].ndim == 1:
+            pbl_shear['Bin_{}'.format(i+1)] = pbl_shear['Bin_{}'.format(i+1)][np.newaxis, :]
+
+        if pbl_galaxy_shear['Bin_{}'.format(i+1)].ndim == 1:
+            pbl_galaxy_shear['Bin_{}'.format(i+1)] = pbl_galaxy_shear['Bin_{}'.format(i+1)][np.newaxis, :]
+
+        if pbl_galaxy['Bin_{}'.format(i+1)].ndim == 1:
+            pbl_galaxy['Bin_{}'.format(i+1)] = pbl_galaxy['Bin_{}'.format(i+1)][np.newaxis, :]
+
+        if pbl_cmbkk_galaxy['Bin_{}'.format(i+1)].ndim == 1:
+            pbl_cmbkk_galaxy['Bin_{}'.format(i+1)] = pbl_cmbkk_galaxy['Bin_{}'.format(i+1)][np.newaxis, :]
+
+        if pbl_cmbkk_shear['Bin_{}'.format(i+1)].ndim == 1:
+            pbl_cmbkk_shear['Bin_{}'.format(i+1)] = pbl_cmbkk_shear['Bin_{}'.format(i+1)][np.newaxis, :]
+
+        assert pbl_shear['Bin_{}'.format(i+1)].shape == (n_bp, lmax_like_shear[i] - lmin_like_shear + 1)
+        assert pbl_galaxy_shear['Bin_{}'.format(i+1)].shape == (n_bp, lmax_like_galaxy_shear[i] - lmin_like_galaxy_shear + 1)
+        assert pbl_galaxy['Bin_{}'.format(i+1)].shape == (n_bp, lmax_like_galaxy[i] - lmin_like_galaxy + 1)
+        assert pbl_cmbkk_shear['Bin_{}'.format(i+1)].shape == (n_bp, lmax_like_shear_kCMB[i] - lmin_like_shear_kCMB + 1)
+        assert pbl_cmbkk_galaxy['Bin_{}'.format(i+1)].shape == (n_bp, lmax_like_galaxy_kCMB[i] - lmin_like_galaxy_kCMB + 1)
 
     if pbl_cmbkk.ndim == 1:
         pbl_cmbkk = pbl_cmbkk[np.newaxis, :]
 
-    if pbl_cmbkk_galaxy.ndim == 1:
-        pbl_cmbkk_galaxy = pbl_cmbkk_galaxy[np.newaxis, :]
-
-    if pbl_cmbkk_shear.ndim == 1:
-        pbl_cmbkk_shear = pbl_cmbkk_shear[np.newaxis, :]
-
-    assert pbl_shear.shape == (n_bp, lmax_like_shear - lmin_like_shear + 1)
-    assert pbl_galaxy_shear.shape == (n_bp, lmax_like_galaxy_shear - lmin_like_galaxy_shear + 1)
-    assert pbl_galaxy.shape == (n_bp, lmax_like_galaxy - lmin_like_galaxy + 1)
-    assert pbl_cmbkk_shear.shape == (n_bp, lmax_like_shear_kCMB - lmin_like_shear_kCMB + 1)
-    assert pbl_cmbkk_galaxy.shape == (n_bp, lmax_like_galaxy_kCMB - lmin_like_galaxy_kCMB + 1)
     assert pbl_cmbkk.shape == (n_bp, lmax_like_kCMB - lmin_like_kCMB + 1)
 
     config = like_bp_mix_6x2pt.setup(
-        mixmats=[mixmat_nn_to_nn, mixmat_ne_to_ne, mixmat_ee_to_ee, mixmat_bb_to_ee, mixmat_kk_to_kk, mixmat_nn_to_kk,
-                 mixmat_ke_to_ke],
+        mixmats=[mixmats_nn_to_nn, mixmats_ne_to_ne, mixmats_ee_to_ee, mixmats_bb_to_ee, mixmat_kk_to_kk, mixmats_nn_to_kk,
+                 mixmats_ke_to_ke],
         mix_lmin=lmin_in,
         input_lmin=lmin_in,
         input_lmax=lmax_in,
@@ -225,57 +285,84 @@ def PCl_bandpowers_3x2pt(cls_dict, n_bp, n_zbin, lmax_like_nn, lmin_like_nn, lma
     spectra = [fields[row] + fields[row + diag] for diag in range(n_field) for row in range(n_field - diag)]
     assert len(spectra) == n_spec
 
+    mixmats_nn_to_nn = {}
+    mixmats_ne_to_ne = {}
+    mixmats_ee_to_ee = {}
+    mixmats_bb_to_ee = {}
+
+    for i in range(n_zbin):
+        mixmat_nn_to_nn = mixmats['Bin_{}'.format(i+1)]['mixmat_nn_to_nn'][lmin_like_nn - lmin_in:, :]
+        mixmat_ne_to_ne = mixmats['Bin_{}'.format(i+1)]['mixmat_ne_to_ne'][lmin_like_ne - lmin_in:, :]
+        mixmat_ee_to_ee = mixmats['Bin_{}'.format(i+1)]['mixmat_ee_to_ee'][lmin_like_ee - lmin_in:, :]
+        mixmat_bb_to_ee = mixmats['Bin_{}'.format(i+1)]['mixmat_bb_to_ee'][lmin_like_ee - lmin_in:, :]
+
+        mixmat_shape_nn = (lmax_like_nn[i] - lmin_like_nn + 1, n_ell_in)
+        mixmat_shape_ne = (lmax_like_ne[i] - lmin_like_ne + 1, n_ell_in)
+        mixmat_shape_ee = (lmax_like_ee[i] - lmin_like_ee + 1, n_ell_in)
+
+        assert mixmat_nn_to_nn.shape == mixmat_shape_nn, (mixmat_nn_to_nn.shape, mixmat_shape_nn)
+        assert mixmat_ne_to_ne.shape == mixmat_shape_ne, (mixmat_ne_to_ne.shape, mixmat_shape_ne)
+        assert mixmat_ee_to_ee.shape == mixmat_shape_ee, (mixmat_ee_to_ee.shape, mixmat_shape_ee)
+        assert mixmat_bb_to_ee.shape == mixmat_shape_ee, (mixmat_bb_to_ee.shape, mixmat_shape_ee)
+
+        mixmats_nn_to_nn['Bin_{}'.format(i+1)] = mixmat_nn_to_nn
+        mixmats_ne_to_ne['Bin_{}'.format(i+1)] = mixmat_ne_to_ne
+        mixmats_ee_to_ee['Bin_{}'.format(i+1)] = mixmat_ee_to_ee
+        mixmats_bb_to_ee['Bin_{}'.format(i+1)] = mixmat_bb_to_ee
+
+
     # Load mixing matrices
     # with np.load(mixmats_path) as data:
-    mixmat_nn_to_nn = mixmats['mixmat_nn_to_nn'][lmin_like_nn - lmin_in:, :]
-    mixmat_ne_to_ne = mixmats['mixmat_ne_to_ne'][lmin_like_ne - lmin_in:, :]
-    mixmat_ee_to_ee = mixmats['mixmat_ee_to_ee'][lmin_like_ee - lmin_in:, :]
-    mixmat_bb_to_ee = mixmats['mixmat_bb_to_ee'][lmin_like_ee - lmin_in:, :]
-
-    mixmat_shape_nn = (lmax_like_nn - lmin_like_nn + 1, n_ell_in)
-    mixmat_shape_ne = (lmax_like_ne - lmin_like_ne + 1, n_ell_in)
-    mixmat_shape_ee = (lmax_like_ee - lmin_like_ee + 1, n_ell_in)
-
-    assert mixmat_nn_to_nn.shape == mixmat_shape_nn, (mixmat_nn_to_nn.shape, mixmat_shape_nn)
-    assert mixmat_ne_to_ne.shape == mixmat_shape_ne, (mixmat_ne_to_ne.shape, mixmat_shape_ne)
-    assert mixmat_ee_to_ee.shape == mixmat_shape_ee, (mixmat_ee_to_ee.shape, mixmat_shape_ee)
-    assert mixmat_bb_to_ee.shape == mixmat_shape_ee, (mixmat_bb_to_ee.shape, mixmat_shape_ee)
+    # mixmat_nn_to_nn = mixmats['mixmat_nn_to_nn']
+    # mixmat_ne_to_ne = mixmats['mixmat_ne_to_ne']
+    # mixmat_ee_to_ee = mixmats['mixmat_ee_to_ee']
+    # mixmat_bb_to_ee = mixmats['mixmat_bb_to_ee']
+    #
+    # mixmat_shape_nn = (lmax_like_nn - lmin_like_nn + 1, n_ell_in)
+    # mixmat_shape_ne = (lmax_like_ne - lmin_like_ne + 1, n_ell_in)
+    # mixmat_shape_ee = (lmax_like_ee - lmin_like_ee + 1, n_ell_in)
+    #
+    # assert mixmat_nn_to_nn.shape == mixmat_shape_nn, (mixmat_nn_to_nn.shape, mixmat_shape_nn)
+    # assert mixmat_ne_to_ne.shape == mixmat_shape_ne, (mixmat_ne_to_ne.shape, mixmat_shape_ne)
+    # assert mixmat_ee_to_ee.shape == mixmat_shape_ee, (mixmat_ee_to_ee.shape, mixmat_shape_ee)
+    # assert mixmat_bb_to_ee.shape == mixmat_shape_ee, (mixmat_bb_to_ee.shape, mixmat_shape_ee)
 
     assert bandpower_spacing == 'log' or bandpower_spacing == 'lin'
 
-    pbl_ee = mask.get_binning_matrix(
+    pbl_ee = [mask.get_binning_matrix(
         n_bandpowers=n_bp,
         output_lmin=lmin_like_ee,
-        output_lmax=lmax_like_ee,
-        bp_spacing=bandpower_spacing)
+        output_lmax=lmax_like_ee_i,
+        bp_spacing=bandpower_spacing) for lmax_like_ee_i in lmax_like_ee]
 
-    pbl_ne = mask.get_binning_matrix(
+    pbl_ne = [mask.get_binning_matrix(
         n_bandpowers=n_bp,
         output_lmin=lmin_like_ne,
-        output_lmax=lmax_like_ne,
-        bp_spacing=bandpower_spacing)
+        output_lmax=lmax_like_ne_i,
+        bp_spacing=bandpower_spacing) for lmax_like_ne_i in lmax_like_ne]
 
-    pbl_nn = mask.get_binning_matrix(
+    pbl_nn = [mask.get_binning_matrix(
         n_bandpowers=n_bp,
         output_lmin=lmin_like_nn,
-        output_lmax=lmax_like_nn,
-        bp_spacing=bandpower_spacing)
+        output_lmax=lmax_like_nn_i,
+        bp_spacing=bandpower_spacing) for lmax_like_nn_i in lmax_like_nn]
 
-    if pbl_nn.ndim == 1:
-        pbl_nn = pbl_nn[np.newaxis, :]
+    for i in range(n_zbin):
+        if pbl_nn[i].ndim == 1:
+            pbl_nn[i] = pbl_nn[i][np.newaxis, :]
 
-    if pbl_ne.ndim == 1:
-        pbl_ne = pbl_ne[np.newaxis, :]
+        if pbl_ne[i].ndim == 1:
+            pbl_ne[i] = pbl_ne[i][np.newaxis, :]
 
-    if pbl_ee.ndim == 1:
-        pbl_ee = pbl_ee[np.newaxis, :]
+        if pbl_ee[i].ndim == 1:
+            pbl_ee[i] = pbl_ee[i][np.newaxis, :]
 
-    assert pbl_nn.shape == (n_bp, lmax_like_nn - lmin_like_nn + 1)
-    assert pbl_ne.shape == (n_bp, lmax_like_ne - lmin_like_ne + 1)
-    assert pbl_ee.shape == (n_bp, lmax_like_ee - lmin_like_ee + 1)
+        assert pbl_nn[i].shape == (n_bp, lmax_like_nn[i] - lmin_like_nn + 1)
+        assert pbl_ne[i].shape == (n_bp, lmax_like_ne[i] - lmin_like_ne + 1)
+        assert pbl_ee[i].shape == (n_bp, lmax_like_ee[i] - lmin_like_ee + 1)
 
     config = like_bp_mix_3x2pt.setup(
-        mixmats=[mixmat_nn_to_nn, mixmat_ne_to_ne, mixmat_ee_to_ee, mixmat_bb_to_ee],
+        mixmats=[mixmats_nn_to_nn, mixmats_ne_to_ne, mixmats_ee_to_ee, mixmats_bb_to_ee],
         mix_lmin=lmin_in,
         input_lmin=lmin_in,
         input_lmax=lmax_in,
@@ -363,48 +450,86 @@ def PCl_bandpowers_1x2pt(cls_dict, n_bp, n_zbin, lmax_like_galaxy, lmin_like_gal
     # else:
     #     assert field == 'K'
 
-    mixmat_nn_to_nn = mixmats['mixmat_nn_to_nn'][lmin_like_galaxy - lmin_in:, :]
-    mixmat_ne_to_ne = mixmats['mixmat_ne_to_ne'][lmin_like_galaxy_shear - lmin_in:, :]
-    mixmat_ee_to_ee = mixmats['mixmat_ee_to_ee'][lmin_like_shear - lmin_in:, :]
-    mixmat_bb_to_ee = mixmats['mixmat_bb_to_ee'][lmin_like_shear - lmin_in:, :]
-    mixmat_kk_to_kk = mixmats['mixmat_kk_to_kk'][lmin_like_kCMB - lmin_in:, :]
-    mixmat_nn_to_kk = mixmats['mixmat_nn_to_kk'][lmin_like_galaxy_kCMB - lmin_in:, :]
-    mixmat_ke_to_ke = mixmats['mixmat_ke_to_ke'][lmin_like_shear_kCMB - lmin_in:, :]
+    mixmats_nn_to_nn = {}
+    mixmats_ne_to_ne = {}
+    mixmats_ee_to_ee = {}
+    mixmats_bb_to_ee = {}
+    mixmats_nn_to_kk = {}
+    mixmats_ke_to_ke = {}
 
-    mixmat_shape_nn = (lmax_like_galaxy - lmin_like_galaxy + 1, n_ell_in)
-    mixmat_shape_ne = (lmax_like_galaxy_shear - lmin_like_galaxy_shear + 1, n_ell_in)
-    mixmat_shape_ee = (lmax_like_shear - lmin_like_shear + 1, n_ell_in)
+    mixmat_kk_to_kk = mixmats['Bin_1']['mixmat_kk_to_kk'][lmin_like_kCMB - lmin_in:, :]
     mixmat_shape_kk = (lmax_like_kCMB - lmin_like_kCMB + 1, n_ell_in)
-    mixmat_shape_nnkk = (lmax_like_galaxy_kCMB - lmin_like_galaxy_kCMB + 1, n_ell_in)
-    mixmat_shape_ke = (lmax_like_shear_kCMB - lmin_like_shear_kCMB + 1, n_ell_in)
-
-    assert mixmat_nn_to_nn.shape == mixmat_shape_nn, (mixmat_nn_to_nn.shape, mixmat_shape_nn)
-    assert mixmat_ne_to_ne.shape == mixmat_shape_ne, (mixmat_ne_to_ne.shape, mixmat_shape_ne)
-    assert mixmat_ee_to_ee.shape == mixmat_shape_ee, (mixmat_ee_to_ee.shape, mixmat_shape_ee)
-    assert mixmat_bb_to_ee.shape == mixmat_shape_ee, (mixmat_bb_to_ee.shape, mixmat_shape_ee)
     assert mixmat_kk_to_kk.shape == mixmat_shape_kk, (mixmat_kk_to_kk.shape, mixmat_shape_kk)
-    assert mixmat_nn_to_kk.shape == mixmat_shape_nnkk, (mixmat_nn_to_kk.shape, mixmat_shape_nnkk)
-    assert mixmat_ke_to_ke.shape == mixmat_shape_ke, (mixmat_ke_to_ke.shape, mixmat_shape_ke)
+
+    for i in range(n_zbin):
+        mixmat_nn_to_nn = mixmats['Bin_{}'.format(i+1)]['mixmat_nn_to_nn'][lmin_like_galaxy - lmin_in:, :]
+        mixmat_ne_to_ne = mixmats['Bin_{}'.format(i+1)]['mixmat_ne_to_ne'][lmin_like_galaxy_shear - lmin_in:, :]
+        mixmat_ee_to_ee = mixmats['Bin_{}'.format(i+1)]['mixmat_ee_to_ee'][lmin_like_shear - lmin_in:, :]
+        mixmat_bb_to_ee = mixmats['Bin_{}'.format(i+1)]['mixmat_bb_to_ee'][lmin_like_shear - lmin_in:, :]
+        mixmat_nn_to_kk = mixmats['Bin_{}'.format(i+1)]['mixmat_nn_to_kk'][lmin_like_galaxy_kCMB - lmin_in:, :]
+        mixmat_ke_to_ke = mixmats['Bin_{}'.format(i+1)]['mixmat_ke_to_ke'][lmin_like_shear_kCMB - lmin_in:, :]
+
+        mixmat_shape_nn = (lmax_like_galaxy[i] - lmin_like_galaxy + 1, n_ell_in)
+        mixmat_shape_ne = (lmax_like_galaxy_shear[i] - lmin_like_galaxy_shear + 1, n_ell_in)
+        mixmat_shape_ee = (lmax_like_shear[i] - lmin_like_shear + 1, n_ell_in)
+        mixmat_shape_nnkk = (lmax_like_galaxy_kCMB[i] - lmin_like_galaxy_kCMB + 1, n_ell_in)
+        mixmat_shape_ke = (lmax_like_shear_kCMB[i] - lmin_like_shear_kCMB + 1, n_ell_in)
+
+        assert mixmat_nn_to_nn.shape == mixmat_shape_nn, (mixmat_nn_to_nn.shape, mixmat_shape_nn)
+        assert mixmat_ne_to_ne.shape == mixmat_shape_ne, (mixmat_ne_to_ne.shape, mixmat_shape_ne)
+        assert mixmat_ee_to_ee.shape == mixmat_shape_ee, (mixmat_ee_to_ee.shape, mixmat_shape_ee)
+        assert mixmat_bb_to_ee.shape == mixmat_shape_ee, (mixmat_bb_to_ee.shape, mixmat_shape_ee)
+        assert mixmat_nn_to_kk.shape == mixmat_shape_nnkk, (mixmat_nn_to_kk.shape, mixmat_shape_nnkk)
+        assert mixmat_ke_to_ke.shape == mixmat_shape_ke, (mixmat_ke_to_ke.shape, mixmat_shape_ke)
+
+        mixmats_nn_to_nn['Bin_{}'.format(i+1)] = mixmat_nn_to_nn
+        mixmats_ne_to_ne['Bin_{}'.format(i+1)] = mixmat_ne_to_ne
+        mixmats_ee_to_ee['Bin_{}'.format(i+1)] = mixmat_ee_to_ee
+        mixmats_bb_to_ee['Bin_{}'.format(i+1)] = mixmat_bb_to_ee
+        mixmats_nn_to_kk['Bin_{}'.format(i+1)] = mixmat_nn_to_kk
+        mixmats_ke_to_ke['Bin_{}'.format(i+1)] = mixmat_ke_to_ke
+
+
+    # mixmat_nn_to_nn = mixmats['mixmat_nn_to_nn'][lmin_like_galaxy - lmin_in:, :]
+    # mixmat_ne_to_ne = mixmats['mixmat_ne_to_ne'][lmin_like_galaxy_shear - lmin_in:, :]
+    # mixmat_ee_to_ee = mixmats['mixmat_ee_to_ee'][lmin_like_shear - lmin_in:, :]
+    # mixmat_bb_to_ee = mixmats['mixmat_bb_to_ee'][lmin_like_shear - lmin_in:, :]
+    # mixmat_nn_to_kk = mixmats['mixmat_nn_to_kk'][lmin_like_galaxy_kCMB - lmin_in:, :]
+    # mixmat_ke_to_ke = mixmats['mixmat_ke_to_ke'][lmin_like_shear_kCMB - lmin_in:, :]
+    #
+    # mixmat_shape_nn = (lmax_like_galaxy - lmin_like_galaxy + 1, n_ell_in)
+    # mixmat_shape_ne = (lmax_like_galaxy_shear - lmin_like_galaxy_shear + 1, n_ell_in)
+    # mixmat_shape_ee = (lmax_like_shear - lmin_like_shear + 1, n_ell_in)
+    # mixmat_shape_nnkk = (lmax_like_galaxy_kCMB - lmin_like_galaxy_kCMB + 1, n_ell_in)
+    # mixmat_shape_ke = (lmax_like_shear_kCMB - lmin_like_shear_kCMB + 1, n_ell_in)
+
+    # assert mixmat_nn_to_nn.shape == mixmat_shape_nn, (mixmat_nn_to_nn.shape, mixmat_shape_nn)
+    # assert mixmat_ne_to_ne.shape == mixmat_shape_ne, (mixmat_ne_to_ne.shape, mixmat_shape_ne)
+    # assert mixmat_ee_to_ee.shape == mixmat_shape_ee, (mixmat_ee_to_ee.shape, mixmat_shape_ee)
+    # assert mixmat_bb_to_ee.shape == mixmat_shape_ee, (mixmat_bb_to_ee.shape, mixmat_shape_ee)
+    # assert mixmat_nn_to_kk.shape == mixmat_shape_nnkk, (mixmat_nn_to_kk.shape, mixmat_shape_nnkk)
+    # assert mixmat_ke_to_ke.shape == mixmat_shape_ke, (mixmat_ke_to_ke.shape, mixmat_shape_ke)
 
     assert bandpower_spacing == 'log' or bandpower_spacing == 'lin'
 
-    pbl_shear = mask.get_binning_matrix(
+
+    pbl_shear = [mask.get_binning_matrix(
         n_bandpowers=n_bp,
         output_lmin=lmin_like_shear,
-        output_lmax=lmax_like_shear,
-        bp_spacing=bandpower_spacing)
+        output_lmax=lmax_like_shear_i,
+        bp_spacing=bandpower_spacing) for lmax_like_shear_i in lmax_like_shear]
 
-    pbl_galaxy_shear = mask.get_binning_matrix(
+    pbl_galaxy_shear = [mask.get_binning_matrix(
         n_bandpowers=n_bp,
         output_lmin=lmin_like_galaxy_shear,
-        output_lmax=lmax_like_galaxy_shear,
-        bp_spacing=bandpower_spacing)
+        output_lmax=lmax_like_galaxy_shear_i,
+        bp_spacing=bandpower_spacing) for lmax_like_galaxy_shear_i in lmax_like_galaxy_shear]
 
-    pbl_galaxy = mask.get_binning_matrix(
+    pbl_galaxy = [mask.get_binning_matrix(
         n_bandpowers=n_bp,
         output_lmin=lmin_like_galaxy,
-        output_lmax=lmax_like_galaxy,
-        bp_spacing=bandpower_spacing)
+        output_lmax=lmax_like_galaxy_i,
+        bp_spacing=bandpower_spacing) for lmax_like_galaxy_i in lmax_like_galaxy]
 
     pbl_cmbkk = mask.get_binning_matrix(
         n_bandpowers=n_bp,
@@ -412,41 +537,43 @@ def PCl_bandpowers_1x2pt(cls_dict, n_bp, n_zbin, lmax_like_galaxy, lmin_like_gal
         output_lmax=lmax_like_kCMB,
         bp_spacing=bandpower_spacing)
 
-    pbl_cmbkk_galaxy = mask.get_binning_matrix(
+    pbl_cmbkk_galaxy = [mask.get_binning_matrix(
         n_bandpowers=n_bp,
         output_lmin=lmin_like_galaxy_kCMB,
-        output_lmax=lmax_like_galaxy_kCMB,
-        bp_spacing=bandpower_spacing)
+        output_lmax=lmax_like_galaxy_kCMB_i,
+        bp_spacing=bandpower_spacing) for lmax_like_galaxy_kCMB_i in lmax_like_galaxy_kCMB]
 
-    pbl_cmbkk_shear = mask.get_binning_matrix(
+    pbl_cmbkk_shear = [mask.get_binning_matrix(
         n_bandpowers=n_bp,
         output_lmin=lmin_like_shear_kCMB,
-        output_lmax=lmax_like_shear_kCMB,
-        bp_spacing=bandpower_spacing)
+        output_lmax=lmax_like_shear_kCMB_i,
+        bp_spacing=bandpower_spacing) for lmax_like_shear_kCMB_i in lmax_like_shear_kCMB]
 
-    if pbl_shear.ndim == 1:
-        pbl_shear = pbl_shear[np.newaxis, :]
+    for i in range(n_zbin):
+        if pbl_shear[i].ndim == 1:
+            pbl_shear[i] = pbl_shear[i][np.newaxis, :]
 
-    if pbl_galaxy_shear.ndim == 1:
-        pbl_galaxy_shear = pbl_galaxy_shear[np.newaxis, :]
+        if pbl_galaxy_shear[i].ndim == 1:
+            pbl_galaxy_shear[i] = pbl_galaxy_shear[i][np.newaxis, :]
 
-    if pbl_galaxy.ndim == 1:
-        pbl_galaxy = pbl_galaxy[np.newaxis, :]
+        if pbl_galaxy[i].ndim == 1:
+            pbl_galaxy[i] = pbl_galaxy[i][np.newaxis, :]
+
+        if pbl_cmbkk_galaxy[i].ndim == 1:
+            pbl_cmbkk_galaxy[i] = pbl_cmbkk_galaxy[i][np.newaxis, :]
+
+        if pbl_cmbkk_shear[i].ndim == 1:
+            pbl_cmbkk_shear[i] = pbl_cmbkk_shear[i][np.newaxis, :]
+
+        assert pbl_shear[i].shape == (n_bp, lmax_like_shear[i] - lmin_like_shear + 1)
+        assert pbl_galaxy_shear[i].shape == (n_bp, lmax_like_galaxy_shear[i] - lmin_like_galaxy_shear + 1)
+        assert pbl_galaxy[i].shape == (n_bp, lmax_like_galaxy[i] - lmin_like_galaxy + 1)
+        assert pbl_cmbkk_shear[i].shape == (n_bp, lmax_like_shear_kCMB[i] - lmin_like_shear_kCMB + 1)
+        assert pbl_cmbkk_galaxy[i].shape == (n_bp, lmax_like_galaxy_kCMB[i] - lmin_like_galaxy_kCMB + 1)
 
     if pbl_cmbkk.ndim == 1:
         pbl_cmbkk = pbl_cmbkk[np.newaxis, :]
 
-    if pbl_cmbkk_galaxy.ndim == 1:
-        pbl_cmbkk_galaxy = pbl_cmbkk_galaxy[np.newaxis, :]
-
-    if pbl_cmbkk_shear.ndim == 1:
-        pbl_cmbkk_shear = pbl_cmbkk_shear[np.newaxis, :]
-
-    assert pbl_shear.shape == (n_bp, lmax_like_shear - lmin_like_shear + 1)
-    assert pbl_galaxy_shear.shape == (n_bp, lmax_like_galaxy_shear - lmin_like_galaxy_shear + 1)
-    assert pbl_galaxy.shape == (n_bp, lmax_like_galaxy - lmin_like_galaxy + 1)
-    assert pbl_cmbkk_shear.shape == (n_bp, lmax_like_shear_kCMB - lmin_like_shear_kCMB + 1)
-    assert pbl_cmbkk_galaxy.shape == (n_bp, lmax_like_galaxy_kCMB - lmin_like_galaxy_kCMB + 1)
     assert pbl_cmbkk.shape == (n_bp, lmax_like_kCMB - lmin_like_kCMB + 1)
 
 
@@ -473,8 +600,8 @@ def PCl_bandpowers_1x2pt(cls_dict, n_bp, n_zbin, lmax_like_galaxy, lmin_like_gal
     assert pbl.shape == (n_bp, n_ell_like)
     '''
     config = like_bp_mix_1x2pt.setup(
-        mixmats=[mixmat_nn_to_nn, mixmat_ne_to_ne, mixmat_ee_to_ee, mixmat_bb_to_ee, mixmat_kk_to_kk, mixmat_nn_to_kk,
-                 mixmat_ke_to_ke],
+        mixmats=[mixmats_nn_to_nn, mixmats_ne_to_ne, mixmats_ee_to_ee, mixmats_bb_to_ee, mixmat_kk_to_kk, mixmats_nn_to_kk,
+                 mixmats_ke_to_ke],
         field=field,
         mix_lmin=lmin_in,
         input_lmin=lmin_in,

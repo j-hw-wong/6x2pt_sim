@@ -261,13 +261,13 @@ def setup(mixmats, mix_lmin, input_lmin, input_lmax, n_zbin, n_bandpower):
     # n_spec = (2 * n_zbin) * (2 * n_zbin + 1) // 2
 
     #Specify mixing matrices
-    mixmat_nn_to_nn = mixmats[0]
-    mixmat_ne_to_ne = mixmats[1]
-    mixmat_ee_to_ee = mixmats[2]
-    mixmat_bb_to_ee = mixmats[3]
-    mixmat_kk_to_kk = mixmats[4]
-    mixmat_nn_to_kk = mixmats[5]
-    mixmat_ke_to_ke = mixmats[6]
+    mixmat_nn_to_nn = mixmats[0]    # Dictionary of per bin mixmats
+    mixmat_ne_to_ne = mixmats[1]    # Dictionary of per bin mixmats
+    mixmat_ee_to_ee = mixmats[2]    # Dictionary of per bin mixmats
+    mixmat_bb_to_ee = mixmats[3]    # Dictionary of per bin mixmats
+    mixmat_kk_to_kk = mixmats[4]    # Single matrix
+    mixmat_nn_to_kk = mixmats[5]    # Dictionary of per bin mixmats
+    mixmat_ke_to_ke = mixmats[6]    # Dictionary of per bin mixmats
 
     n_cl = input_lmax - input_lmin + 1
     mix_lmax = mix_lmin + n_cl - 1
@@ -288,6 +288,19 @@ def setup(mixmats, mix_lmin, input_lmin, input_lmax, n_zbin, n_bandpower):
 
     n_spec = len(spectra)
 
+    fields_z = [z for z in range(1, n_zbin + 1) for f in ['N', 'E']]
+    spectra_z_1 = [fields_z[row] for diag in range(2 * n_zbin) for row in range((2 * n_zbin) - diag)]
+    spectra_z_2 = [fields_z[row + diag] for diag in range(2 * n_zbin) for row in range((2 * n_zbin) - diag)]
+
+    for i in range(n_zbin):
+        spectra_z_1.append(i+1)
+        spectra_z_2.append(1)
+        spectra_z_1.append(i+1)
+        spectra_z_2.append(1)
+
+    spectra_z_1.append(1)
+    spectra_z_2.append(1)
+
     # Prepare config dictionary
     config = {
         'mix_lmin': mix_lmin,
@@ -297,6 +310,8 @@ def setup(mixmats, mix_lmin, input_lmin, input_lmax, n_zbin, n_bandpower):
         'n_cl': n_cl,
         'n_zbin': n_zbin,
         'spectra': spectra,
+        'spectra_z_1': spectra_z_1,
+        'spectra_z_2': spectra_z_2,
         'n_bandpower': n_bandpower,
         'mixmat_nn_to_nn': mixmat_nn_to_nn,
         'mixmat_ne_to_ne': mixmat_ne_to_ne,
@@ -330,6 +345,8 @@ def expected_bp(theory_cl, theory_lmin, config, noise_cls, pbl_nn, pbl_ne, pbl_e
     n_cl = config['n_cl']
     n_zbin = config['n_zbin']
     spectra = config['spectra']
+    spectra_z_1 = config['spectra_z_1']
+    spectra_z_2 = config['spectra_z_2']
     n_bandpower = config['n_bandpower']
     mixmat_nn_to_nn = config['mixmat_nn_to_nn']
     mixmat_ne_to_ne = config['mixmat_ne_to_ne']
@@ -338,6 +355,8 @@ def expected_bp(theory_cl, theory_lmin, config, noise_cls, pbl_nn, pbl_ne, pbl_e
     mixmat_kk_to_kk = config['mixmat_kk_to_kk']
     mixmat_nn_to_kk = config['mixmat_nn_to_kk']
     mixmat_ke_to_ke = config['mixmat_ke_to_ke']
+
+    # pbls are dictionaries indexed by bin number. Need to somehow map this onto the spectra ordering.
 
     # Trim/pad theory Cls to correct length for input to mixing matrices, truncating power above input_lmax:
     # 1. Trim so power is truncated above input_lmax
@@ -352,7 +371,7 @@ def expected_bp(theory_cl, theory_lmin, config, noise_cls, pbl_nn, pbl_ne, pbl_e
     assert theory_cl.shape == (n_spec, n_cl), (theory_cl.shape, (n_spec, n_cl))
 
     exp_bp = np.full((n_spec, n_bandpower), np.nan)
-
+    # Could have a list of spectra plus fields, i.e. N1N1, etc.
     for spec_idx, spec in enumerate(spectra):
 
         this_cl = theory_cl[spec_idx]
@@ -363,20 +382,107 @@ def expected_bp(theory_cl, theory_lmin, config, noise_cls, pbl_nn, pbl_ne, pbl_e
                                        axis=0)
         this_noise_cl = this_noise_cl[mix_lmin:(mix_lmax + 1)]
 
+        spec_z_1 = spectra_z_1[spec_idx]
+        spec_z_2 = spectra_z_2[spec_idx]
+
         if spec == 'NN':
-            this_exp_bp = pbl_nn@((mixmat_nn_to_nn@(this_cl+this_noise_cl)))
+
+            pbl_nn_spec_1 = pbl_nn['Bin_{}'.format(spec_z_1)]
+            pbl_nn_spec_2 = pbl_nn['Bin_{}'.format(spec_z_2)]
+            assert pbl_nn_spec_1.shape[0] == pbl_nn_spec_2.shape[0]
+
+            if pbl_nn_spec_1.shape[1] <= pbl_nn_spec_2.shape[1]:
+                this_pbl_nn = pbl_nn_spec_1
+                this_mixmat_nn_to_nn = mixmat_nn_to_nn['Bin_{}'.format(spec_z_1)]
+            else:
+                this_pbl_nn = pbl_nn_spec_2
+                this_mixmat_nn_to_nn = mixmat_nn_to_nn['Bin_{}'.format(spec_z_2)]
+
+            # print(this_pbl_nn)
+            # print(this_pbl_nn.shape)
+            this_exp_bp = this_pbl_nn@((this_mixmat_nn_to_nn@(this_cl+this_noise_cl)))
+
+        # elif spec == 'NE':
+        #
+        #     pbl_ne_spec_1 = pbl_ne['Bin_{}'.format(spec_z_1)]
+        #     pbl_ne_spec_2 = pbl_ne['Bin_{}'.format(spec_z_2)]
+        #     assert pbl_ne_spec_1.shape[0] == pbl_ne_spec_2.shape[0]
+        #
+        #     if pbl_ne_spec_1.shape[1] <= pbl_ne_spec_2.shape[1]:
+        #         this_pbl_ne = pbl_ne_spec_1
+        #     else:
+        #         this_pbl_ne = pbl_ne_spec_2
+        #
+        #     this_exp_bp = this_pbl_ne@((mixmat_ne_to_ne@(this_cl+this_noise_cl)))
+
+        # elif spec == 'EN':
+        #
+        #     pbl_ne_spec_1 = pbl_ne['Bin_{}'.format(spec_z_2)]
+        #     pbl_ne_spec_2 = pbl_ne['Bin_{}'.format(spec_z_1)]
+        #     assert pbl_ne_spec_1.shape[0] == pbl_ne_spec_2.shape[0]
+        #
+        #     if pbl_ne_spec_1.shape[1] <= pbl_ne_spec_2.shape[1]:
+        #         this_pbl_ne = pbl_ne_spec_1
+        #     else:
+        #         this_pbl_ne = pbl_ne_spec_2
+        #
+        #     this_exp_bp = this_pbl_ne@((mixmat_ne_to_ne@(this_cl+this_noise_cl)))
 
         elif spec in ('NE', 'EN'):
-            this_exp_bp = pbl_ne@((mixmat_ne_to_ne@(this_cl+this_noise_cl)))
+            if spec == 'NE':
+                pbl_ne_spec_1 = pbl_ne['Bin_{}'.format(spec_z_1)]
+                pbl_ne_spec_2 = pbl_ne['Bin_{}'.format(spec_z_2)]
+                mixmat_spec_1 = mixmat_ne_to_ne['Bin_{}'.format(spec_z_1)]
+                mixmat_spec_2 = mixmat_ne_to_ne['Bin_{}'.format(spec_z_2)]
+            else:
+                pbl_ne_spec_1 = pbl_ne['Bin_{}'.format(spec_z_2)]
+                pbl_ne_spec_2 = pbl_ne['Bin_{}'.format(spec_z_1)]
+                mixmat_spec_1 = mixmat_ne_to_ne['Bin_{}'.format(spec_z_2)]
+                mixmat_spec_2 = mixmat_ne_to_ne['Bin_{}'.format(spec_z_1)]
+
+            assert pbl_ne_spec_1.shape[0] == pbl_ne_spec_2.shape[0]
+
+            if pbl_ne_spec_1.shape[1] <= pbl_ne_spec_2.shape[1]:
+                this_pbl_ne = pbl_ne_spec_1
+                this_mixmat_ne_to_ne = mixmat_spec_1
+
+            else:
+                this_pbl_ne = pbl_ne_spec_2
+                this_mixmat_ne_to_ne = mixmat_spec_2
+
+            # print(this_pbl_ne.shape)
+            # print(this_mixmat_ne_to_ne.shape)
+            # print(this_cl.shape)
+            # print(this_noise_cl.shape)
+            this_exp_bp = this_pbl_ne@((this_mixmat_ne_to_ne@(this_cl+this_noise_cl)))
 
         elif spec == 'EE':
-            this_exp_bp = pbl_ee@((mixmat_ee_to_ee@(this_cl+this_noise_cl))+(mixmat_bb_to_ee @ (this_noise_cl))) #Add BB noise contribution to auto-spectra - we don't consider this for JW work
+
+            pbl_ee_spec_1 = pbl_ee['Bin_{}'.format(spec_z_1)]
+            pbl_ee_spec_2 = pbl_ee['Bin_{}'.format(spec_z_2)]
+            assert pbl_ee_spec_1.shape[0] == pbl_ee_spec_2.shape[0]
+
+            if pbl_ee_spec_1.shape[1] <= pbl_ee_spec_2.shape[1]:
+                this_pbl_ee = pbl_ee_spec_1
+                this_mixmat_ee_to_ee = mixmat_ee_to_ee['Bin_{}'.format(spec_z_1)]
+                this_mixmat_bb_to_ee = mixmat_bb_to_ee['Bin_{}'.format(spec_z_1)]
+
+            else:
+                this_pbl_ee = pbl_ee_spec_2
+                this_mixmat_ee_to_ee = mixmat_ee_to_ee['Bin_{}'.format(spec_z_2)]
+                this_mixmat_bb_to_ee = mixmat_bb_to_ee['Bin_{}'.format(spec_z_2)]
+
+            this_exp_bp = this_pbl_ee@((this_mixmat_ee_to_ee@(this_cl+this_noise_cl))+(this_mixmat_bb_to_ee @ (this_noise_cl))) #Add BB noise contribution to auto-spectra - we don't consider this for JW work
 
         elif spec == 'EK':
-            this_exp_bp = pbl_ek@((mixmat_ke_to_ke@(this_cl+this_noise_cl)))
+            this_pbl_ek = pbl_ek['Bin_{}'.format(spec_z_1)]
+            this_mixmat_ke_to_ke = mixmat_ke_to_ke['Bin_{}'.format(spec_z_1)]
+            this_exp_bp = this_pbl_ek@((this_mixmat_ke_to_ke@(this_cl+this_noise_cl)))
 
         elif spec == 'NK':
-            this_exp_bp = pbl_nk@((mixmat_nn_to_kk@(this_cl+this_noise_cl)))
+            this_pbl_nk = pbl_nk['Bin_{}'.format(spec_z_1)]
+            this_mixmat_nn_to_kk = mixmat_nn_to_kk['Bin_{}'.format(spec_z_1)]
+            this_exp_bp = this_pbl_nk@((this_mixmat_nn_to_kk@(this_cl+this_noise_cl)))
 
         elif spec == 'KK':
             this_exp_bp = pbl_kk@((mixmat_kk_to_kk@(this_cl+this_noise_cl)))

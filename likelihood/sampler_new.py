@@ -321,7 +321,7 @@ def mysplit(s):
     return head, tail
 
 
-def generate_pseudo_bps_model(cosmo_params, pipeline_variables_path, config_dict, mixmats, bi_marg=False, mi_marg=False,
+def generate_pseudo_bps_model(cosmo_params, pipeline_variables_path, config_dict, bi_marg=False, mi_marg=False,
                               Dzi_marg=False, A1i_marg=False):
     """
     cosmo_params: dict
@@ -505,6 +505,21 @@ def generate_pseudo_bps_model(cosmo_params, pipeline_variables_path, config_dict
 
     # create_null_spectras(nbins=nbins, lmin=input_lmin, lmax=input_lmax, output_dir=theory_cls_dir)
 
+    mixmats_allbins = {}
+    for i in range(nbins):
+        mix_mats_save_path = save_dir + 'mixmats_bin{}.npz'.format(i+1)
+        mixmats_all = np.load(mix_mats_save_path)
+
+        # mixmats = {'mixmat_nn_to_nn': mixmats_all['mixmat_nn_to_nn'],
+        #            'mixmat_ne_to_ne': mixmats_all['mixmat_ne_to_ne'],
+        #            'mixmat_ee_to_ee': mixmats_all['mixmat_ee_to_ee'],
+        #            'mixmat_bb_to_ee': mixmats_all['mixmat_bb_to_ee'],
+        #            'mixmat_kk_to_kk': mixmats_all['mixmat_kk_to_kk'],
+        #            'mixmat_nn_to_kk': mixmats_all['mixmat_nn_to_kk'],
+        #            'mixmat_ke_to_ke': mixmats_all['mixmat_ke_to_ke']
+        #            }
+        mixmats_allbins['Bin_{}'.format(i+1)]=mixmats_all
+    mixmats = mixmats_allbins
     if obs_spec == '6X2PT':
         model_bps = PCl_bandpowers_6x2pt(
             cls_dict=cls_dict,
@@ -574,10 +589,11 @@ def generate_pseudo_bps_model(cosmo_params, pipeline_variables_path, config_dict
     return model_bps
 
 
-def log_normal_likelihood_ccl(params, config_dict, pipeline_variables_path, mixmats, data_vector, inverse_covariance,
+def log_normal_likelihood_ccl(params, config_dict, pipeline_variables_path, data_vector, inverse_covariance,
                               bi_marg=False, mi_marg=False, Dzi_marg=False, A1i_marg=False):
+
     model_vector = generate_pseudo_bps_model(cosmo_params=params, pipeline_variables_path=pipeline_variables_path,
-                                             config_dict=config_dict, mixmats=mixmats, bi_marg=bi_marg, mi_marg=mi_marg,
+                                             config_dict=config_dict, bi_marg=bi_marg, mi_marg=mi_marg,
                                              Dzi_marg=Dzi_marg, A1i_marg=A1i_marg)
 
     # Need to stack data vector
@@ -589,7 +605,8 @@ def log_normal_likelihood_ccl(params, config_dict, pipeline_variables_path, mixm
     data_vector = np.reshape(data_vector, n_data)
 
     d_vector = model_vector - data_vector
-
+    print(d_vector)
+    print(-0.5 * d_vector @ inverse_covariance @ d_vector)
     return -0.5 * d_vector @ inverse_covariance @ d_vector
 
 
@@ -615,7 +632,7 @@ def test(params, config_dict, pipeline_variables_path, mixmats, data_vector):
     '''
 
 
-def run_nautilus(sampler_config_dict, pipeline_variables_path, mixmats, data_vector, inverse_covariance,
+def run_nautilus(sampler_config_dict, pipeline_variables_path, data_vector, inverse_covariance,
                  sampler_checkpoint_file, priors, bi_marg=False, mi_marg=False, Dzi_marg=False, A1i_marg=False):
 
     # systematics_dict = generate_cls.setup_systematics_dict(pipeline_variables_path=pipeline_variables_path)
@@ -676,7 +693,7 @@ def run_nautilus(sampler_config_dict, pipeline_variables_path, mixmats, data_vec
         likelihood_kwargs={
             "config_dict": sampler_config_dict,
             "pipeline_variables_path": pipeline_variables_path,
-            "mixmats": mixmats,
+            # "mixmats": mixmats,
             "data_vector": data_vector,
             "inverse_covariance": inverse_covariance,
             "bi_marg": bi_marg,
@@ -694,7 +711,7 @@ def run_nautilus(sampler_config_dict, pipeline_variables_path, mixmats, data_vec
     points, log_w, log_l = sampler.posterior()
 
     # points = points[:,0:]
-    points = points[:,0:7]
+    # points = points[:,0:7]
 
     # max_like_id = log_l.argmax()
     # print(max_like_id)
@@ -707,7 +724,7 @@ def run_nautilus(sampler_config_dict, pipeline_variables_path, mixmats, data_vec
     q_upper = 1 / 2 + one_sigma_1d / 2
 
     # hist_bins = [90,90,120,80,90,150,250,500,500,500,500,500,500]
-    hist_bins = [60,40,100,30,40,100,100]
+    hist_bins = [25,25] #,100,30,40,100,100]
     # hist_bins = [100,100,100]
     # hist_bins = [60,40,100,30,40,100,100,3000,100]
     # hist_bins = [60,100,30,40,100,100,3000,100]
@@ -734,7 +751,7 @@ def run_nautilus(sampler_config_dict, pipeline_variables_path, mixmats, data_vec
         # labels=[r'$w_{0}$', r'$w_{a}$', r'$\Omega_{m}$', r'$h$', r'$\Omega_{b}$', r'$n_{s}$', r'$\sigma_{8}$', r'$A_{1}$', r'$A_{2}$', r'$b_{TA}$', r'$\eta_{1}$', r'$\eta_{2}$'],
         # labels=[r'$w_{0}$', r'$w_{a}$', r'$\Omega_{m}$', r'$h$', r'$\Omega_{b}$', r'$n_{s}$', r'$\sigma_{8}$', r'$A_{1}$', r'$\eta_{1}$'],
         # labels=[r'$w_{0}$', r'$\Omega_{m}$', r'$h$', r'$\Omega_{b}$', r'$n_{s}$', r'$\sigma_{8}$', r'$A_{1}$', r'$\eta_{1}$'],
-        labels=[r'$w_{0}$', r'$w_{a}$', r'$\Omega_{m}$', r'$h$', r'$\Omega_{b}$', r'$n_{s}$', r'$\sigma_{8}$'],
+        labels=[r'$w_{0}$', r'$w_{a}$'], #, r'$\Omega_{m}$', r'$h$', r'$\Omega_{b}$', r'$n_{s}$', r'$\sigma_{8}$'],
         # labels=[r'$w_{0}$', r'$\Omega_{m}$', r'$\sigma_{8}$'],
         # labels=[r'$w_{0}$', r'$w_{a}$', r'$\Omega_{m}$', r'$h$', r'$\Omega_{b}$', r'$n_{s}$', r'$\sigma_{8}$', r'$b_{1}$', r'$b_{2}$', r'$b_{s}$'],
         # labels=[r'$w_{0}$', r'$w_{a}$', r'$\Omega_{m}$', r'$h$', r'$\Omega_{b}$', r'$n_{s}$', r'$\sigma_{8}$', r'$b_{1}$', r'$b_{2}$', r'$b_{3}$', r'$b_{4}$', r'$b_{5}$', r'$b_{6}$'],
@@ -820,7 +837,7 @@ def run_nautilus(sampler_config_dict, pipeline_variables_path, mixmats, data_vec
     #     # title_fmt='.4f'
     # )
 
-    ndim = len(prior.keys[0:7])
+    ndim = len(prior.keys)
 
     xranges = []
 
@@ -902,13 +919,13 @@ def run_nautilus(sampler_config_dict, pipeline_variables_path, mixmats, data_vec
     #     [-3.2361310581234783, -1.8170991845488031]]
     yranges = xranges[1:]
 
-    # fid_vals = [-1, 0]
+    fid_vals = [-1, 0]
     # fid_vals = [-1,0,0.315,0.67,0.045,0.96,0.84048,0.7,-1.7] # for IA
     # fid_vals = [-1,0.315,0.67,0.045,0.96,0.84048,0.7,-1.7] # for IA
     # fid_vals = [-1,0,0.315,0.67,0.045,0.96,0.84048] # for cosmo
     # fid_vals = [-1,0.315,0.84048] # for cosmo
     # fid_vals = [-1,0,0.315,0.67,0.045,0.96,0.84048, 2.07, 0.5, -0.611] # for nl bias
-    fid_vals = [-1,0,0.315,0.67,0.045,0.96,0.84048, 2.07, 2.07, 2.07, 2.07, 2.07, 2.07] # for bias
+    # fid_vals = [-1,0,0.315,0.67,0.045,0.96,0.84048, 2.07, 2.07, 2.07, 2.07, 2.07, 2.07] # for bias
     # fid_vals = [-1,0,0.315,0.67,0.045,0.96,0.84048,0.7,-1.36,1.0,-1.7,-2.5] # for IA
     # fid_vals = [-1,0,0.315,0.67,0.045,0.96,0.84048,2.07,0.5,-0.611] # for IA
     # fid_vals = [2.07, 0.5, -0.611]
@@ -930,10 +947,10 @@ def run_nautilus(sampler_config_dict, pipeline_variables_path, mixmats, data_vec
     # patch1 = mpatches.Patch(color='darkred', label='3'+r'$\times$'+'2pt')
     # patch2 = mpatches.Patch(color='royalblue', label='Stage IV-like 3x2pt + \nSO-like CMB lensing\n(6x2pt)')
     # patch1 = mpatches.Patch(color='darkred', label='Stage IV-like 3x2pt')
-    patch2 = mpatches.Patch(color='royalblue', label='Stage IV-like 6x2pt 3 Bin')
-    patch1 = mpatches.Patch(color='darkred', label='Stage IV-like 3x2pt 3 Bin')
+    # patch2 = mpatches.Patch(color='royalblue', label='Stage IV-like 6x2pt 3 Bin')
+    # patch1 = mpatches.Patch(color='darkred', label='Stage IV-like 3x2pt 3 Bin')
 
-    figure.legend(handles=[patch1, patch2],loc='center right',fontsize=15)   #legend can be centre right for big plots
+    # figure.legend(handles=[patch1, patch2],loc='center right',fontsize=15)   #legend can be centre right for big plots
     # save_fig_dir = '/raid/scratch/wongj/mywork/3x2pt/6x2pt_sim_data/ff/inference_chains/bias_l500.png'
     #
     # if os.path.exists(save_fig_dir):
@@ -1041,34 +1058,27 @@ def execute(pipeline_variables_path, covariance_matrix_type, priors, checkpoint_
                 assert obs_field == 'K'
                 n_dim = 1 * n_bps
         hartlap_correction = (n_sims - n_dim - 2) / (n_sims - 1)
-        print(hartlap_correction)
+        # print(hartlap_correction)
         inverse_covariance = inverse_covariance * hartlap_correction
 
-    mixmats_allbins = {}
-    for i in range(nbins):
-        mix_mats_save_path = save_dir + 'mixmats_bin_{}.npz'.format(i+1)
-        mixmats_all = np.load(mix_mats_save_path)
-
-        mixmats = {'mixmat_nn_to_nn': mixmats_all['mixmat_nn_to_nn'],
-                   'mixmat_ne_to_ne': mixmats_all['mixmat_ne_to_ne'],
-                   'mixmat_ee_to_ee': mixmats_all['mixmat_ee_to_ee'],
-                   'mixmat_bb_to_ee': mixmats_all['mixmat_bb_to_ee'],
-                   'mixmat_kk_to_kk': mixmats_all['mixmat_kk_to_kk'],
-                   'mixmat_nn_to_kk': mixmats_all['mixmat_nn_to_kk'],
-                   'mixmat_ke_to_ke': mixmats_all['mixmat_ke_to_ke']
-                   }
-        mixmats_allbins['Bin_{}'.format(i+1)]=mixmats_all
-
-    run_nautilus(
-        sampler_config_dict=sampler_config_dict,
+    log_normal_likelihood_ccl(
+        params={'w0':-1.0,'wa':0},
+        config_dict=sampler_config_dict,
         pipeline_variables_path=pipeline_variables_path,
-        mixmats=mixmats_allbins,
+        # mixmats=mixmats_allbins,
         data_vector=data_vector,
-        inverse_covariance=inverse_covariance,
-        sampler_checkpoint_file=sampler_checkpoint_file,
-        priors=priors,
-        bi_marg=bi_marg,
-        mi_marg=mi_marg,
-        Dzi_marg=Dzi_marg,
-        A1i_marg=A1i_marg
-    )
+        inverse_covariance=inverse_covariance)
+
+    # run_nautilus(
+    #     sampler_config_dict=sampler_config_dict,
+    #     pipeline_variables_path=pipeline_variables_path,
+    #     # mixmats=mixmats_allbins,
+    #     data_vector=data_vector,
+    #     inverse_covariance=inverse_covariance,
+    #     sampler_checkpoint_file=sampler_checkpoint_file,
+    #     priors=priors,
+    #     bi_marg=bi_marg,
+    #     mi_marg=mi_marg,
+    #     Dzi_marg=Dzi_marg,
+    #     A1i_marg=A1i_marg
+    # )

@@ -454,7 +454,7 @@ def execute(pipeline_variables_path):
             n_bp=n_bp,
             save_dir=save_dir,
             recov_cat_bps_path=recov_cat_bps_path,
-            obs_type='obs')
+            obs_type='fid')
 
 # if __name__ == '__main__':
 #     main()
