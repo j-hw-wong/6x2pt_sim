@@ -91,13 +91,13 @@ def measure_pcls(pipeline_variables_path, clean=True, cov_iter=False):
 
     # Convert bandpower data vector to 1D
     print('Combining to joint data vector...')
-    pcl_measurement.conv_bps.execute(pipeline_variables_path)
+    # pcl_measurement.conv_bps.execute(pipeline_variables_path)
     print('Done')
 
     if not cov_iter:
         # Calculate numerical covariance matrix
         print('Calculating numerical covariance matrix...')
-        # pcl_measurement.cov_fromsim.execute(pipeline_variables_path)
+        pcl_measurement.cov_fromsim.execute(pipeline_variables_path)
         print('Done')
 
     else:

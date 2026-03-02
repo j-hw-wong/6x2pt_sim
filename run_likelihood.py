@@ -21,10 +21,10 @@ def main():
     # print(now)
 
     # If using the analytic covariance matrix, generate from parameter values defined in variables config file
-    covariance_matrix_type = 'numerical'     # Must be 'analytic' or 'numerical'
+    covariance_matrix_type = 'analytic'     # Must be 'analytic' or 'numerical'
 
-    # if covariance_matrix_type == 'analytic':
-    #     likelihood.analytic_covariance.execute(pipeline_variables_path=pipeline_variables_path)
+    if covariance_matrix_type == 'analytic':
+        likelihood.analytic_covariance.execute(pipeline_variables_path=pipeline_variables_path)
 
     # Need to add in fitting parameters and priors here instead of in sampler.py
     # Just define a tuple with the parameter and dist variable for the shape/width of the prior. The prior can itself
@@ -114,16 +114,16 @@ def main():
     # priors.append(('_Dz_3', (0,3)))   # for a constant m-bias in bin 3
     # and we need to set Dzi_marg=True in the sampler args below
 
-    likelihood.sampler_new.execute(
-        pipeline_variables_path,
-        covariance_matrix_type=covariance_matrix_type,
-        priors=priors,
-        checkpoint_filename='Cosmology_TEST.hdf5',
-        bi_marg=False,
-        mi_marg=False,
-        Dzi_marg=False,
-        A1i_marg=False
-    )
+    # likelihood.sampler_new.execute(
+    #     pipeline_variables_path,
+    #     covariance_matrix_type=covariance_matrix_type,
+    #     priors=priors,
+    #     checkpoint_filename='Cosmology_TEST_3x2pt.hdf5',
+    #     bi_marg=False,
+    #     mi_marg=False,
+    #     Dzi_marg=False,
+    #     A1i_marg=False
+    # )
     '''
     # For plotting
     sampler1 = likelihood.sampler.execute(

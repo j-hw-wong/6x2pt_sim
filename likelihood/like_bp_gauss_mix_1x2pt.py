@@ -387,31 +387,45 @@ def setup(mixmats, field, mix_lmin, input_lmin, input_lmax, n_zbin, n_bandpower)
         spectra = [fields[row] + fields[row + diag] for diag in range(n_field) for row in range(n_field - diag)]
         n_spec = (n_zbin) * (n_zbin + 1) // 2
 
+        fields_z = [z for z in range(1, n_zbin + 1) for f in ['E']]
+        spectra_z_1 = [fields_z[row] for diag in range(n_zbin) for row in range((n_zbin) - diag)]
+        spectra_z_2 = [fields_z[row + diag] for diag in range(n_zbin) for row in range((n_zbin) - diag)]
+
     elif field == 'N':
         fields = [field for _ in range(n_zbin) for field in ('N')]
         n_field = len(fields)
         spectra = [fields[row] + fields[row + diag] for diag in range(n_field) for row in range(n_field - diag)]
         n_spec = (n_zbin) * (n_zbin + 1) // 2
 
+        fields_z = [z for z in range(1, n_zbin + 1) for f in ['N']]
+        spectra_z_1 = [fields_z[row] for diag in range(n_zbin) for row in range((n_zbin) - diag)]
+        spectra_z_2 = [fields_z[row + diag] for diag in range(n_zbin) for row in range((n_zbin) - diag)]
+
     elif field == 'EK':
         fields = ['EK'] * n_zbin
         spectra = fields
         n_spec = n_zbin
+        spectra_z_1 = [(i+1) for i in range(n_zbin)]
+        spectra_z_2 = [1] * n_zbin
 
     elif field == 'NK':
         fields = ['NK'] * n_zbin
         spectra = fields
         n_spec = n_zbin
+        spectra_z_1 = [(i+1) for i in range(n_zbin)]
+        spectra_z_2 = [1] * n_zbin
 
     else:
         assert field == 'K'
         fields = ['K']
         spectra = fields
         n_spec = 1
+        spectra_z_1 = [1]
+        spectra_z_2 = [1]
 
     assert len(spectra) == n_spec
     n_data = n_spec * n_bandpower
-
+    '''
     if field == 'E':
         fields_z = [f'E{z}' for z in range(1, n_zbin+1)]
         n_field = len(fields_z)
@@ -438,7 +452,7 @@ def setup(mixmats, field, mix_lmin, input_lmin, input_lmax, n_zbin, n_bandpower)
         assert field == 'K'
         spec_1 = ['K1']
         spec_2 = ['K1']
-
+    '''
     # spec_1_field = mysplit(spec_1[spec_id])[0]
     # spec_1_zbin = mysplit(spec_1[spec_id])[1]
     #
@@ -455,6 +469,8 @@ def setup(mixmats, field, mix_lmin, input_lmin, input_lmax, n_zbin, n_bandpower)
         'n_zbin': n_zbin,
         'field': field,
         'spectra': spectra,
+        'spectra_z_1': spectra_z_1,
+        'spectra_z_2': spectra_z_2,
         'n_bandpower': n_bandpower,
         'mixmat_nn_to_nn': mixmat_nn_to_nn,
         'mixmat_ne_to_ne': mixmat_ne_to_ne,
@@ -490,6 +506,8 @@ def expected_bp(theory_cl, theory_lmin, config, noise_cls, pbl_nn, pbl_ne, pbl_e
     n_cl = config['n_cl']
     n_zbin = config['n_zbin']
     spectra = config['spectra']
+    spectra_z_1 = config['spectra_z_1']
+    spectra_z_2 = config['spectra_z_2']
     n_bandpower = config['n_bandpower']
     mixmat_nn_to_nn = config['mixmat_nn_to_nn']     # this is a list of nn_to_nn for the autocorrelation of every tomographic bin
     mixmat_ne_to_ne = config['mixmat_ne_to_ne']
@@ -524,40 +542,98 @@ def expected_bp(theory_cl, theory_lmin, config, noise_cls, pbl_nn, pbl_ne, pbl_e
 
     exp_bp = np.full((n_spec, n_bandpower), np.nan)
     for spec_idx, spec in enumerate(spectra):
+
+        this_cl = theory_cl[spec_idx]
+        this_noise_cl = noise_cls[spec_idx]
+
+        # The next few lines were originally left out but I think they will be needed. To double-check!!
+        this_noise_cl = this_noise_cl[:(input_lmax - theory_lmin + 1)]
+        this_noise_cl = np.concatenate((np.zeros(theory_lmin), this_noise_cl, np.zeros(max(mix_lmax - input_lmax, 0))),
+                                       axis=0)
+        this_noise_cl = this_noise_cl[mix_lmin:(mix_lmax + 1)]
+
+        spec_z_1 = spectra_z_1[spec_idx]
+        spec_z_2 = spectra_z_2[spec_idx]
+
         if field == 'E':
             assert spec == 'EE'
-            this_cl = theory_cl[spec_idx]
-            this_noise_cl = noise_cls[spec_idx]
-            this_exp_bp = pbl_ee @ ((mixmat_ee_to_ee @ (this_cl + this_noise_cl))+(mixmat_bb_to_ee @ (this_noise_cl))) #Need to convolve mixing from noise component in B-mode. B-mode itself is zero
-            exp_bp[spec_idx] = this_exp_bp
+
+            # this_exp_bp = pbl_ee @ ((mixmat_ee_to_ee @ (this_cl + this_noise_cl))+(mixmat_bb_to_ee @ (this_noise_cl))) #Need to convolve mixing from noise component in B-mode. B-mode itself is zero
+            # exp_bp[spec_idx] = this_exp_bp
+
+            pbl_ee_spec_1 = pbl_ee['Bin_{}'.format(spec_z_1)]
+            pbl_ee_spec_2 = pbl_ee['Bin_{}'.format(spec_z_2)]
+            assert pbl_ee_spec_1.shape[0] == pbl_ee_spec_2.shape[0]
+
+            if pbl_ee_spec_1.shape[1] <= pbl_ee_spec_2.shape[1]:
+                this_pbl_ee = pbl_ee_spec_1
+                this_mixmat_ee_to_ee = mixmat_ee_to_ee['Bin_{}'.format(spec_z_1)]
+                this_mixmat_bb_to_ee = mixmat_bb_to_ee['Bin_{}'.format(spec_z_1)]
+
+            else:
+                this_pbl_ee = pbl_ee_spec_2
+                this_mixmat_ee_to_ee = mixmat_ee_to_ee['Bin_{}'.format(spec_z_2)]
+                this_mixmat_bb_to_ee = mixmat_bb_to_ee['Bin_{}'.format(spec_z_2)]
+
+            this_exp_bp = this_pbl_ee@((this_mixmat_ee_to_ee@(this_cl+this_noise_cl))+(this_mixmat_bb_to_ee @ (this_noise_cl))) #Add BB noise contribution to auto-spectra - we don't consider this for JW work
 
         elif field == 'N':
             assert spec == 'NN'
-            this_cl = theory_cl[spec_idx]
-            this_noise_cl = noise_cls[spec_idx]
-            this_exp_bp = pbl_nn @ ((mixmat_nn_to_nn @ (this_cl + this_noise_cl)))
-            exp_bp[spec_idx] = this_exp_bp
+            # this_cl = theory_cl[spec_idx]
+            # this_noise_cl = noise_cls[spec_idx]
+            # this_exp_bp = pbl_nn @ ((mixmat_nn_to_nn @ (this_cl + this_noise_cl)))
+            # exp_bp[spec_idx] = this_exp_bp
+
+            pbl_nn_spec_1 = pbl_nn['Bin_{}'.format(spec_z_1)]
+            pbl_nn_spec_2 = pbl_nn['Bin_{}'.format(spec_z_2)]
+            assert pbl_nn_spec_1.shape[0] == pbl_nn_spec_2.shape[0]
+
+            if pbl_nn_spec_1.shape[1] <= pbl_nn_spec_2.shape[1]:
+                this_pbl_nn = pbl_nn_spec_1
+                this_mixmat_nn_to_nn = mixmat_nn_to_nn['Bin_{}'.format(spec_z_1)]
+            else:
+                this_pbl_nn = pbl_nn_spec_2
+                this_mixmat_nn_to_nn = mixmat_nn_to_nn['Bin_{}'.format(spec_z_2)]
+
+            # print(this_pbl_nn)
+            # print(this_pbl_nn.shape)
+            this_exp_bp = this_pbl_nn@((this_mixmat_nn_to_nn@(this_cl+this_noise_cl)))
 
         elif field == 'EK':
             assert spec == 'EK'
-            this_cl = theory_cl[spec_idx]
-            this_noise_cl = noise_cls[spec_idx]
-            this_exp_bp = pbl_ek @ ((mixmat_ke_to_ke @ (this_cl + this_noise_cl)))
-            exp_bp[spec_idx] = this_exp_bp
+            # this_cl = theory_cl[spec_idx]
+            # this_noise_cl = noise_cls[spec_idx]
+            # this_exp_bp = pbl_ek @ ((mixmat_ke_to_ke @ (this_cl + this_noise_cl)))
+            # exp_bp[spec_idx] = this_exp_bp
+
+            this_pbl_ek = pbl_ek['Bin_{}'.format(spec_z_1)]
+            this_mixmat_ke_to_ke = mixmat_ke_to_ke['Bin_{}'.format(spec_z_1)]
+            this_exp_bp = this_pbl_ek@((this_mixmat_ke_to_ke@(this_cl+this_noise_cl)))
+
 
         elif field == 'NK':
             assert spec == 'NK'
-            this_cl = theory_cl[spec_idx]
-            this_noise_cl = noise_cls[spec_idx]
-            this_exp_bp = pbl_nk @ ((mixmat_nn_to_kk @ (this_cl + this_noise_cl)))
-            exp_bp[spec_idx] = this_exp_bp
+            # this_cl = theory_cl[spec_idx]
+            # this_noise_cl = noise_cls[spec_idx]
+            # this_exp_bp = pbl_nk @ ((mixmat_nn_to_kk @ (this_cl + this_noise_cl)))
+            # exp_bp[spec_idx] = this_exp_bp
+            this_pbl_nk = pbl_nk['Bin_{}'.format(spec_z_1)]
+            this_mixmat_nn_to_kk = mixmat_nn_to_kk['Bin_{}'.format(spec_z_1)]
+            this_exp_bp = this_pbl_nk@((this_mixmat_nn_to_kk@(this_cl+this_noise_cl)))
+
 
         elif field == 'K':
             assert spec == 'K'
-            this_cl = theory_cl[spec_idx]
-            this_noise_cl = noise_cls[spec_idx]
-            this_exp_bp = pbl_kk @ ((mixmat_kk_to_kk @ (this_cl + this_noise_cl)))
-            exp_bp[spec_idx] = this_exp_bp
+            # this_cl = theory_cl[spec_idx]
+            # this_noise_cl = noise_cls[spec_idx]
+            # this_exp_bp = pbl_kk @ ((mixmat_kk_to_kk @ (this_cl + this_noise_cl)))
+            # exp_bp[spec_idx] = this_exp_bp
+            this_exp_bp = pbl_kk@((mixmat_kk_to_kk@(this_cl+this_noise_cl)))
+
+        else:
+            raise ValueError('Unexpected spectrum: ' + spec)
+
+        exp_bp[spec_idx] = this_exp_bp
 
     assert np.all(np.isfinite(exp_bp))
 

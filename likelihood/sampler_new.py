@@ -605,8 +605,8 @@ def log_normal_likelihood_ccl(params, config_dict, pipeline_variables_path, data
     data_vector = np.reshape(data_vector, n_data)
 
     d_vector = model_vector - data_vector
-    print(d_vector)
-    print(-0.5 * d_vector @ inverse_covariance @ d_vector)
+    # print(d_vector)
+    # print(-0.5 * d_vector @ inverse_covariance @ d_vector)
     return -0.5 * d_vector @ inverse_covariance @ d_vector
 
 
@@ -782,60 +782,60 @@ def run_nautilus(sampler_config_dict, pipeline_variables_path, data_vector, inve
     # prior2.add_parameter("_eta1", (-6, 6))
     # # prior2.add_parameter("_eta2", (-6, 6))
     #
-    # # prior2 = prior
-    # sampler2 = nautilus.Sampler(
-    #     # prior, log_normal_likelihood_ccl, n_live=200,
-    #     prior2, log_normal_likelihood_ccl, n_live=200,
-    #     likelihood_kwargs={
-    #         "config_dict": sampler_config_dict,
-    #         "pipeline_variables_path": pipeline_variables_path,
-    #         "mixmats": mixmats,
-    #         "data_vector": data_vector,
-    #         "inverse_covariance": inverse_covariance,
-    #         "bi_marg": bi_marg,
-    #         "mi_marg": mi_marg,
-    #         "Dzi_marg": Dzi_marg,
-    #         "A1i_marg": A1i_marg
-    #     },  # could e.g. add bi_marg=True if marginalising over tomographic bin-dependent b parameters
-    #     filepath='/raid/scratch/wongj/mywork/3x2pt/6x2pt_sim_data/b/inference_chains/Cosmology_6x2pt_NLAz.hdf5',
-    #     pool=n_pool
-    # )
-    #
-    # # sampler2.run(verbose=True)
-    #
-    # points2, log_w2, log_l2 = sampler2.posterior()
+    prior2 = prior
+    sampler2 = nautilus.Sampler(
+        # prior, log_normal_likelihood_ccl, n_live=200,
+        prior2, log_normal_likelihood_ccl, n_live=200,
+        likelihood_kwargs={
+            "config_dict": sampler_config_dict,
+            "pipeline_variables_path": pipeline_variables_path,
+            # "mixmats": mixmats,
+            "data_vector": data_vector,
+            "inverse_covariance": inverse_covariance,
+            "bi_marg": bi_marg,
+            "mi_marg": mi_marg,
+            "Dzi_marg": Dzi_marg,
+            "A1i_marg": A1i_marg
+        },  # could e.g. add bi_marg=True if marginalising over tomographic bin-dependent b parameters
+        filepath='/raid/scratch/wongj/mywork/3x2pt/6x2pt_sim_data/bins4/inference_chains/Cosmology_TEST_6x2pt.hdf5',
+        pool=n_pool
+    )
+
+    # sampler2.run(verbose=True)
+
+    points2, log_w2, log_l2 = sampler2.posterior()
     # points2 = points2[:,0:7]
-    #
-    # corner.corner(
-    #     points2,
-    #     weights=np.exp(log_w2),
-    #     # bins=250,
-    #     # bins=[3000, 2000, 300],
-    #     # bins=[50, 30, 100, 30, 40, 100, 250, 1000, 1000, 200],
-    #     # bins=[50,30,100,30,40,100,100,1500, 1500, 500, 500, 500],
-    #     bins=hist_bins, #, 5000, 300],
-    #     plot_density=False,
-    #     no_fill_contours=True,
-    #     color='darkred',
-    #     # contour_kwargs={'linestyles':'--','linewidths':1.5},
-    #     contour_kwargs={'linestyles':'--','linewidths':1.5},
-    #     data_kwargs={'color': '0.45', 'ms': '0'},
-    #     label_kwargs={'fontsize': '20'},
-    #     # labels=[r'$w_{0}$', r'$w_{a}$', r'$\Omega_{m}$', r'$h$', r'$\Omega_{c}$', r'$n_{s}$', r'$\sigma_{8}$',
-    #     #         r'$A_{1}$', r'$A_{2}$', r'$b_{TA}$', r'$\eta_{1}$', r'$\eta_{2}$'],
-    #     labelpad=0.025,
-    #     levels=(0.683, 0.955),
-    #     smooth=1.5,
-    #     smooth1d=True,
-    #     fig=figure,
-    #     # hist_kwargs={'linestyle':'--','linewidth':2.5,'dashes':(5, 6)},
-    #     hist_kwargs={'linestyle':'-','linewidth':1.5},
-    #     # hist2d_kwargs={'contour_kwargs':{'linestyles': '--'}},
-    #     hist2d_kwargs={'contour_kwargs':{'linestyles': '-'}},
-    #     # title_quantiles=[q_lower, 0.5, q_upper],
-    #     # show_titles=True,
-    #     # title_fmt='.4f'
-    # )
+
+    corner.corner(
+        points2,
+        weights=np.exp(log_w2),
+        # bins=250,
+        # bins=[3000, 2000, 300],
+        # bins=[50, 30, 100, 30, 40, 100, 250, 1000, 1000, 200],
+        # bins=[50,30,100,30,40,100,100,1500, 1500, 500, 500, 500],
+        bins=hist_bins, #, 5000, 300],
+        plot_density=False,
+        no_fill_contours=True,
+        color='darkred',
+        # contour_kwargs={'linestyles':'--','linewidths':1.5},
+        contour_kwargs={'linestyles':'--','linewidths':1.5},
+        data_kwargs={'color': '0.45', 'ms': '0'},
+        label_kwargs={'fontsize': '20'},
+        # labels=[r'$w_{0}$', r'$w_{a}$', r'$\Omega_{m}$', r'$h$', r'$\Omega_{c}$', r'$n_{s}$', r'$\sigma_{8}$',
+        #         r'$A_{1}$', r'$A_{2}$', r'$b_{TA}$', r'$\eta_{1}$', r'$\eta_{2}$'],
+        labelpad=0.025,
+        levels=(0.683, 0.955),
+        smooth=1.5,
+        smooth1d=True,
+        fig=figure,
+        # hist_kwargs={'linestyle':'--','linewidth':2.5,'dashes':(5, 6)},
+        hist_kwargs={'linestyle':'-','linewidth':1.5},
+        # hist2d_kwargs={'contour_kwargs':{'linestyles': '--'}},
+        hist2d_kwargs={'contour_kwargs':{'linestyles': '-'}},
+        # title_quantiles=[q_lower, 0.5, q_upper],
+        # show_titles=True,
+        # title_fmt='.4f'
+    )
 
     ndim = len(prior.keys)
 
@@ -1061,24 +1061,24 @@ def execute(pipeline_variables_path, covariance_matrix_type, priors, checkpoint_
         # print(hartlap_correction)
         inverse_covariance = inverse_covariance * hartlap_correction
 
-    log_normal_likelihood_ccl(
-        params={'w0':-1.0,'wa':0},
-        config_dict=sampler_config_dict,
-        pipeline_variables_path=pipeline_variables_path,
-        # mixmats=mixmats_allbins,
-        data_vector=data_vector,
-        inverse_covariance=inverse_covariance)
-
-    # run_nautilus(
-    #     sampler_config_dict=sampler_config_dict,
+    # log_normal_likelihood_ccl(
+    #     params={'w0':-1.0,'wa':0},
+    #     config_dict=sampler_config_dict,
     #     pipeline_variables_path=pipeline_variables_path,
     #     # mixmats=mixmats_allbins,
     #     data_vector=data_vector,
-    #     inverse_covariance=inverse_covariance,
-    #     sampler_checkpoint_file=sampler_checkpoint_file,
-    #     priors=priors,
-    #     bi_marg=bi_marg,
-    #     mi_marg=mi_marg,
-    #     Dzi_marg=Dzi_marg,
-    #     A1i_marg=A1i_marg
-    # )
+    #     inverse_covariance=inverse_covariance)
+
+    run_nautilus(
+        sampler_config_dict=sampler_config_dict,
+        pipeline_variables_path=pipeline_variables_path,
+        # mixmats=mixmats_allbins,
+        data_vector=data_vector,
+        inverse_covariance=inverse_covariance,
+        sampler_checkpoint_file=sampler_checkpoint_file,
+        priors=priors,
+        bi_marg=bi_marg,
+        mi_marg=mi_marg,
+        Dzi_marg=Dzi_marg,
+        A1i_marg=A1i_marg
+    )
