@@ -193,7 +193,7 @@ def get_1x2pt_cov_pcl(n_zbin, signal_path, noise_path, field, lmax_in, lmin_in, 
                                 ``{lo_zbin}`` placeholders.
         lmax_in (int): Maximum l to including in mixing.
         lmin_in (int): Minimum l in input power spectra.
-        lmax_out (int): Maximum l to include in covariance.
+        lmax_out (list): List of maximum l per bin to include in covariance.
         lmin_out (int): Minimum l to include in covariance.
         noise_lmin (int): Minimum l in noise power spectra.
         mask_path (str): Path to mask FITS file. If None, full sky is assumed, in which case the covariance will be
@@ -270,6 +270,14 @@ def get_1x2pt_cov_pcl(n_zbin, signal_path, noise_path, field, lmax_in, lmin_in, 
         spec_1 = ['K1']
         spec_2 = ['K1']
 
+    pbl_dict = {}
+    for count, lmax_out_i in enumerate(lmax_out):
+        pbl_dict['Bin_{}'.format(count+1)] = mask.get_binning_matrix(
+            n_bandpowers=n_bp,
+            output_lmin=lmin_out,
+            output_lmax=lmax_out_i,
+            bp_spacing=bandpower_spacing)
+
     # Generate list of target spectra (the ones we want the covariance for) in the correct (diagonal) order
     print('Generating list of spectra')
 
@@ -278,13 +286,16 @@ def get_1x2pt_cov_pcl(n_zbin, signal_path, noise_path, field, lmax_in, lmin_in, 
     field_2 = [mysplit(spec_2_id)[0] for spec_2_id in spec_2]
     zbin_2 = [mysplit(spec_2_id)[1] for spec_2_id in spec_2]
 
+    lcuts_max = []
+    pbls = []
+
     # Generate list of sets of mode-coupled theory Cls corresponding to the target spectra
     coupled_theory_cls = []
     for spec_idx, spec in enumerate(spectra):
         print(f'Loading and coupling input Cls {spec_idx + 1} / {len(spectra)}')
 
         field_types = [field_1[spec_idx], field_2[spec_idx]]
-        zbins = [zbin_1[spec_idx], zbin_2[spec_idx]]
+        zbins = [int(zbin_1[spec_idx]), int(zbin_2[spec_idx])]
 
         # Get paths of signal and noise spectra to load
         if field_types == ['N', 'N']:
@@ -292,6 +303,22 @@ def get_1x2pt_cov_pcl(n_zbin, signal_path, noise_path, field, lmax_in, lmin_in, 
             signal_paths = [f"{signal_path}/galaxy_cl/bin_{max(zbins)}_{min(zbins)}.txt"]
             noise_paths = [f"{noise_path}/galaxy_cl/bin_{max(zbins)}_{min(zbins)}.txt"]
             workspace = workspace_spin00
+
+            if zbins[0] == zbins[1]:
+                lcuts_max.append(lmax_out[zbins[0]-1])
+            else:
+                lcut_a = lmax_out[zbins[0]-1]
+                lcut_b = lmax_out[zbins[1]-1]
+                lcuts_max.append(min(lcut_a, lcut_b))
+
+            pbl_spec_1 = pbl_dict['Bin_{}'.format(zbins[0])]
+            pbl_spec_2 = pbl_dict['Bin_{}'.format(zbins[1])]
+            assert pbl_spec_1.shape[0] == pbl_spec_2.shape[0]
+
+            if pbl_spec_1.shape[1] <= pbl_spec_2.shape[1]:
+                pbls.append(pbl_spec_1)
+            else:
+                pbls.append(pbl_spec_2)
 
         elif field_types == ['E', 'E']:
             # EE, EB, BE, BB
@@ -302,11 +329,30 @@ def get_1x2pt_cov_pcl(n_zbin, signal_path, noise_path, field, lmax_in, lmin_in, 
                            f"{noise_path}/shear_cl/bin_{max(zbins)}_{min(zbins)}.txt"]
             workspace = workspace_spin22
 
+            if zbins[0] == zbins[1]:
+                lcuts_max.append(lmax_out[zbins[0]-1])
+            else:
+                lcut_a = lmax_out[zbins[0]-1]
+                lcut_b = lmax_out[zbins[1]-1]
+                lcuts_max.append(min(lcut_a, lcut_b))
+
+            pbl_spec_1 = pbl_dict['Bin_{}'.format(zbins[0])]
+            pbl_spec_2 = pbl_dict['Bin_{}'.format(zbins[1])]
+            assert pbl_spec_1.shape[0] == pbl_spec_2.shape[0]
+
+            if pbl_spec_1.shape[1] <= pbl_spec_2.shape[1]:
+                pbls.append(pbl_spec_1)
+
+            else:
+                pbls.append(pbl_spec_2)
+
         elif field_types == ['K', 'K']:
             # KCMB
             signal_paths = [f"{signal_path}/cmbkappa_cl/bin_1_1.txt"]
             noise_paths = [f"{noise_path}/cmbkappa_cl/bin_1_1.txt"]
             workspace = workspace_spin00
+            lcuts_max.append(lmax_out[0])
+            pbls.append(pbl_dict['Bin_1'])
 
         elif field_types == ['K', 'N']:
             # KN
@@ -314,11 +360,17 @@ def get_1x2pt_cov_pcl(n_zbin, signal_path, noise_path, field, lmax_in, lmin_in, 
             noise_paths = [f"{noise_path}/galaxy_cmbkappa_cl/bin_{zbins[1]}_{zbins[0]}.txt"]
             workspace = workspace_spin00
 
+            lcuts_max.append(lmax_out[zbins[1]-1])   # have to check that this is right way round
+            pbls.append(pbl_dict['Bin_{}'.format(zbins[1])])
+
         elif field_types == ['N', 'K']:
             # KN
             signal_paths = [f"{signal_path}/galaxy_cmbkappa_cl/bin_{zbins[0]}_{zbins[1]}.txt"]
             noise_paths = [f"{noise_path}/galaxy_cmbkappa_cl/bin_{zbins[0]}_{zbins[1]}.txt"]
             workspace = workspace_spin00
+
+            lcuts_max.append(lmax_out[zbins[0]-1])   # have to check that this is right way round
+            pbls.append(pbl_dict['Bin_{}'.format(zbins[0])])
 
         elif field_types == ['K', 'E']:
             # KE, KB
@@ -326,11 +378,17 @@ def get_1x2pt_cov_pcl(n_zbin, signal_path, noise_path, field, lmax_in, lmin_in, 
             noise_paths = [f"{noise_path}/shear_cmbkappa_cl/bin_{zbins[1]}_{zbins[0]}.txt", None]
             workspace = workspace_spin02
 
+            lcuts_max.append(lmax_out[zbins[1]-1])   # have to check that this is right way round
+            pbls.append(pbl_dict['Bin_{}'.format(zbins[1])])
+
         elif field_types == ['E', 'K']:
             # EK, BK
             signal_paths = [f"{signal_path}/shear_cmbkappa_cl/bin_{zbins[0]}_{zbins[1]}.txt", None]
             noise_paths = [f"{noise_path}/shear_cmbkappa_cl/bin_{zbins[0]}_{zbins[1]}.txt", None]
             workspace = workspace_spin02
+
+            lcuts_max.append(lmax_out[zbins[0]-1])   # have to check that this is right way round
+            pbls.append(pbl_dict['Bin_{}'.format(zbins[0])])
 
         # Shouldn't need GGL only because we don't consider this as a standalone probe. But this should be the code if
         # it is used in the future
@@ -339,12 +397,36 @@ def get_1x2pt_cov_pcl(n_zbin, signal_path, noise_path, field, lmax_in, lmin_in, 
         #     signal_paths = [f"{signal_path}/galaxy_shear_cl/bin_{zbins[0]}_{zbins[1]}.txt", None]
         #     noise_paths = [f"{signal_path}/galaxy_shear_cl/bin_{zbins[0]}_{zbins[1]}.txt", None]
         #     workspace = workspace_spin02
+        #     lcuts_max.append(min(lmax_out[zbins[0] - 1],
+        #                          lmax_out[zbins[1] - 1]))  # have to check if this needs to be more complex?
+        #
+        #     pbl_ne_spec_1 = pbl_dict['Bin_{}'.format(zbins[0])]
+        #     pbl_ne_spec_2 = pbl_dict['Bin_{}'.format(zbins[1])]
+        #
+        #     if pbl_ne_spec_1.shape[1] <= pbl_ne_spec_2.shape[1]:
+        #         pbls.append(pbl_ne_spec_1)
+        #
+        #     else:
+        #         pbls.append(pbl_ne_spec_2)
+
         #
         # elif field_types == ['E', 'N']:
         #     # EN, BN
         #     signal_paths = [f"{signal_path}/galaxy_shear_cl/bin_{zbins[1]}_{zbins[0]}.txt", None]
         #     noise_paths = [f"{signal_path}/galaxy_shear_cl/bin_{zbins[1]}_{zbins[0]}.txt", None]
         #     workspace = workspace_spin02
+        #
+        #     lcuts_max.append(min(lmax_out[zbins[0] - 1],
+        #                          lmax_out[zbins[1] - 1]))  # have to check if this needs to be more complex?
+        #
+        #     pbl_ne_spec_1 = pbl_dict['Bin_{}'.format(zbins[1])]
+        #     pbl_ne_spec_2 = pbl_dict['Bin_{}'.format(zbins[0])]
+        #
+        #     if pbl_ne_spec_1.shape[1] <= pbl_ne_spec_2.shape[1]:
+        #         pbls.append(pbl_ne_spec_1)
+        #
+        #     else:
+        #         pbls.append(pbl_ne_spec_2)
 
         else:
             raise ValueError(f'Unexpected field type: {field}')
@@ -432,12 +514,12 @@ def get_1x2pt_cov_pcl(n_zbin, signal_path, noise_path, field, lmax_in, lmin_in, 
                                      lmax_in + 1, maths.factorial(spin_b1) * maths.factorial(spin_b2)))
             # print(cl_cov.shape)
             cl_cov = cl_cov[:, 0, :, 0]
-            cl_cov = cl_cov[lmin_out:(lmax_out + 1), lmin_out:(lmax_out + 1)]
+            cl_cov = cl_cov[lmin_out:(lcuts_max[spec_a_idx] + 1), lmin_out:(lcuts_max[spec_b_idx] + 1)]
 
             # Do some checks and save to disk
-            assert np.all(np.isfinite(cl_cov))
-            n_ell_out = lmax_out - lmin_out + 1
-            assert cl_cov.shape == (n_ell_out, n_ell_out)
+            # assert np.all(np.isfinite(cl_cov))
+            # n_ell_out = lmax_out - lmin_out + 1
+            # assert cl_cov.shape == (n_ell_out, n_ell_out)
             if spec_a_idx == spec_b_idx:
                 assert np.allclose(cl_cov, cl_cov.T)
             save_path = save_block_filemask.format(spec1_idx=spec_a_idx, spec2_idx=spec_b_idx)
@@ -469,17 +551,17 @@ def get_1x2pt_cov_pcl(n_zbin, signal_path, noise_path, field, lmax_in, lmin_in, 
         n_fields = n_zbin
         n_spec = n_fields * (n_fields + 1) // 2
 
-    n_ell_cov = lmax_out - lmin_out + 1
+    # n_ell_cov = lmax_out - lmin_out + 1
 
     print(f'Calculating binning matrix at {time.strftime("%c")}')
 
-    pbl = mask.get_binning_matrix(
-        n_bandpowers=n_bp,
-        output_lmin=lmin_out,
-        output_lmax=lmax_out,
-        bp_spacing=bandpower_spacing)
+    # pbl = mask.get_binning_matrix(
+    #     n_bandpowers=n_bp,
+    #     output_lmin=lmin_out,
+    #     output_lmax=lmax_out,
+    #     bp_spacing=bandpower_spacing)
 
-    assert pbl.shape == (n_bp, n_ell_cov)
+    # assert pbl.shape == (n_bp, n_ell_cov)
 
     print(f'Preallocating full covariance at {time.strftime("%c")}')
     n_data = n_spec * n_bp
@@ -497,13 +579,15 @@ def get_1x2pt_cov_pcl(n_zbin, signal_path, noise_path, field, lmax_in, lmin_in, 
                 assert data['spec2_idx'] == spec2
                 block_unbinned = data['cov_block']
             assert np.all(np.isfinite(block_unbinned))
-            assert block_unbinned.shape == (n_ell_cov, n_ell_cov)
+            # assert block_unbinned.shape == (n_ell_cov, n_ell_cov)
             # lowl_skip = lmin_out - lmin_in
             # block_unbinned = block_unbinned[lowl_skip:, lowl_skip:]
             # assert block_unbi/nned.shape == (n_ell_out, n_ell_out)
 
             print('Binning block')
-            block_binned = pbl @ block_unbinned @ pbl.T
+            pbl_a = pbls[spec1]
+            pbl_b = pbls[spec2]
+            block_binned = pbl_a @ block_unbinned @ pbl_b.T
             assert np.all(np.isfinite(block_binned))
             assert block_binned.shape == (n_bp, n_bp)
 
@@ -1113,17 +1197,44 @@ def get_3x2pt_cov_pcl(n_zbin, signal_path, noise_path, lmax_in, lmin_in, lmax_ou
     spec_1 = [fields[row] for diag in range(n_field) for row in range(n_field - diag)]
     spec_2 = [fields[row + diag] for diag in range(n_field) for row in range(n_field - diag)]
 
+    pbl_ee = {}
+    for count, lmax_out_ee_i in enumerate(lmax_out_ee):
+        pbl_ee['Bin_{}'.format(count+1)] = mask.get_binning_matrix(
+            n_bandpowers=n_bp,
+            output_lmin=lmin_out_ee,
+            output_lmax=lmax_out_ee_i,
+            bp_spacing=bandpower_spacing)
+
+    pbl_ne = {}
+    for count, lmax_out_ne_i in enumerate(lmax_out_ne):
+        pbl_ne['Bin_{}'.format(count+1)] = mask.get_binning_matrix(
+            n_bandpowers=n_bp,
+            output_lmin=lmin_out_ne,
+            output_lmax=lmax_out_ne_i,
+            bp_spacing=bandpower_spacing)
+
+    pbl_nn = {}
+    for count, lmax_out_nn_i in enumerate(lmax_out_nn):
+        pbl_nn['Bin_{}'.format(count+1)] = mask.get_binning_matrix(
+            n_bandpowers=n_bp,
+            output_lmin=lmin_out_nn,
+            output_lmax=lmax_out_nn_i,
+            bp_spacing=bandpower_spacing)
+
     field_1 = [mysplit(spec_1_id)[0] for spec_1_id in spec_1]
     zbin_1 = [mysplit(spec_1_id)[1] for spec_1_id in spec_1]
     field_2 = [mysplit(spec_2_id)[0] for spec_2_id in spec_2]
     zbin_2 = [mysplit(spec_2_id)[1] for spec_2_id in spec_2]
+
+    lcuts_min, lcuts_max = [], []
+    pbls = []
 
     coupled_theory_cls = []
     for spec_idx, spec in enumerate(spectra):
         print(f'Loading and coupling input Cls {spec_idx + 1} / {len(spectra)}')
 
         field_types = [field_1[spec_idx], field_2[spec_idx]]
-        zbins = [zbin_1[spec_idx], zbin_2[spec_idx]]
+        zbins = [int(zbin_1[spec_idx]), int(zbin_2[spec_idx])]
 
         # Get paths of signal and noise spectra to load
         if field_types == ['N', 'N']:
@@ -1131,6 +1242,24 @@ def get_3x2pt_cov_pcl(n_zbin, signal_path, noise_path, lmax_in, lmin_in, lmax_ou
             signal_paths = [pos_pos_filemask.format(hi_zbin=max(zbins), lo_zbin=min(zbins))]
             noise_paths = [pos_nl_path.format(hi_zbin=max(zbins), lo_zbin=min(zbins))]
             workspace = workspace_spin00
+
+            lcuts_min.append(lmin_out_nn)
+
+            if zbins[0] == zbins[1]:
+                lcuts_max.append(lmax_out_nn[zbins[0]-1])
+            else:
+                lcut_a = lmax_out_nn[zbins[0]-1]
+                lcut_b = lmax_out_nn[zbins[1]-1]
+                lcuts_max.append(min(lcut_a, lcut_b))
+
+            pbl_nn_spec_1 = pbl_nn['Bin_{}'.format(zbins[0])]
+            pbl_nn_spec_2 = pbl_nn['Bin_{}'.format(zbins[1])]
+            assert pbl_nn_spec_1.shape[0] == pbl_nn_spec_2.shape[0]
+
+            if pbl_nn_spec_1.shape[1] <= pbl_nn_spec_2.shape[1]:
+                pbls.append(pbl_nn_spec_1)
+            else:
+                pbls.append(pbl_nn_spec_2)
 
         elif field_types == ['N', 'E']:
             # NE, NB
@@ -1140,11 +1269,35 @@ def get_3x2pt_cov_pcl(n_zbin, signal_path, noise_path, lmax_in, lmin_in, lmax_ou
             # print(noise_paths)
             workspace = workspace_spin02
 
+            lcuts_min.append(lmin_out_ne)
+            lcuts_max.append(min(lmax_out_ne[zbins[0]-1], lmax_out_ne[zbins[1]-1]))     # have to check if this needs to be more complex?
+
+            pbl_ne_spec_1 = pbl_ne['Bin_{}'.format(zbins[0])]
+            pbl_ne_spec_2 = pbl_ne['Bin_{}'.format(zbins[1])]
+
+            if pbl_ne_spec_1.shape[1] <= pbl_ne_spec_2.shape[1]:
+                pbls.append(pbl_ne_spec_1)
+
+            else:
+                pbls.append(pbl_ne_spec_2)
+
         elif field_types == ['E', 'N']:
             # EN, BN
             signal_paths = [pos_she_filemask.format(pos_zbin=zbins[1], she_zbin=zbins[0]), None]
             noise_paths = [pos_she_nl_path.format(pos_zbin=zbins[1], she_zbin=zbins[0]), None]
             workspace = workspace_spin02
+
+            lcuts_min.append(lmin_out_ne)
+            lcuts_max.append(min(lmax_out_ne[zbins[0]-1], lmax_out_ne[zbins[1]-1]))     # have to check if this needs to be more complex?
+
+            pbl_ne_spec_1 = pbl_ne['Bin_{}'.format(zbins[1])]
+            pbl_ne_spec_2 = pbl_ne['Bin_{}'.format(zbins[0])]
+
+            if pbl_ne_spec_1.shape[1] <= pbl_ne_spec_2.shape[1]:
+                pbls.append(pbl_ne_spec_1)
+
+            else:
+                pbls.append(pbl_ne_spec_2)
 
         elif field_types == ['E', 'E']:
             # EE, EB, BE, BB
@@ -1154,6 +1307,25 @@ def get_3x2pt_cov_pcl(n_zbin, signal_path, noise_path, lmax_in, lmin_in, lmax_ou
                            None,
                            she_nl_path.format(hi_zbin=max(zbins), lo_zbin=min(zbins))]
             workspace = workspace_spin22
+
+            lcuts_min.append(lmin_out_ee)
+
+            if zbins[0] == zbins[1]:
+                lcuts_max.append(lmax_out_ee[zbins[0]-1])
+            else:
+                lcut_a = lmax_out_ee[zbins[0]-1]
+                lcut_b = lmax_out_ee[zbins[1]-1]
+                lcuts_max.append(min(lcut_a, lcut_b))
+
+            pbl_ee_spec_1 = pbl_ee['Bin_{}'.format(zbins[0])]
+            pbl_ee_spec_2 = pbl_ee['Bin_{}'.format(zbins[1])]
+            assert pbl_ee_spec_1.shape[0] == pbl_ee_spec_2.shape[0]
+
+            if pbl_ee_spec_1.shape[1] <= pbl_ee_spec_2.shape[1]:
+                pbls.append(pbl_ee_spec_1)
+
+            else:
+                pbls.append(pbl_ee_spec_2)
 
         else:
             raise ValueError(f'Unexpected field type combination: {field_types}')
@@ -1219,68 +1391,71 @@ def get_3x2pt_cov_pcl(n_zbin, signal_path, noise_path, lmax_in, lmin_in, lmax_ou
                                      lmax_in + 1, len(coupled_theory_cls[spec_b_idx])))
             cl_cov = cl_cov[:, 0, :, 0]
 
-            if field_1[spec_a_idx] == 'N' and field_2[spec_a_idx] == 'N':
-                if field_1[spec_b_idx] == 'E' and field_2[spec_b_idx] == 'E':
-                    # NN <-> EE (needs to be cut asymmetrically)
-                    lmin_row = lmin_out_nn
-                    lmax_row = lmax_out_nn
-                    lmin_column = lmin_out_ee
-                    lmax_column = lmax_out_ee
-                else:
-                    # NN <-> NN ; NN <-> NE ; NN <-> EN
-                    lmin_row = lmin_out_nn
-                    lmax_row = lmax_out_nn
-                    lmin_column = lmin_out_nn
-                    lmax_column = lmax_out_nn
+            lmin_row, lmax_row = lcuts_min[spec_a_idx], lcuts_max[spec_a_idx]
+            lmin_column, lmax_column = lcuts_min[spec_b_idx], lcuts_max[spec_b_idx]
 
-            elif field_1[spec_a_idx] == 'E' and field_2[spec_a_idx] == 'E':
-                if field_1[spec_b_idx] == 'E' and field_2[spec_b_idx] == 'E':
-                    # EE <-> EE
-                    lmin_row = lmin_out_ee
-                    lmax_row = lmax_out_ee
-                    lmin_column = lmin_out_ee
-                    lmax_column = lmax_out_ee
-
-                else:
-                    # EE <-> NN ; EE <-> NE ; EE <-> EN
-                    lmin_row = lmin_out_ee
-                    lmax_row = lmax_out_ee
-                    lmin_column = lmin_out_nn
-                    lmax_column = lmax_out_nn
-
-            elif field_1[spec_a_idx] == 'N' and field_2[spec_a_idx] == 'E':
-                if field_1[spec_b_idx] == 'E' and field_2[spec_b_idx] == 'E':
-                    # NE <-> EE
-                    lmin_row = lmin_out_ne
-                    lmax_row = lmax_out_ne
-                    lmin_column = lmin_out_ee
-                    lmax_column = lmax_out_ee
-                else:
-                    # NE <-> NN ; NE <-> NE
-                    lmin_row = lmin_out_ne
-                    lmax_row = lmax_out_ne
-                    lmin_column = lmin_out_ne
-                    lmax_column = lmax_out_ne
-
-            elif field_1[spec_a_idx] == 'E' and field_2[spec_a_idx] == 'N':
-                if field_1[spec_b_idx] == 'E' and field_2[spec_b_idx] == 'E':
-                    # NE <-> EE
-                    lmin_row = lmin_out_ne
-                    lmax_row = lmax_out_ne
-                    lmin_column = lmin_out_ee
-                    lmax_column = lmax_out_ee
-                else:
-                    # NE <-> NN ; NE <-> NE
-                    lmin_row = lmin_out_ne
-                    lmax_row = lmax_out_ne
-                    lmin_column = lmin_out_ne
-                    lmax_column = lmax_out_ne
-
-            else:
-                print('Uncollected field types')
-                print(field_1[spec_a_idx], field_2[spec_a_idx])
-                print(field_1[spec_b_idx], field_2[spec_b_idx])
-                sys.exit()
+            # if field_1[spec_a_idx] == 'N' and field_2[spec_a_idx] == 'N':
+            #     if field_1[spec_b_idx] == 'E' and field_2[spec_b_idx] == 'E':
+            #         # NN <-> EE (needs to be cut asymmetrically)
+            #         lmin_row = lmin_out_nn
+            #         lmax_row = lmax_out_nn
+            #         lmin_column = lmin_out_ee
+            #         lmax_column = lmax_out_ee
+            #     else:
+            #         # NN <-> NN ; NN <-> NE ; NN <-> EN
+            #         lmin_row = lmin_out_nn
+            #         lmax_row = lmax_out_nn
+            #         lmin_column = lmin_out_nn
+            #         lmax_column = lmax_out_nn
+            #
+            # elif field_1[spec_a_idx] == 'E' and field_2[spec_a_idx] == 'E':
+            #     if field_1[spec_b_idx] == 'E' and field_2[spec_b_idx] == 'E':
+            #         # EE <-> EE
+            #         lmin_row = lmin_out_ee
+            #         lmax_row = lmax_out_ee
+            #         lmin_column = lmin_out_ee
+            #         lmax_column = lmax_out_ee
+            #
+            #     else:
+            #         # EE <-> NN ; EE <-> NE ; EE <-> EN
+            #         lmin_row = lmin_out_ee
+            #         lmax_row = lmax_out_ee
+            #         lmin_column = lmin_out_nn
+            #         lmax_column = lmax_out_nn
+            #
+            # elif field_1[spec_a_idx] == 'N' and field_2[spec_a_idx] == 'E':
+            #     if field_1[spec_b_idx] == 'E' and field_2[spec_b_idx] == 'E':
+            #         # NE <-> EE
+            #         lmin_row = lmin_out_ne
+            #         lmax_row = lmax_out_ne
+            #         lmin_column = lmin_out_ee
+            #         lmax_column = lmax_out_ee
+            #     else:
+            #         # NE <-> NN ; NE <-> NE
+            #         lmin_row = lmin_out_ne
+            #         lmax_row = lmax_out_ne
+            #         lmin_column = lmin_out_ne
+            #         lmax_column = lmax_out_ne
+            #
+            # elif field_1[spec_a_idx] == 'E' and field_2[spec_a_idx] == 'N':
+            #     if field_1[spec_b_idx] == 'E' and field_2[spec_b_idx] == 'E':
+            #         # NE <-> EE
+            #         lmin_row = lmin_out_ne
+            #         lmax_row = lmax_out_ne
+            #         lmin_column = lmin_out_ee
+            #         lmax_column = lmax_out_ee
+            #     else:
+            #         # NE <-> NN ; NE <-> NE
+            #         lmin_row = lmin_out_ne
+            #         lmax_row = lmax_out_ne
+            #         lmin_column = lmin_out_ne
+            #         lmax_column = lmax_out_ne
+            #
+            # else:
+            #     print('Uncollected field types')
+            #     print(field_1[spec_a_idx], field_2[spec_a_idx])
+            #     print(field_1[spec_b_idx], field_2[spec_b_idx])
+            #     sys.exit()
 
             cl_cov = cl_cov[lmin_row:(lmax_row + 1), lmin_column:(lmax_column + 1)]
 
@@ -1304,7 +1479,6 @@ def get_3x2pt_cov_pcl(n_zbin, signal_path, noise_path, lmax_in, lmin_in, lmax_ou
 
     print(f'Done at {time.strftime("%c")}')
 
-
     # Calculate number of spectra and ells
     n_fields = 2 * n_zbin
 
@@ -1317,26 +1491,26 @@ def get_3x2pt_cov_pcl(n_zbin, signal_path, noise_path, lmax_in, lmin_in, lmax_ou
     print(f'Calculating binning matrix at {time.strftime("%c")}')
 
     assert bandpower_spacing == 'log' or bandpower_spacing == 'lin'
-
-    pbl_ee = mask.get_binning_matrix(
-        n_bandpowers=n_bp,
-        output_lmin=lmin_out_ee,
-        output_lmax=lmax_out_ee,
-        bp_spacing=bandpower_spacing)
-
-    pbl_ne = mask.get_binning_matrix(
-        n_bandpowers=n_bp,
-        output_lmin=lmin_out_ne,
-        output_lmax=lmax_out_ne,
-        bp_spacing=bandpower_spacing)
-
-    pbl_nn = mask.get_binning_matrix(
-        n_bandpowers=n_bp,
-        output_lmin=lmin_out_nn,
-        output_lmax=lmax_out_nn,
-        bp_spacing=bandpower_spacing)
-
-    assert np.alltrue(pbl_nn == pbl_ne)
+    #
+    # pbl_ee = mask.get_binning_matrix(
+    #     n_bandpowers=n_bp,
+    #     output_lmin=lmin_out_ee,
+    #     output_lmax=lmax_out_ee,
+    #     bp_spacing=bandpower_spacing)
+    #
+    # pbl_ne = mask.get_binning_matrix(
+    #     n_bandpowers=n_bp,
+    #     output_lmin=lmin_out_ne,
+    #     output_lmax=lmax_out_ne,
+    #     bp_spacing=bandpower_spacing)
+    #
+    # pbl_nn = mask.get_binning_matrix(
+    #     n_bandpowers=n_bp,
+    #     output_lmin=lmin_out_nn,
+    #     output_lmax=lmax_out_nn,
+    #     bp_spacing=bandpower_spacing)
+    #
+    # assert np.alltrue(pbl_nn == pbl_ne)
 
     print(f'Preallocating full covariance at {time.strftime("%c")}')
     n_data = n_spec * n_bp
@@ -1358,41 +1532,44 @@ def get_3x2pt_cov_pcl(n_zbin, signal_path, noise_path, lmax_in, lmin_in, lmax_ou
 
             print('Binning block')
 
-            if field_1[spec_a_idx] == 'N' and field_2[spec_a_idx] == 'N':
-                if field_1[spec_b_idx] == 'E' and field_2[spec_b_idx] == 'E':
-                    pbl_a = pbl_nn
-                    pbl_b = pbl_ee
-                else:
-                    pbl_a = pbl_nn
-                    pbl_b = pbl_nn
+            # if field_1[spec_a_idx] == 'N' and field_2[spec_a_idx] == 'N':
+            #     if field_1[spec_b_idx] == 'E' and field_2[spec_b_idx] == 'E':
+            #         pbl_a = pbl_nn
+            #         pbl_b = pbl_ee
+            #     else:
+            #         pbl_a = pbl_nn
+            #         pbl_b = pbl_nn
+            #
+            # elif field_1[spec_a_idx] == 'E' and field_2[spec_a_idx] == 'E':
+            #     if field_1[spec_b_idx] == 'E' and field_2[spec_b_idx] == 'E':
+            #         pbl_a = pbl_ee
+            #         pbl_b = pbl_ee
+            #     else:
+            #         pbl_a = pbl_ee
+            #         pbl_b = pbl_nn
+            #
+            # elif field_1[spec_a_idx] == 'N' and field_2[spec_a_idx] == 'E':
+            #     if field_1[spec_b_idx] == 'E' and field_2[spec_b_idx] == 'E':
+            #         pbl_a = pbl_nn
+            #         pbl_b = pbl_ee
+            #     else:
+            #         pbl_a = pbl_nn
+            #         pbl_b = pbl_nn
+            #
+            # elif field_1[spec_a_idx] == 'E' and field_2[spec_a_idx] == 'N':
+            #     if field_1[spec_b_idx] == 'E' and field_2[spec_b_idx] == 'E':
+            #         pbl_a = pbl_nn
+            #         pbl_b = pbl_ee
+            #     else:
+            #         pbl_a = pbl_nn
+            #         pbl_b = pbl_nn
+            #
+            # else:
+            #     print('Error in bandpower binning')
+            #     sys.exit()
 
-            elif field_1[spec_a_idx] == 'E' and field_2[spec_a_idx] == 'E':
-                if field_1[spec_b_idx] == 'E' and field_2[spec_b_idx] == 'E':
-                    pbl_a = pbl_ee
-                    pbl_b = pbl_ee
-                else:
-                    pbl_a = pbl_ee
-                    pbl_b = pbl_nn
-
-            elif field_1[spec_a_idx] == 'N' and field_2[spec_a_idx] == 'E':
-                if field_1[spec_b_idx] == 'E' and field_2[spec_b_idx] == 'E':
-                    pbl_a = pbl_nn
-                    pbl_b = pbl_ee
-                else:
-                    pbl_a = pbl_nn
-                    pbl_b = pbl_nn
-
-            elif field_1[spec_a_idx] == 'E' and field_2[spec_a_idx] == 'N':
-                if field_1[spec_b_idx] == 'E' and field_2[spec_b_idx] == 'E':
-                    pbl_a = pbl_nn
-                    pbl_b = pbl_ee
-                else:
-                    pbl_a = pbl_nn
-                    pbl_b = pbl_nn
-
-            else:
-                print('Error in bandpower binning')
-                sys.exit()
+            pbl_a = pbls[spec_a_idx]
+            pbl_b = pbls[spec_b_idx]
 
             block_binned = pbl_a @ block_unbinned @ pbl_b.T
             assert np.all(np.isfinite(block_binned))
@@ -1505,13 +1682,6 @@ def get_6x2pt_cov_pcl(n_zbin, signal_path, noise_path, lmax_in, lmin_in, lmax_ou
     # Generate list of fields
     print('Generating list of fields')
 
-    # fields = [f'{f}{z}' for z in range(1, n_zbin + 1) for f in ['N', 'E']]
-    # fields.append('K1')
-    #
-    # spectra = [fields[row] + fields[row + diag] for diag in range(len(fields)) for row in range(len(fields) - diag)]
-    # spec_1 = [fields[row] for diag in range(len(fields)) for row in range(len(fields) - diag)]
-    # spec_2 = [fields[row + diag] for diag in range(len(fields)) for row in range(len(fields) - diag)]
-
     # Form list of power spectra
     fields = [f'{f}{z}' for z in range(1, n_zbin + 1) for f in ['N', 'E']]
 
@@ -1534,6 +1704,52 @@ def get_6x2pt_cov_pcl(n_zbin, signal_path, noise_path, lmax_in, lmin_in, lmax_ou
     spec_1.append('K1')
     spec_2.append('K1')
 
+    pbl_ee = {}
+    for count, lmax_out_ee_i in enumerate(lmax_out_ee):
+        pbl_ee['Bin_{}'.format(count+1)] = mask.get_binning_matrix(
+            n_bandpowers=n_bp,
+            output_lmin=lmin_out_ee,
+            output_lmax=lmax_out_ee_i,
+            bp_spacing=bandpower_spacing)
+
+    pbl_ne = {}
+    for count, lmax_out_ne_i in enumerate(lmax_out_ne):
+        pbl_ne['Bin_{}'.format(count+1)] = mask.get_binning_matrix(
+            n_bandpowers=n_bp,
+            output_lmin=lmin_out_ne,
+            output_lmax=lmax_out_ne_i,
+            bp_spacing=bandpower_spacing)
+
+    pbl_nn = {}
+    for count, lmax_out_nn_i in enumerate(lmax_out_nn):
+        pbl_nn['Bin_{}'.format(count+1)] = mask.get_binning_matrix(
+            n_bandpowers=n_bp,
+            output_lmin=lmin_out_nn,
+            output_lmax=lmax_out_nn_i,
+            bp_spacing=bandpower_spacing)
+
+    pbl_kk = mask.get_binning_matrix(
+        n_bandpowers=n_bp,
+        output_lmin=lmin_out_kk,
+        output_lmax=lmax_out_kk,
+        bp_spacing=bandpower_spacing)
+
+    pbl_kn = {}
+    for count, lmax_out_kn_i in enumerate(lmax_out_kn):
+        pbl_kn['Bin_{}'.format(count+1)] = mask.get_binning_matrix(
+            n_bandpowers=n_bp,
+            output_lmin=lmin_out_kn,
+            output_lmax=lmax_out_kn_i,
+            bp_spacing=bandpower_spacing)
+
+    pbl_ke = {}
+    for count, lmax_out_ke_i in enumerate(lmax_out_ke):
+        pbl_ke['Bin_{}'.format(count+1)] = mask.get_binning_matrix(
+            n_bandpowers=n_bp,
+            output_lmin=lmin_out_ke,
+            output_lmax=lmax_out_ke_i,
+            bp_spacing=bandpower_spacing)
+
     # Generate list of target spectra (the ones we want the covariance for) in the correct (diagonal) order
     print('Generating list of spectra')
 
@@ -1542,13 +1758,16 @@ def get_6x2pt_cov_pcl(n_zbin, signal_path, noise_path, lmax_in, lmin_in, lmax_ou
     field_2 = [mysplit(spec_2_id)[0] for spec_2_id in spec_2]
     zbin_2 = [mysplit(spec_2_id)[1] for spec_2_id in spec_2]
 
+    lcuts_min, lcuts_max = [], []
+    pbls = []
+
     # Generate list of sets of mode-coupled theory Cls corresponding to the target spectra
     coupled_theory_cls = []
     for spec_idx, spec in enumerate(spectra):
         print(f'Loading and coupling input Cls {spec_idx + 1} / {len(spectra)}')
 
         field_types = [field_1[spec_idx], field_2[spec_idx]]
-        zbins = [zbin_1[spec_idx], zbin_2[spec_idx]]
+        zbins = [int(zbin_1[spec_idx]), int(zbin_2[spec_idx])]
 
         # Get paths of signal and noise spectra to load
         if field_types == ['N', 'N']:
@@ -1556,6 +1775,24 @@ def get_6x2pt_cov_pcl(n_zbin, signal_path, noise_path, lmax_in, lmin_in, lmax_ou
             signal_paths = [f"{signal_path}/galaxy_cl/bin_{max(zbins)}_{min(zbins)}.txt"]
             noise_paths = [f"{noise_path}/galaxy_cl/bin_{max(zbins)}_{min(zbins)}.txt"]
             workspace = workspace_spin00
+
+            lcuts_min.append(lmin_out_nn)
+
+            if zbins[0] == zbins[1]:
+                lcuts_max.append(lmax_out_nn[zbins[0]-1])
+            else:
+                lcut_a = lmax_out_nn[zbins[0]-1]
+                lcut_b = lmax_out_nn[zbins[1]-1]
+                lcuts_max.append(min(lcut_a, lcut_b))
+
+            pbl_nn_spec_1 = pbl_nn['Bin_{}'.format(zbins[0])]
+            pbl_nn_spec_2 = pbl_nn['Bin_{}'.format(zbins[1])]
+            assert pbl_nn_spec_1.shape[0] == pbl_nn_spec_2.shape[0]
+
+            if pbl_nn_spec_1.shape[1] <= pbl_nn_spec_2.shape[1]:
+                pbls.append(pbl_nn_spec_1)
+            else:
+                pbls.append(pbl_nn_spec_2)
 
         elif field_types == ['E', 'E']:
             # EE, EB, BE, BB
@@ -1566,11 +1803,34 @@ def get_6x2pt_cov_pcl(n_zbin, signal_path, noise_path, lmax_in, lmin_in, lmax_ou
                            f"{noise_path}/shear_cl/bin_{max(zbins)}_{min(zbins)}.txt"]
             workspace = workspace_spin22
 
+            lcuts_min.append(lmin_out_ee)
+
+            if zbins[0] == zbins[1]:
+                lcuts_max.append(lmax_out_ee[zbins[0]-1])
+            else:
+                lcut_a = lmax_out_ee[zbins[0]-1]
+                lcut_b = lmax_out_ee[zbins[1]-1]
+                lcuts_max.append(min(lcut_a, lcut_b))
+
+            pbl_ee_spec_1 = pbl_ee['Bin_{}'.format(zbins[0])]
+            pbl_ee_spec_2 = pbl_ee['Bin_{}'.format(zbins[1])]
+            assert pbl_ee_spec_1.shape[0] == pbl_ee_spec_2.shape[0]
+
+            if pbl_ee_spec_1.shape[1] <= pbl_ee_spec_2.shape[1]:
+                pbls.append(pbl_ee_spec_1)
+
+            else:
+                pbls.append(pbl_ee_spec_2)
+
         elif field_types == ['K', 'K']:
             # KCMB
             signal_paths = [f"{signal_path}/cmbkappa_cl/bin_1_1.txt"]
             noise_paths = [f"{noise_path}/cmbkappa_cl/bin_1_1.txt"]
             workspace = workspace_spin00
+
+            lcuts_min.append(lmin_out_kk)
+            lcuts_max.append(lmax_out_kk)
+            pbls.append(pbl_kk)
 
         elif field_types == ['K', 'N']:
             # KN
@@ -1578,11 +1838,21 @@ def get_6x2pt_cov_pcl(n_zbin, signal_path, noise_path, lmax_in, lmin_in, lmax_ou
             noise_paths = [f"{noise_path}/galaxy_cmbkappa_cl/bin_{zbins[1]}_{zbins[0]}.txt"]
             workspace = workspace_spin00
 
+            lcuts_min.append(lmin_out_kn)
+            lcuts_max.append(lmax_out_kn[zbins[1]-1])   # have to check that this is right way round
+
+            pbls.append(pbl_kn['Bin_{}'.format(zbins[1])])
+
         elif field_types == ['N', 'K']:
             # KN
             signal_paths = [f"{signal_path}/galaxy_cmbkappa_cl/bin_{zbins[0]}_{zbins[1]}.txt"]
             noise_paths = [f"{noise_path}/galaxy_cmbkappa_cl/bin_{zbins[0]}_{zbins[1]}.txt"]
             workspace = workspace_spin00
+
+            lcuts_min.append(lmin_out_kn)
+            lcuts_max.append(lmax_out_kn[zbins[0]-1])     # have to check that this is right way round
+
+            pbls.append(pbl_kn['Bin_{}'.format(zbins[0])])
 
         elif field_types == ['K', 'E']:
             # KE, KB
@@ -1590,11 +1860,21 @@ def get_6x2pt_cov_pcl(n_zbin, signal_path, noise_path, lmax_in, lmin_in, lmax_ou
             noise_paths = [f"{noise_path}/shear_cmbkappa_cl/bin_{zbins[1]}_{zbins[0]}.txt", None]
             workspace = workspace_spin02
 
+            lcuts_min.append(lmin_out_ke)
+            lcuts_max.append(min(lmax_out_ke[zbins[1]-1], lmax_out_kk))     # have to check that this is right way round
+
+            pbls.append(pbl_ke['Bin_{}'.format(zbins[1])])
+
         elif field_types == ['E', 'K']:
             # EK, BK
             signal_paths = [f"{signal_path}/shear_cmbkappa_cl/bin_{zbins[0]}_{zbins[1]}.txt", None]
             noise_paths = [f"{noise_path}/shear_cmbkappa_cl/bin_{zbins[0]}_{zbins[1]}.txt", None]
             workspace = workspace_spin02
+
+            lcuts_min.append(lmin_out_ke)
+            lcuts_max.append(min(lmax_out_ke[zbins[0]-1], lmax_out_kk))     # have to check that this is right way round
+
+            pbls.append(pbl_ke['Bin_{}'.format(zbins[0])])
 
         elif field_types == ['N', 'E']:
             # NE, NB
@@ -1602,11 +1882,35 @@ def get_6x2pt_cov_pcl(n_zbin, signal_path, noise_path, lmax_in, lmin_in, lmax_ou
             noise_paths = [f"{noise_path}/galaxy_shear_cl/bin_{zbins[0]}_{zbins[1]}.txt", None]
             workspace = workspace_spin02
 
+            lcuts_min.append(lmin_out_ne)
+            lcuts_max.append(min(lmax_out_ne[zbins[0]-1], lmax_out_ne[zbins[1]-1]))     # have to check if this needs to be more complex?
+
+            pbl_ne_spec_1 = pbl_ne['Bin_{}'.format(zbins[0])]
+            pbl_ne_spec_2 = pbl_ne['Bin_{}'.format(zbins[1])]
+
+            if pbl_ne_spec_1.shape[1] <= pbl_ne_spec_2.shape[1]:
+                pbls.append(pbl_ne_spec_1)
+
+            else:
+                pbls.append(pbl_ne_spec_2)
+
         elif field_types == ['E', 'N']:
             # EN, BN
             signal_paths = [f"{signal_path}/galaxy_shear_cl/bin_{zbins[1]}_{zbins[0]}.txt", None]
             noise_paths = [f"{noise_path}/galaxy_shear_cl/bin_{zbins[1]}_{zbins[0]}.txt", None]
             workspace = workspace_spin02
+
+            lcuts_min.append(lmin_out_ne)
+            lcuts_max.append(min(lmax_out_ne[zbins[0]-1], lmax_out_ne[zbins[1]-1]))     # have to check if this needs to be more complex?
+
+            pbl_ne_spec_1 = pbl_ne['Bin_{}'.format(zbins[1])]
+            pbl_ne_spec_2 = pbl_ne['Bin_{}'.format(zbins[0])]
+
+            if pbl_ne_spec_1.shape[1] <= pbl_ne_spec_2.shape[1]:
+                pbls.append(pbl_ne_spec_1)
+
+            else:
+                pbls.append(pbl_ne_spec_2)
 
         else:
             raise ValueError(f'Unexpected field combination: {field_types}')
@@ -1667,35 +1971,20 @@ def get_6x2pt_cov_pcl(n_zbin, signal_path, noise_path, lmax_in, lmin_in, lmax_ou
             # Evaluate the covariance
             cl_cov = nmt.gaussian_covariance(cov_workspace, spin_a1, spin_a2, spin_b1, spin_b2, cl_a1b1, cl_a1b2,
                                              cl_a2b1, cl_a2b2, workspace_a, workspace_b, coupled=True)
-            # print(cl_cov.shape)
+
             # Extract the part of the covariance we want, which is conveniently always the [..., 0, ..., 0] block,
             # since all other blocks relate to B-modes
-            # print(coupled_theory_cls[spec_a_idx])
+
             # cl_cov = cl_cov.reshape((lmax_in + 1, len(coupled_theory_cls[spec_a_idx]),
             #                          lmax_in + 1, len(coupled_theory_cls[spec_b_idx])))
+
             cl_cov = cl_cov.reshape((lmax_in + 1, maths.factorial(spin_a1) * maths.factorial(spin_a2),
                                      lmax_in + 1, maths.factorial(spin_b1) * maths.factorial(spin_b2)))
-            # print(cl_cov.shape)
+
             cl_cov = cl_cov[:, 0, :, 0]
 
-            # def lcut_from_fields(field_1_a, field_2_a, field_1_b, field_2_b):
-
-            fa = f"{field_1[spec_a_idx]}{field_2[spec_a_idx]}"
-            fb = f"{field_1[spec_b_idx]}{field_2[spec_b_idx]}"
-
-            lcut_dict = {'NN': [lmin_out_nn, lmax_out_nn],
-                         'NE': [lmin_out_ne, lmax_out_ne],
-                         'NK': [lmin_out_kn, lmax_out_kn],
-                         'EE': [lmin_out_ee, lmax_out_ee],
-                         'EN': [lmin_out_ne, lmax_out_ne],
-                         'EK': [lmin_out_ke, lmax_out_ke],
-                         'KK': [lmin_out_kk, lmax_out_kk],
-                         'KN': [lmin_out_kn, lmax_out_kn],
-                         'KE': [lmin_out_ke, lmax_out_ke]
-                         }
-
-            lmin_row, lmax_row = lcut_dict[fa]
-            lmin_column, lmax_column = lcut_dict[fb]
+            lmin_row, lmax_row = lcuts_min[spec_a_idx], lcuts_max[spec_a_idx]
+            lmin_column, lmax_column = lcuts_min[spec_b_idx], lcuts_max[spec_b_idx]
 
             cl_cov = cl_cov[lmin_row:(lmax_row + 1), lmin_column:(lmax_column + 1)]
 
@@ -1721,7 +2010,6 @@ def get_6x2pt_cov_pcl(n_zbin, signal_path, noise_path, lmax_in, lmin_in, lmax_ou
         print(f'Binning at {time.strftime("%c")}')
 
     # Calculate number of spectra and ells
-    # n_fields = 2 * n_zbin
 
     n_spec = (2 * (n_zbin**2)) + (3*n_zbin) + 1
 
@@ -1733,43 +2021,7 @@ def get_6x2pt_cov_pcl(n_zbin, signal_path, noise_path, lmax_in, lmin_in, lmax_ou
 
     assert bandpower_spacing == 'log' or bandpower_spacing == 'lin'
 
-    pbl_ee = mask.get_binning_matrix(
-        n_bandpowers=n_bp,
-        output_lmin=lmin_out_ee,
-        output_lmax=lmax_out_ee,
-        bp_spacing=bandpower_spacing)
-
-    pbl_ne = mask.get_binning_matrix(
-        n_bandpowers=n_bp,
-        output_lmin=lmin_out_ne,
-        output_lmax=lmax_out_ne,
-        bp_spacing=bandpower_spacing)
-
-    pbl_nn = mask.get_binning_matrix(
-        n_bandpowers=n_bp,
-        output_lmin=lmin_out_nn,
-        output_lmax=lmax_out_nn,
-        bp_spacing=bandpower_spacing)
-
-    pbl_kk = mask.get_binning_matrix(
-        n_bandpowers=n_bp,
-        output_lmin=lmin_out_kk,
-        output_lmax=lmax_out_kk,
-        bp_spacing=bandpower_spacing)
-
-    pbl_ke = mask.get_binning_matrix(
-        n_bandpowers=n_bp,
-        output_lmin=lmin_out_ke,
-        output_lmax=lmax_out_ke,
-        bp_spacing=bandpower_spacing)
-
-    pbl_kn = mask.get_binning_matrix(
-        n_bandpowers=n_bp,
-        output_lmin=lmin_out_kn,
-        output_lmax=lmax_out_kn,
-        bp_spacing=bandpower_spacing)
-
-    assert np.alltrue(pbl_nn == pbl_ne)
+    # assert np.alltrue(pbl_nn == pbl_ne)
 
     print(f'Preallocating full covariance at {time.strftime("%c")}')
     n_data = n_spec * n_bp
@@ -1791,58 +2043,8 @@ def get_6x2pt_cov_pcl(n_zbin, signal_path, noise_path, lmax_in, lmin_in, lmax_ou
 
             print('Binning block')
 
-            pbl_fa = f"{field_1[spec_a_idx]}{field_2[spec_a_idx]}"
-            pbl_fb = f"{field_1[spec_b_idx]}{field_2[spec_b_idx]}"
-
-            pbl_dict = {'NN': pbl_nn,
-                         'NE': pbl_ne,
-                         'NK': pbl_kn,
-                         'EE': pbl_ee,
-                         'EN': pbl_ne,
-                         'EK': pbl_ke,
-                         'KK': pbl_kk,
-                         'KN': pbl_kn,
-                         'KE': pbl_ke
-                         }
-
-            pbl_a = pbl_dict[pbl_fa]
-            pbl_b = pbl_dict[pbl_fb]
-
-            # if field_1[spec_a_idx] == 'N' and field_2[spec_a_idx] == 'N':
-            #     if field_1[spec_b_idx] == 'E' and field_2[spec_b_idx] == 'E':
-            #         pbl_a = pbl_nn
-            #         pbl_b = pbl_ee
-            #     else:
-            #         pbl_a = pbl_nn
-            #         pbl_b = pbl_nn
-            #
-            # elif field_1[spec_a_idx] == 'E' and field_2[spec_a_idx] == 'E':
-            #     if field_1[spec_b_idx] == 'E' and field_2[spec_b_idx] == 'E':
-            #         pbl_a = pbl_ee
-            #         pbl_b = pbl_ee
-            #     else:
-            #         pbl_a = pbl_ee
-            #         pbl_b = pbl_nn
-            #
-            # elif field_1[spec_a_idx] == 'N' and field_2[spec_a_idx] == 'E':
-            #     if field_1[spec_b_idx] == 'E' and field_2[spec_b_idx] == 'E':
-            #         pbl_a = pbl_nn
-            #         pbl_b = pbl_ee
-            #     else:
-            #         pbl_a = pbl_nn
-            #         pbl_b = pbl_nn
-            #
-            # elif field_1[spec_a_idx] == 'E' and field_2[spec_a_idx] == 'N':
-            #     if field_1[spec_b_idx] == 'E' and field_2[spec_b_idx] == 'E':
-            #         pbl_a = pbl_nn
-            #         pbl_b = pbl_ee
-            #     else:
-            #         pbl_a = pbl_nn
-            #         pbl_b = pbl_nn
-            #
-            # else:
-            #     print('error here')
-            #     sys.exit()
+            pbl_a = pbls[spec_a_idx]
+            pbl_b = pbls[spec_b_idx]
 
             block_binned = pbl_a @ block_unbinned @ pbl_b.T
             assert np.all(np.isfinite(block_binned))
@@ -1866,77 +2068,4 @@ def get_6x2pt_cov_pcl(n_zbin, signal_path, noise_path, lmax_in, lmin_in, lmax_ou
     print()
 
     print(f'Done at {time.strftime("%c")}')
-
-
-
-
-    #
-    # if field not in {'E', 'N', 'K', 'EK', 'NK'}:
-    #     print(f'Unknown field type - {field}')
-    #     sys.exit()
-    #
-    # if field == 'K':
-    #     n_fields = 1
-    #     n_spec = 1
-    #
-    # elif field == 'EK' or field == 'NK':
-    #     n_fields = n_zbin
-    #     n_spec = n_zbin
-    #
-    # else:
-    #     assert field == 'E' or field == 'N'
-    #     n_fields = n_zbin
-    #     n_spec = n_fields * (n_fields + 1) // 2
-    #
-    # n_ell_cov = lmax_out - lmin_out + 1
-    #
-    # print(f'Calculating binning matrix at {time.strftime("%c")}')
-    #
-    # assert pbl.shape == (n_bp, n_ell_cov)
-    #
-    # print(f'Preallocating full covariance at {time.strftime("%c")}')
-    # n_data = n_spec * n_bp
-    # cov = np.full((n_data, n_data), np.nan)
-    #
-    # # Loop over all blocks
-    # for spec1 in range(n_spec):
-    #     for spec2 in range(spec1 + 1):
-    #         print(f'spec1 = {spec1}, spec2 = {spec2} at {time.strftime("%c")}')
-    #
-    #         print('Loading block')
-    #         block_path = save_block_filemask.format(spec1_idx=spec1, spec2_idx=spec2)
-    #         with np.load(block_path) as data:
-    #             assert data['spec1_idx'] == spec1
-    #             assert data['spec2_idx'] == spec2
-    #             block_unbinned = data['cov_block']
-    #         assert np.all(np.isfinite(block_unbinned))
-    #         assert block_unbinned.shape == (n_ell_cov, n_ell_cov)
-    #         # lowl_skip = lmin_out - lmin_in
-    #         # block_unbinned = block_unbinned[lowl_skip:, lowl_skip:]
-    #         # assert block_unbi/nned.shape == (n_ell_out, n_ell_out)
-    #
-    #         print('Binning block')
-    #         block_binned = pbl @ block_unbinned @ pbl.T
-    #         assert np.all(np.isfinite(block_binned))
-    #         assert block_binned.shape == (n_bp, n_bp)
-    #
-    #         print('Inserting block')
-    #         cov[(spec1 * n_bp):((spec1 + 1) * n_bp), (spec2 * n_bp):((spec2 + 1) * n_bp)] = block_binned
-    #
-    # # Reflect to fill remaining elements, and check symmetric
-    # cov = np.where(np.isnan(cov), cov.T, cov)
-    # assert np.all(np.isfinite(cov))
-    # assert np.allclose(cov, cov.T, atol=0)
-    #
-    # # Save to disk
-    # save_path = save_cov_filemask.format(n_bp=n_bp)
-    # header = (f'Full binned covariance matrix. Output from {__file__}.bin_combine_cov for n_bp = {n_bp}, '
-    #           f'n_zbin = {n_zbin}, lmin_in = {lmin_in}, lmin_out = {lmin_out}, lmax_out = {lmax_out}, '
-    #           f'save_block_filemask = {save_block_filemask},'
-    #           f'save_cov_filemask = {save_cov_filemask}, at {time.strftime("%c")}')
-    # np.savez_compressed(save_path, cov=cov, n_bp=n_bp, header=header)
-    # print(f'Saved {save_path} at {time.strftime("%c")}')
-    # print()
-    #
-    # print(f'Done at {time.strftime("%c")}')
 

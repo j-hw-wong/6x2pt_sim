@@ -81,23 +81,23 @@ def measure_pcls(pipeline_variables_path, clean=True, cov_iter=False):
 
     # # Average Cls over all realisations
     print('Averaging Cls over realisations...')
-    pcl_measurement.av_cls.execute(pipeline_variables_path)
+    # pcl_measurement.av_cls.execute(pipeline_variables_path)
     print('Done')
 
     # # Convert Cls to bandpowers
     print('Converting Pseudo-Cls to bandpowers...')
-    pcl_measurement.measure_cat_bps.execute(pipeline_variables_path)
+    # pcl_measurement.measure_cat_bps.execute(pipeline_variables_path)
     print('Done')
 
     # Convert bandpower data vector to 1D
     print('Combining to joint data vector...')
-    pcl_measurement.conv_bps.execute(pipeline_variables_path)
+    # pcl_measurement.conv_bps.execute(pipeline_variables_path)
     print('Done')
 
     if not cov_iter:
         # Calculate numerical covariance matrix
         print('Calculating numerical covariance matrix...')
-        # pcl_measurement.cov_fromsim.execute(pipeline_variables_path)
+        pcl_measurement.cov_fromsim.execute(pipeline_variables_path)
         print('Done')
 
     else:
@@ -115,7 +115,7 @@ def main():
         '/raid/scratch/wongj/mywork/3x2pt/6x2pt_sim/set_config/set_variables.ini'
 
     # # Create catalogues
-    run_catalogue_sim(pipeline_variables_path, clean=True)
+    # run_catalogue_sim(pipeline_variables_path, clean=True)
 
     # # Measure Pseudo-Cls
     measure_pcls(pipeline_variables_path, clean=True, cov_iter=False)

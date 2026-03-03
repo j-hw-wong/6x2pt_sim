@@ -3,12 +3,14 @@ import datetime
 import likelihood
 import plotting
 from scipy.stats import norm
+import os
 
+os.environ["OMP_NUM_THREADS"] = "1"
 
 def main():
 
     pipeline_variables_path = \
-        '/raid/scratch/wongj/mywork/3x2pt/6x2pt_sim/set_config/set_variables_temp.ini'
+        '/raid/scratch/wongj/mywork/3x2pt/6x2pt_sim/set_config/set_variables.ini'
 
     now = datetime.datetime.now()
     # Perform likelihood analysis
@@ -16,13 +18,13 @@ def main():
     start_time = time.time()
 
     print('Performing likelihood analysis...')
-    print(now)
+    # print(now)
 
     # If using the analytic covariance matrix, generate from parameter values defined in variables config file
     covariance_matrix_type = 'analytic'     # Must be 'analytic' or 'numerical'
 
-    # if covariance_matrix_type == 'analytic':
-    #     likelihood.analytic_covariance.execute(pipeline_variables_path=pipeline_variables_path)
+    if covariance_matrix_type == 'analytic':
+        likelihood.analytic_covariance.execute(pipeline_variables_path=pipeline_variables_path)
 
     # Need to add in fitting parameters and priors here instead of in sampler.py
     # Just define a tuple with the parameter and dist variable for the shape/width of the prior. The prior can itself
@@ -36,11 +38,11 @@ def main():
 
     priors.append(("w0", (-1.25, -0.75)))  # for a shape to the prior, this could be e.g ["w0", scipy.stats.norm(loc=2.0, scale=0\
     priors.append(("wa", (-0.5, 0.5)))
-    priors.append(("Omega_m", (0.2, 0.4)))
-    priors.append(("h", (0.5, 0.8)))
-    priors.append(("Omega_b", (0.02, 0.08)))
-    priors.append(("n_s", (0.8, 1.2)))
-    priors.append(("sigma8", (0.75, 0.9)))
+    # priors.append(("Omega_m", (0.2, 0.4)))
+    # priors.append(("h", (0.5, 0.8)))
+    # priors.append(("Omega_b", (0.02, 0.08)))
+    # priors.append(("n_s", (0.8, 1.2)))
+    # priors.append(("sigma8", (0.75, 0.9)))
 
     # priors.append(("w0", (-1.15, -0.85)))
     # priors.append(("wa", (-0.3, 0.3)))
@@ -87,6 +89,7 @@ def main():
     # priors.append(('_b1_2', (0,3)))   # for a constant galaxy bias in bin 2
     # priors.append(('_b1_3', (0,3)))   # for a constant galaxy bias in bin 3
     # and in this case we need to have bi_marg=True in the sampler args below
+    # Note that this should be the same for the b2 parameter - but this needs to be checked!!
 
     # Can also repeat this for m-bias marginalisation. If a global m-bias (independent of tomographic bin)
     # then we have to do
@@ -112,17 +115,17 @@ def main():
     # priors.append(('_Dz_3', (0,3)))   # for a constant m-bias in bin 3
     # and we need to set Dzi_marg=True in the sampler args below
 
-    likelihood.sampler.execute(
-        pipeline_variables_path,
-        covariance_matrix_type=covariance_matrix_type,
-        priors=priors,
-        checkpoint_filename='Cosmology_6x2pt_analytic.hdf5',
-        bi_marg=False,
-        mi_marg=False,
-        Dzi_marg=False,
-        A1i_marg=False
-    )
-
+    # likelihood.sampler_new.execute(
+    #     pipeline_variables_path,
+    #     covariance_matrix_type=covariance_matrix_type,
+    #     priors=priors,
+    #     checkpoint_filename='Cosmology_TEST_3x2pt.hdf5',
+    #     bi_marg=False,
+    #     mi_marg=False,
+    #     Dzi_marg=False,
+    #     A1i_marg=False
+    # )
+    '''
     # For plotting
     sampler1 = likelihood.sampler.execute(
         pipeline_variables_path,
@@ -173,7 +176,7 @@ def main():
     print('Done')
     # print(datetime.datetime.now())
     # print("--- %s seconds ---" % (time.time() - start_time))
-
+    '''
 
 if __name__ == '__main__':
     main()
