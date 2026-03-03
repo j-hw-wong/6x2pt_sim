@@ -180,44 +180,6 @@ def measure_bps_config(pipeline_variables_path):
         output_lmax=output_lmax_cmbkk_shear_i,
         bp_spacing=bandpower_spacing) for output_lmax_cmbkk_shear_i in output_lmax_cmbkk_shear]
 
-    # pbl_galaxy_shear = {}
-    # for count, lmax_like_galaxy_shear_i in enumerate(lmax_like_galaxy_shear):
-    #     pbl_galaxy_shear['Bin_{}'.format(count+1)] = mask.get_binning_matrix(
-    #         n_bandpowers=n_bp,
-    #         output_lmin=lmin_like_galaxy_shear,
-    #         output_lmax=lmax_like_galaxy_shear_i,
-    #         bp_spacing=bandpower_spacing)
-    #
-    # pbl_galaxy = {}
-    # for count, lmax_like_galaxy_i in enumerate(lmax_like_galaxy):
-    #     pbl_galaxy['Bin_{}'.format(count+1)] = mask.get_binning_matrix(
-    #         n_bandpowers=n_bp,
-    #         output_lmin=lmin_like_galaxy,
-    #         output_lmax=lmax_like_galaxy_i,
-    #         bp_spacing=bandpower_spacing)
-    #
-    # pbl_cmbkk = mask.get_binning_matrix(
-    #     n_bandpowers=n_bp,
-    #     output_lmin=lmin_like_kCMB,
-    #     output_lmax=lmax_like_kCMB,
-    #     bp_spacing=bandpower_spacing)
-    #
-    # pbl_cmbkk_galaxy = {}
-    # for count, lmax_like_galaxy_kCMB_i in enumerate(lmax_like_galaxy_kCMB):
-    #     pbl_cmbkk_galaxy['Bin_{}'.format(count+1)] = mask.get_binning_matrix(
-    #         n_bandpowers=n_bp,
-    #         output_lmin=lmin_like_galaxy_kCMB,
-    #         output_lmax=lmax_like_galaxy_kCMB_i,
-    #         bp_spacing=bandpower_spacing)
-    #
-    # pbl_cmbkk_shear = {}
-    # for count, lmax_like_shear_kCMB_i in enumerate(lmax_like_shear_kCMB):
-    #     pbl_cmbkk_shear['Bin_{}'.format(count+1)] = mask.get_binning_matrix(
-    #         n_bandpowers=n_bp,
-    #         output_lmin=lmin_like_shear_kCMB,
-    #         output_lmax=lmax_like_shear_kCMB_i,
-    #         bp_spacing=bandpower_spacing)
-
     # Prepare config dictionary
     config_dict = {
         'save_dir': save_dir,
@@ -329,7 +291,6 @@ def cl_to_bp(cl_dir, bp_dir, bin_i, bin_j, pbl, ell_arr=None):
 
     if ell_arr is not None:
         np.savetxt(bp_dir + 'ell_bp_bin_{}_{}.txt'.format(bin_i, bin_j), ell_arr)
-
 
 def calc_stdem_bps(bp_dir, n_bps, bin_i, bin_j, realisations):
 
@@ -1101,12 +1062,11 @@ def execute(pipeline_variables_path):
                 lmin_out=output_lmin_cmbkk_galaxy,
                 lmax_out=output_lmax_cmbkk_galaxy[i])
             # Convert 'observed' PCls to bandpowers for each realisation of galaxy_cmbkappa
-
             cl_to_bp(cl_dir=obs_cmbkk_gal_cl_dir + 'iter_{}/'.format(it + 1),
                      bp_dir=cmbkk_gal_bp_it_dir,
                      bin_i=i+1,
                      bin_j=1,
-                     pbl=np.asarray(pbl_cmbkk_galaxy[i]))
+                     pbl=pbl_cmbkk_galaxy[i])
 
             # Convert raw PCls to measured PCls for each realisation of cmbkappa_shear-E
             measured_cls_to_obs_cls(
@@ -1121,7 +1081,7 @@ def execute(pipeline_variables_path):
                      bp_dir=cmbkk_E_bp_it_dir,
                      bin_i=i+1,
                      bin_j=1,
-                     pbl=np.asarray(pbl_cmbkk_shear[i]))
+                     pbl=pbl_cmbkk_shear[i])
 
             # Convert raw PCls to measured PCls for each realisation of cmbkappa_shear-B
             measured_cls_to_obs_cls(
@@ -1136,7 +1096,7 @@ def execute(pipeline_variables_path):
                      bp_dir=cmbkk_B_bp_it_dir,
                      bin_i=i+1,
                      bin_j=1,
-                     pbl=np.asarray(pbl_cmbkk_shear[i]))
+                     pbl=pbl_cmbkk_shear[i])
 
             for j in range(nbins):
 
@@ -1158,7 +1118,7 @@ def execute(pipeline_variables_path):
                          bp_dir=gal_shear_bp_it_dir,
                          bin_i=i + 1,
                          bin_j=j + 1,
-                         pbl=np.asarray(this_pbl_galaxy_shear))
+                         pbl=this_pbl_galaxy_shear)
 
                 if i >= j:
 
@@ -1181,7 +1141,7 @@ def execute(pipeline_variables_path):
                              bp_dir=gal_bp_it_dir,
                              bin_i=i + 1,
                              bin_j=j + 1,
-                             pbl=np.asarray(this_pbl_galaxy))
+                             pbl=this_pbl_galaxy)
 
                     for shear_component_dir in ['Cl_TT/', 'Cl_EE/', 'Cl_EB/', 'Cl_BE/', 'Cl_BB/']:
                         shear_cl_it_dir = shear_cl_dir + shear_component_dir + 'iter_{}/'.format(it + 1)

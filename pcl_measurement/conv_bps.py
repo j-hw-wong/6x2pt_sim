@@ -244,20 +244,20 @@ def conv_3x2pt_bps(n_zbin, n_bp, save_dir, recov_cat_bps_path, obs_type='obs'):
             assert obs_type == 'fid'
 
             if f1 == 'N' and f2 == 'N':
-                measured_bp_file = save_dir + 'fiducial_cosmology/galaxy_cl/PCl_Bandpowers_gal_gal_bin_{}_{}.txt'. \
+                measured_bp_file = save_dir + 'theory_cls/galaxy_cl/PCl_Bandpowers_gal_gal_bin_{}_{}.txt'. \
                     format(max(z1, z2), min(z1, z2))
 
             elif f1 == 'E' and f2 == 'E':
-                measured_bp_file = save_dir + 'fiducial_cosmology/shear_cl/PCl_Bandpowers_EE_bin_{}_{}.txt'. \
+                measured_bp_file = save_dir + 'theory_cls/shear_cl/PCl_Bandpowers_EE_bin_{}_{}.txt'. \
                     format(max(z1, z2), min(z1, z2))
 
             elif f1 == 'N' and f2 == 'E':
-                measured_bp_file = save_dir + 'fiducial_cosmology/galaxy_shear_cl/PCl_Bandpowers_gal_E_bin_{}_{}.txt'. \
+                measured_bp_file = save_dir + 'theory_cls/galaxy_shear_cl/PCl_Bandpowers_gal_E_bin_{}_{}.txt'. \
                     format(z1, z2)
 
             elif f1 == 'E' and f2 == 'N':
                 # switch around, i.e. open f2z2f1z1
-                measured_bp_file = save_dir + 'fiducial_cosmology/galaxy_shear_cl/PCl_Bandpowers_gal_E_bin_{}_{}.txt'. \
+                measured_bp_file = save_dir + 'theory_cls/galaxy_shear_cl/PCl_Bandpowers_gal_E_bin_{}_{}.txt'. \
                     format(z2, z1)
 
             else:
@@ -437,7 +437,7 @@ def execute(pipeline_variables_path):
             n_bp=n_bp,
             save_dir=save_dir,
             recov_cat_bps_path=recov_cat_bps_path,
-            obs_type='fid')
+            obs_type='obs')
 
     elif obs_spec == '1X2PT':
         conv_1x2pt_bps(
@@ -454,7 +454,7 @@ def execute(pipeline_variables_path):
             n_bp=n_bp,
             save_dir=save_dir,
             recov_cat_bps_path=recov_cat_bps_path,
-            obs_type='fid')
+            obs_type='obs')
 
 # if __name__ == '__main__':
 #     main()

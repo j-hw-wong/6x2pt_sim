@@ -43,7 +43,7 @@ def execute(pipeline_variables_path):
 
     input_lmin = int(float(config['simulation_setup']['INPUT_ELL_MIN']))
     input_lmax = int(float(config['simulation_setup']['INPUT_ELL_MAX']))
-    '''
+
     output_lmin_shear = int(float(config['measurement_setup']['OUTPUT_ELL_MIN_EE']))
     output_lmax_shear = int(float(config['measurement_setup']['OUTPUT_ELL_MAX_EE']))
 
@@ -61,32 +61,6 @@ def execute(pipeline_variables_path):
 
     output_lmin_cmbkk_shear = int(float(config['measurement_setup']['OUTPUT_ELL_MIN_CMBKK_E']))
     output_lmax_cmbkk_shear = int(float(config['measurement_setup']['OUTPUT_ELL_MAX_CMBKK_E']))
-    '''
-
-
-    output_lmin_shear = int(float(config['measurement_setup']['OUTPUT_ELL_MIN_EE']))
-    output_lmax_shear_config = config['measurement_setup']['OUTPUT_ELL_MAX_EE']
-    output_lmax_shear = [int(float(i)) for i in output_lmax_shear_config.split(',')]
-
-    output_lmin_galaxy_shear = int(float(config['measurement_setup']['OUTPUT_ELL_MIN_NE']))
-    output_lmax_galaxy_shear_config = config['measurement_setup']['OUTPUT_ELL_MAX_NE']
-    output_lmax_galaxy_shear = [int(float(i)) for i in output_lmax_galaxy_shear_config.split(',')]
-
-    output_lmin_galaxy = int(float(config['measurement_setup']['OUTPUT_ELL_MIN_NN']))
-    output_lmax_galaxy_config = config['measurement_setup']['OUTPUT_ELL_MAX_NN']
-    output_lmax_galaxy = [int(float(i)) for i in output_lmax_galaxy_config.split(',')]
-
-    output_lmin_cmbkk = int(float(config['measurement_setup']['OUTPUT_ELL_MIN_CMBKK']))
-    output_lmax_cmbkk_config = config['measurement_setup']['OUTPUT_ELL_MAX_CMBKK']
-    output_lmax_cmbkk = [int(float(i)) for i in output_lmax_cmbkk_config.split(',')]
-
-    output_lmin_cmbkk_galaxy = int(float(config['measurement_setup']['OUTPUT_ELL_MIN_CMBKK_N']))
-    output_lmax_cmbkk_galaxy_config = config['measurement_setup']['OUTPUT_ELL_MAX_CMBKK_N']
-    output_lmax_cmbkk_galaxy = [int(float(i)) for i in output_lmax_cmbkk_galaxy_config.split(',')]
-
-    output_lmin_cmbkk_shear = int(float(config['measurement_setup']['OUTPUT_ELL_MIN_CMBKK_E']))
-    output_lmax_cmbkk_shear_config = config['measurement_setup']['OUTPUT_ELL_MAX_CMBKK_E']
-    output_lmax_cmbkk_shear = [int(float(i)) for i in output_lmax_cmbkk_shear_config.split(',')]
 
     n_bandpowers = int(float(config['measurement_setup']['N_BANDPOWERS']))
     bandpower_spacing = str(config['measurement_setup']['BANDPOWER_SPACING'])
