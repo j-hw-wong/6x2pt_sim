@@ -1106,7 +1106,7 @@ def execute(pipeline_variables_path):
                      bp_dir=cmbkk_gal_bp_it_dir,
                      bin_i=i+1,
                      bin_j=1,
-                     pbl=np.asarray(pbl_cmbkk_galaxy[i]))
+                     pbl=pbl_cmbkk_galaxy[i])
 
             # Convert raw PCls to measured PCls for each realisation of cmbkappa_shear-E
             measured_cls_to_obs_cls(
@@ -1121,7 +1121,7 @@ def execute(pipeline_variables_path):
                      bp_dir=cmbkk_E_bp_it_dir,
                      bin_i=i+1,
                      bin_j=1,
-                     pbl=np.asarray(pbl_cmbkk_shear[i]))
+                     pbl=pbl_cmbkk_shear[i])
 
             # Convert raw PCls to measured PCls for each realisation of cmbkappa_shear-B
             measured_cls_to_obs_cls(
@@ -1136,7 +1136,7 @@ def execute(pipeline_variables_path):
                      bp_dir=cmbkk_B_bp_it_dir,
                      bin_i=i+1,
                      bin_j=1,
-                     pbl=np.asarray(pbl_cmbkk_shear[i]))
+                     pbl=pbl_cmbkk_shear[i])
 
             for j in range(nbins):
 
@@ -1158,7 +1158,7 @@ def execute(pipeline_variables_path):
                          bp_dir=gal_shear_bp_it_dir,
                          bin_i=i + 1,
                          bin_j=j + 1,
-                         pbl=np.asarray(this_pbl_galaxy_shear))
+                         pbl=this_pbl_galaxy_shear)
 
                 if i >= j:
 
@@ -1181,7 +1181,7 @@ def execute(pipeline_variables_path):
                              bp_dir=gal_bp_it_dir,
                              bin_i=i + 1,
                              bin_j=j + 1,
-                             pbl=np.asarray(this_pbl_galaxy))
+                             pbl=this_pbl_galaxy)
 
                     for shear_component_dir in ['Cl_TT/', 'Cl_EE/', 'Cl_EB/', 'Cl_BE/', 'Cl_BB/']:
                         shear_cl_it_dir = shear_cl_dir + shear_component_dir + 'iter_{}/'.format(it + 1)

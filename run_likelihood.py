@@ -89,6 +89,7 @@ def main():
     # priors.append(('_b1_2', (0,3)))   # for a constant galaxy bias in bin 2
     # priors.append(('_b1_3', (0,3)))   # for a constant galaxy bias in bin 3
     # and in this case we need to have bi_marg=True in the sampler args below
+    # Note that this should be the same for the b2 parameter - but this needs to be checked!!
 
     # Can also repeat this for m-bias marginalisation. If a global m-bias (independent of tomographic bin)
     # then we have to do
