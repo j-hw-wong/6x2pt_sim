@@ -1,8 +1,10 @@
+'''
+This is some new code trying to implement different scale cuts per tomographic bin. In progress 20/02/2026.
+'''
+
 import os
 import sys
 import time
-# import mpi4py
-# from mpi4py.futures import MPIPoolExecutor
 import corner
 import nautilus
 import configparser
@@ -12,45 +14,25 @@ import pymaster as nmt
 import likelihood.mask as mask
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
-from matplotlib.lines import Line2D
 from likelihood.model_pcl import PCl_bandpowers_1x2pt, PCl_bandpowers_3x2pt, PCl_bandpowers_6x2pt
 from catalogue_sim import generate_cls
-from plotting import spider_plot, plot_posteriors
+import mpi4py
+# from mpi4py.futures import MPIPoolExecutor
+
+from plotting import spider_plot
 plt.rcParams["font.family"] = "Times New Roman"
 plt.rcParams['mathtext.fontset'] = 'cm'
 # plt.rcParams['font.serif'] = 'cm'
-from scipy.stats import norm
-
 
 def parse_nautilus_params_for_ccl(params):
     """
     nautilus propogates params as a dictionary, with each value an unshaped ndarray
     """
 
-    return {key:val[()] for key, val in params.items()}
+    return {key: val[()] for key, val in params.items()}
 
 
-def split_ccl_parameters(params, n_zbin, bi_marg=False, b2i_marg=False, mi_marg=False, Dzi_marg=False, A1i_marg=False):
-
-    """
-    Parameters to sample may be either cosmology/CCL parameters, or nuisance parameters that come into the model later.
-    Prepare a dictionary of CCL and nuisance parameters, in the correct format (e.g. a scalar or vector)
-
-    Parameters
-    ----------
-    params (dict):  Dictionary of parameters
-    n_zbin (int):   Number of tomographic redshift bins
-    bi_marg (bool): If true, prepare for marginalisation over a bin-dependent b1 (galaxy bias) value
-    b2i_marg (bool):    If true, prepare for marginalisation over a bin-dependent b2 (galaxy bias) value
-    mi_marg (bool):     If true, prepare for marginalisation over a bin-dependent m-bias value
-    Dzi_marg (bool):    If true, prepare for marginalisation over a bin-dependent Delta z (photo-z error) value
-    A1i_marg (bool):    If true, prepare for marginalisation over a bin-dependent A1 (IA amplitude) value
-
-    Returns
-    -------
-    Dictionaries of CCL and nuisance parameters, in the correct format for CCL/the rest of the code
-    """
-
+def split_ccl_parameters(params, n_zbin, bi_marg=False, mi_marg=False, Dzi_marg=False, A1i_marg=False):
     ccl_params = {}
     nuisance_params = {}
 
@@ -72,22 +54,15 @@ def split_ccl_parameters(params, n_zbin, bi_marg=False, b2i_marg=False, mi_marg=
         '_s3'
     ]
 
-    # nuisance_params['bi_marg'] = bi_marg
-    # nuisance_params['mi_marg'] = mi_marg
-    # nuisance_params['A1i_marg'] = A1i_marg
-
     if bi_marg:
         for i in range(n_zbin):
-            are_nuisance_params.append('_b1_{}'.format(i+1))
-    if b2i_marg:
-        for i in range(n_zbin):
-            are_nuisance_params.append('_b2_{}'.format(i+1))
+            are_nuisance_params.append('_b1_{}'.format(i + 1))
     if mi_marg:
         for i in range(n_zbin):
-            are_nuisance_params.append('_m_{}'.format(i+1))
+            are_nuisance_params.append('_m_{}'.format(i + 1))
     if Dzi_marg:
         for i in range(n_zbin):
-            are_nuisance_params.append('_Dz_{}'.format(i+1))
+            are_nuisance_params.append('_Dz_{}'.format(i + 1))
     if A1i_marg:
         for i in range(n_zbin):
             are_nuisance_params.append('_A1_{}'.format(i + 1))
@@ -95,7 +70,7 @@ def split_ccl_parameters(params, n_zbin, bi_marg=False, b2i_marg=False, mi_marg=
 
     for key, val in params.items():
         # Nautilus passes parameters as unshaped arrays
-        # JW - I am not sure what these lines do
+        # JW - I am unsure if these lines are necessary
         # if isinstance(val, np.ndarray):
         #     assert x.shape == (), "Only unshaped arrays are supported"
         #     val = val[()]
@@ -112,12 +87,11 @@ def split_ccl_parameters(params, n_zbin, bi_marg=False, b2i_marg=False, mi_marg=
 
 
 def sampler_config(pipeline_variables_path):
-
     """
     Create a dictionary of parameters that will be useful to calculate measure Pseudo bandpowers (e.g. number of bins,
     realisations, mask etc.)
 
-    Parameters
+    ParametersSS
     ----------
     pipeline_variables_path (str):  Path to location of pipeline variables file ('set_variables_3x2pt_measurement.ini')
 
@@ -142,22 +116,27 @@ def sampler_config(pipeline_variables_path):
     input_lmax = int(float(config['simulation_setup']['INPUT_ELL_MAX']))
 
     output_lmin_shear = int(float(config['measurement_setup']['OUTPUT_ELL_MIN_EE']))
-    output_lmax_shear = int(float(config['measurement_setup']['OUTPUT_ELL_MAX_EE']))
+    output_lmax_shear_config = config['measurement_setup']['OUTPUT_ELL_MAX_EE']
+    output_lmax_shear = [int(float(i)) for i in output_lmax_shear_config.split(',')]
 
     output_lmin_galaxy_shear = int(float(config['measurement_setup']['OUTPUT_ELL_MIN_NE']))
-    output_lmax_galaxy_shear = int(float(config['measurement_setup']['OUTPUT_ELL_MAX_NE']))
+    output_lmax_galaxy_shear_config = config['measurement_setup']['OUTPUT_ELL_MAX_NE']
+    output_lmax_galaxy_shear = [int(float(i)) for i in output_lmax_galaxy_shear_config.split(',')]
 
     output_lmin_galaxy = int(float(config['measurement_setup']['OUTPUT_ELL_MIN_NN']))
-    output_lmax_galaxy = int(float(config['measurement_setup']['OUTPUT_ELL_MAX_NN']))
+    output_lmax_galaxy_config = config['measurement_setup']['OUTPUT_ELL_MAX_NN']
+    output_lmax_galaxy = [int(float(i)) for i in output_lmax_galaxy_config.split(',')]
 
     output_lmin_cmbkk = int(float(config['measurement_setup']['OUTPUT_ELL_MIN_CMBKK']))
     output_lmax_cmbkk = int(float(config['measurement_setup']['OUTPUT_ELL_MAX_CMBKK']))
 
     output_lmin_cmbkk_galaxy = int(float(config['measurement_setup']['OUTPUT_ELL_MIN_CMBKK_N']))
-    output_lmax_cmbkk_galaxy = int(float(config['measurement_setup']['OUTPUT_ELL_MAX_CMBKK_N']))
+    output_lmax_cmbkk_galaxy_config = config['measurement_setup']['OUTPUT_ELL_MAX_CMBKK_N']
+    output_lmax_cmbkk_galaxy = [int(float(i)) for i in output_lmax_cmbkk_galaxy_config.split(',')]
 
     output_lmin_cmbkk_shear = int(float(config['measurement_setup']['OUTPUT_ELL_MIN_CMBKK_E']))
-    output_lmax_cmbkk_shear = int(float(config['measurement_setup']['OUTPUT_ELL_MAX_CMBKK_E']))
+    output_lmax_cmbkk_shear_config = config['measurement_setup']['OUTPUT_ELL_MAX_CMBKK_E']
+    output_lmax_cmbkk_shear = [int(float(i)) for i in output_lmax_cmbkk_shear_config.split(',')]
 
     obs_spec = str(config['measurement_setup']['OBS_TYPE'])
     obs_field = str(config['measurement_setup']['FIELD'])
@@ -171,74 +150,73 @@ def sampler_config(pipeline_variables_path):
         sys.exit()
 
     elif bandpower_spacing == 'log':
-        # bp_bin_edges = np.logspace(np.log10(output_lmin + 1e-5), np.log10(output_lmax + 1e-5), n_bandpowers + 1)
-        bp_bin_edges_galaxy = np.logspace(np.log10(output_lmin_galaxy + 1e-5), np.log10(output_lmax_galaxy + 1e-5), n_bandpowers + 1)
-        bp_bin_edges_galaxy_shear = np.logspace(np.log10(output_lmin_galaxy_shear + 1e-5), np.log10(output_lmax_galaxy_shear + 1e-5), n_bandpowers + 1)
-        bp_bin_edges_shear = np.logspace(np.log10(output_lmin_shear + 1e-5), np.log10(output_lmax_shear + 1e-5), n_bandpowers + 1)
+        bp_bin_edges_galaxy = [np.logspace(np.log10(output_lmin_galaxy + 1e-5), np.log10(output_lmax_galaxy_i + 1e-5), n_bandpowers + 1) for output_lmax_galaxy_i in output_lmax_galaxy]
+        bp_bin_edges_galaxy_shear = [np.logspace(np.log10(output_lmin_galaxy_shear + 1e-5), np.log10(output_lmax_galaxy_shear_i + 1e-5), n_bandpowers + 1) for output_lmax_galaxy_shear_i in output_lmax_galaxy_shear]
+        bp_bin_edges_shear = [np.logspace(np.log10(output_lmin_shear + 1e-5), np.log10(output_lmax_shear_i + 1e-5), n_bandpowers + 1) for output_lmax_shear_i in output_lmax_shear]
         bp_bin_edges_cmbkk = np.logspace(np.log10(output_lmin_cmbkk + 1e-5), np.log10(output_lmax_cmbkk + 1e-5), n_bandpowers + 1)
-        bp_bin_edges_cmbkk_galaxy = np.logspace(np.log10(output_lmin_cmbkk_galaxy + 1e-5), np.log10(output_lmax_cmbkk_galaxy + 1e-5), n_bandpowers + 1)
-        bp_bin_edges_cmbkk_shear = np.logspace(np.log10(output_lmin_cmbkk_shear + 1e-5), np.log10(output_lmax_cmbkk_shear + 1e-5), n_bandpowers + 1)
+        bp_bin_edges_cmbkk_galaxy = [np.logspace(np.log10(output_lmin_cmbkk_galaxy + 1e-5), np.log10(output_lmax_cmbkk_galaxy_i + 1e-5), n_bandpowers + 1) for output_lmax_cmbkk_galaxy_i in output_lmax_cmbkk_galaxy]
+        bp_bin_edges_cmbkk_shear = [np.logspace(np.log10(output_lmin_cmbkk_shear + 1e-5), np.log10(output_lmax_cmbkk_shear_i + 1e-5), n_bandpowers + 1) for output_lmax_cmbkk_shear_i in output_lmax_cmbkk_shear]
 
     elif bandpower_spacing == 'lin':
         # bp_bin_edges = np.linspace(output_lmin + 1e-5, output_lmax + 1e-5, n_bandpowers + 1)
-        bp_bin_edges_galaxy = np.linspace(output_lmin_galaxy + 1e-5, output_lmax_galaxy + 1e-5, n_bandpowers + 1)
-        bp_bin_edges_galaxy_shear = np.linspace(output_lmin_galaxy_shear + 1e-5, output_lmax_galaxy_shear + 1e-5, n_bandpowers + 1)
-        bp_bin_edges_shear = np.linspace(output_lmin_shear + 1e-5, output_lmax_shear + 1e-5, n_bandpowers + 1)
+        bp_bin_edges_galaxy = [np.linspace(output_lmin_galaxy + 1e-5, output_lmax_galaxy_i + 1e-5, n_bandpowers + 1) for output_lmax_galaxy_i in output_lmax_galaxy]
+        bp_bin_edges_galaxy_shear = [np.linspace(output_lmin_galaxy_shear + 1e-5, output_lmax_galaxy_shear_i + 1e-5, n_bandpowers + 1) for output_lmax_galaxy_shear_i in output_lmax_galaxy_shear]
+        bp_bin_edges_shear = [np.linspace(output_lmin_shear + 1e-5, output_lmax_shear_i + 1e-5, n_bandpowers + 1) for output_lmax_shear_i in output_lmax_shear]
         bp_bin_edges_cmbkk = np.linspace(output_lmin_cmbkk + 1e-5, output_lmax_cmbkk + 1e-5, n_bandpowers + 1)
-        bp_bin_edges_cmbkk_galaxy = np.linspace(output_lmin_cmbkk_galaxy + 1e-5, output_lmax_cmbkk_galaxy + 1e-5, n_bandpowers + 1)
-        bp_bin_edges_cmbkk_shear = np.linspace(output_lmin_cmbkk_shear + 1e-5, output_lmax_cmbkk_shear + 1e-5, n_bandpowers + 1)
+        bp_bin_edges_cmbkk_galaxy = [np.linspace(output_lmin_cmbkk_galaxy + 1e-5, output_lmax_cmbkk_galaxy_i + 1e-5, n_bandpowers + 1) for output_lmax_cmbkk_galaxy_i in output_lmax_cmbkk_galaxy]
+        bp_bin_edges_cmbkk_shear = [np.linspace(output_lmin_cmbkk_shear + 1e-5, output_lmax_cmbkk_shear_i + 1e-5, n_bandpowers + 1) for output_lmax_cmbkk_shear_i in output_lmax_cmbkk_shear]
 
     else:
         # Bandpower type not recognised
         sys.exit()
 
-    bp_bins_galaxy = nmt.NmtBin.from_edges(
-        ell_ini=np.ceil(bp_bin_edges_galaxy).astype(int)[:-1],
-        ell_end=np.ceil(bp_bin_edges_galaxy).astype(int)[1:])
-    ell_arr_galaxy = bp_bins_galaxy.get_effective_ells()
+    bp_bins_galaxy = [nmt.NmtBin.from_edges(
+        ell_ini=np.ceil(bp_bin_edges_galaxy_i).astype(int)[:-1],
+        ell_end=np.ceil(bp_bin_edges_galaxy_i).astype(int)[1:]) for bp_bin_edges_galaxy_i in bp_bin_edges_galaxy]
+    ell_arr_galaxy = [bp_bins_galaxy_i.get_effective_ells() for bp_bins_galaxy_i in bp_bins_galaxy]
 
-    bp_bins_galaxy_shear = nmt.NmtBin.from_edges(
-        ell_ini=np.ceil(bp_bin_edges_galaxy_shear).astype(int)[:-1],
-        ell_end=np.ceil(bp_bin_edges_galaxy_shear).astype(int)[1:])
-    ell_arr_galaxy_shear = bp_bins_galaxy_shear.get_effective_ells()
+    bp_bins_galaxy_shear = [nmt.NmtBin.from_edges(
+        ell_ini=np.ceil(bp_bin_edges_galaxy_shear_i).astype(int)[:-1],
+        ell_end=np.ceil(bp_bin_edges_galaxy_shear_i).astype(int)[1:]) for bp_bin_edges_galaxy_shear_i in bp_bin_edges_galaxy_shear]
+    ell_arr_galaxy_shear = [bp_bins_galaxy_shear_i.get_effective_ells() for bp_bins_galaxy_shear_i in bp_bins_galaxy_shear]
 
-    bp_bins_shear = nmt.NmtBin.from_edges(
-        ell_ini=np.ceil(bp_bin_edges_shear).astype(int)[:-1],
-        ell_end=np.ceil(bp_bin_edges_shear).astype(int)[1:])
-    ell_arr_shear = bp_bins_shear.get_effective_ells()
+    bp_bins_shear = [nmt.NmtBin.from_edges(
+        ell_ini=np.ceil(bp_bin_edges_shear_i).astype(int)[:-1],
+        ell_end=np.ceil(bp_bin_edges_shear_i).astype(int)[1:]) for bp_bin_edges_shear_i in bp_bin_edges_shear]
+    ell_arr_shear = [bp_bins_shear_i.get_effective_ells() for bp_bins_shear_i in bp_bins_shear]
 
     bp_bins_cmbkk = nmt.NmtBin.from_edges(
         ell_ini=np.ceil(bp_bin_edges_cmbkk).astype(int)[:-1],
         ell_end=np.ceil(bp_bin_edges_cmbkk).astype(int)[1:])
     ell_arr_cmbkk = bp_bins_cmbkk.get_effective_ells()
 
-    bp_bins_cmbkk_galaxy = nmt.NmtBin.from_edges(
-        ell_ini=np.ceil(bp_bin_edges_cmbkk_galaxy).astype(int)[:-1],
-        ell_end=np.ceil(bp_bin_edges_cmbkk_galaxy).astype(int)[1:])
-    ell_arr_cmbkk_galaxy = bp_bins_cmbkk_galaxy.get_effective_ells()
+    bp_bins_cmbkk_galaxy = [nmt.NmtBin.from_edges(
+        ell_ini=np.ceil(bp_bin_edges_cmbkk_galaxy_i).astype(int)[:-1],
+        ell_end=np.ceil(bp_bin_edges_cmbkk_galaxy_i).astype(int)[1:]) for bp_bin_edges_cmbkk_galaxy_i in bp_bin_edges_cmbkk_galaxy]
+    ell_arr_cmbkk_galaxy = [bp_bins_cmbkk_galaxy_i.get_effective_ells() for bp_bins_cmbkk_galaxy_i in bp_bins_cmbkk_galaxy]
 
-    bp_bins_cmbkk_shear = nmt.NmtBin.from_edges(
-        ell_ini=np.ceil(bp_bin_edges_cmbkk_shear).astype(int)[:-1],
-        ell_end=np.ceil(bp_bin_edges_cmbkk_shear).astype(int)[1:])
-    ell_arr_cmbkk_shear = bp_bins_cmbkk_shear.get_effective_ells()
+    bp_bins_cmbkk_shear = [nmt.NmtBin.from_edges(
+        ell_ini=np.ceil(bp_bin_edges_cmbkk_shear_i).astype(int)[:-1],
+        ell_end=np.ceil(bp_bin_edges_cmbkk_shear_i).astype(int)[1:]) for bp_bin_edges_cmbkk_shear_i in bp_bin_edges_cmbkk_shear]
+    ell_arr_cmbkk_shear = [bp_bins_cmbkk_shear_i.get_effective_ells() for bp_bins_cmbkk_shear_i in bp_bins_cmbkk_shear]
 
-    pbl_shear = mask.get_binning_matrix(
+    pbl_shear = [mask.get_binning_matrix(
         n_bandpowers=n_bandpowers,
         output_lmin=output_lmin_shear,
-        output_lmax=output_lmax_shear,
-        bp_spacing=bandpower_spacing)
+        output_lmax=output_lmax_shear_i,
+        bp_spacing=bandpower_spacing) for output_lmax_shear_i in output_lmax_shear]
 
-    pbl_galaxy_shear = mask.get_binning_matrix(
+    pbl_galaxy_shear = [mask.get_binning_matrix(
         n_bandpowers=n_bandpowers,
         output_lmin=output_lmin_galaxy_shear,
-        output_lmax=output_lmax_galaxy_shear,
-        bp_spacing=bandpower_spacing)
+        output_lmax=output_lmax_galaxy_shear_i,
+        bp_spacing=bandpower_spacing) for output_lmax_galaxy_shear_i in output_lmax_galaxy_shear]
 
-    pbl_galaxy = mask.get_binning_matrix(
+    pbl_galaxy = [mask.get_binning_matrix(
         n_bandpowers=n_bandpowers,
         output_lmin=output_lmin_galaxy,
-        output_lmax=output_lmax_galaxy,
-        bp_spacing=bandpower_spacing)
+        output_lmax=output_lmax_galaxy_i,
+        bp_spacing=bandpower_spacing) for output_lmax_galaxy_i in output_lmax_galaxy]
 
     pbl_cmbkk = mask.get_binning_matrix(
         n_bandpowers=n_bandpowers,
@@ -246,23 +224,23 @@ def sampler_config(pipeline_variables_path):
         output_lmax=output_lmax_cmbkk,
         bp_spacing=bandpower_spacing)
 
-    pbl_cmbkk_galaxy = mask.get_binning_matrix(
+    pbl_cmbkk_galaxy = [mask.get_binning_matrix(
         n_bandpowers=n_bandpowers,
         output_lmin=output_lmin_cmbkk_galaxy,
-        output_lmax=output_lmax_cmbkk_galaxy,
-        bp_spacing=bandpower_spacing)
+        output_lmax=output_lmax_cmbkk_galaxy_i,
+        bp_spacing=bandpower_spacing) for output_lmax_cmbkk_galaxy_i in output_lmax_cmbkk_galaxy]
 
-    pbl_cmbkk_shear = mask.get_binning_matrix(
+    pbl_cmbkk_shear = [mask.get_binning_matrix(
         n_bandpowers=n_bandpowers,
         output_lmin=output_lmin_cmbkk_shear,
-        output_lmax=output_lmax_cmbkk_shear,
-        bp_spacing=bandpower_spacing)
+        output_lmax=output_lmax_cmbkk_shear_i,
+        bp_spacing=bandpower_spacing) for output_lmax_cmbkk_shear_i in output_lmax_cmbkk_shear]
 
     # Read in cosmology parameters
     Omega_c = float(config['cosmology']['Omega_c'])
     Omega_b = float(config['cosmology']['Omega_b'])
     h = float(config['cosmology']['h'])
-    #A_s = float(config['cosmology']['A_s'])
+    # A_s = float(config['cosmology']['A_s'])
     sigma8 = float(config['cosmology']['sigma8'])
     n_s = float(config['cosmology']['n_s'])
     Omega_k = float(config['cosmology']['Omega_k'])
@@ -286,32 +264,26 @@ def sampler_config(pipeline_variables_path):
         'output_lmin_shear': output_lmin_shear,
         'output_lmax_shear': output_lmax_shear,
         'pbl_shear': pbl_shear,
-        #'bp_bins_shear': bp_bins_shear,
         'ell_arr_shear': ell_arr_shear,
         'output_lmin_galaxy_shear': output_lmin_galaxy_shear,
         'output_lmax_galaxy_shear': output_lmax_galaxy_shear,
         'pbl_galaxy_shear': pbl_galaxy_shear,
-        #'bp_bins_galaxy_shear': bp_bins_galaxy_shear,
         'ell_arr_galaxy_shear': ell_arr_galaxy_shear,
         'output_lmin_galaxy': output_lmin_galaxy,
         'output_lmax_galaxy': output_lmax_galaxy,
         'pbl_galaxy': pbl_galaxy,
-        #'bp_bins_galaxy': bp_bins_galaxy,
         'ell_arr_galaxy': ell_arr_galaxy,
         'output_lmin_cmbkk': output_lmin_cmbkk,
         'output_lmax_cmbkk': output_lmax_cmbkk,
         'pbl_cmbkk': pbl_cmbkk,
-        #'bp_bins_cmbkk': bp_bins_cmbkk,
         'ell_arr_cmbkk': ell_arr_cmbkk,
         'output_lmin_cmbkk_galaxy': output_lmin_cmbkk_galaxy,
         'output_lmax_cmbkk_galaxy': output_lmax_cmbkk_galaxy,
         'pbl_cmbkk_galaxy': pbl_cmbkk_galaxy,
-        #'bp_bins_cmbkk_galaxy': bp_bins_cmbkk_galaxy,
         'ell_arr_cmbkk_galaxy': ell_arr_cmbkk_galaxy,
         'output_lmin_cmbkk_shear': output_lmin_cmbkk_shear,
         'output_lmax_cmbkk_shear': output_lmax_cmbkk_shear,
         'pbl_cmbkk_shear': pbl_cmbkk_shear,
-        #'bp_bins_cmbkk_shear': bp_bins_cmbkk_shear,
         'ell_arr_cmbkk_shear': ell_arr_cmbkk_shear,
         'obs_spec': obs_spec,
         'obs_field': obs_field,
@@ -319,7 +291,7 @@ def sampler_config(pipeline_variables_path):
         'Omega_b': Omega_b,
         'h': h,
         'n_s': n_s,
-        #'A_s': A_s,
+        # 'A_s': A_s,
         'sigma8': sigma8,
         'Omega_k': Omega_k,
         'w0': w0,
@@ -330,7 +302,6 @@ def sampler_config(pipeline_variables_path):
 
 
 def mysplit(s):
-
     """
     Function to split string into float and number. Used to extract which field and which tomographic bin should be
     identified and collected.
@@ -350,26 +321,11 @@ def mysplit(s):
     return head, tail
 
 
-def generate_pseudo_bps_model(cosmo_params, pipeline_variables_path, config_dict, mixmats, bi_marg=False, b2i_marg=False, mi_marg=False, Dzi_marg=False, A1i_marg=False):
-
+def generate_pseudo_bps_model(cosmo_params, pipeline_variables_path, config_dict, bi_marg=False, mi_marg=False,
+                              Dzi_marg=False, A1i_marg=False):
     """
-    3x2pt or 6x2pt Pseudo-bandpowers, ordered in a data vector
-
-    Parameters
-    ----------
-    cosmo_params (dict):    Dictionary of cosmological parameters
-    config_dict (dict):     Dictionary describing simulation/measurement parameters. Ones that will be sampled are overwritten
-    pipeline_variables_path (str):  Path to location of pipeline variables file (e.g. 'set_variables_3x2pt_measurement.ini')
-    mixmats (dict):     Dictionary of 6x2pt spin-0 and spin-2 mixing matrices
-    bi_marg (bool):     Marginalise over b1 galaxy bias (True) or not (False). Prepares formatting for parameter input to CCL
-    b2i_marg (bool):    Marginalise over b2 galaxy bias (True) or not (False). Prepares formatting for parameter input to CCL
-    mi_marg (bool):     Marginalise over shear m-bias (True) or not (False). Prepares formatting for parameter input to CCL
-    Dzi_marg (bool):    Marginalise over Delta z photo-z uncertainty (True) or not (False). Prepares formatting for parameter input to CCL
-    A1i_marg (bool):    Marginalise over IA amplitude (True) or not (False). Prepares formatting for parameter input to CCL
-
-    Returns
-    -------
-    Data vector of 3x2pt or 6x2pt Pseudo-bandpowers
+    cosmo_params: dict
+        Dictionary of parameters to overwrite in default CCL cosmology
     """
 
     save_dir = config_dict['save_dir']
@@ -378,6 +334,7 @@ def generate_pseudo_bps_model(cosmo_params, pipeline_variables_path, config_dict
     input_lmax = config_dict['input_lmax']
     nbins = config_dict['nbins']
 
+    # output lmaxs are lists of lmax per bin for each field/observable
     output_lmin_shear = config_dict['output_lmin_shear']
     output_lmax_shear = config_dict['output_lmax_shear']
 
@@ -409,7 +366,7 @@ def generate_pseudo_bps_model(cosmo_params, pipeline_variables_path, config_dict
     Omega_c = config_dict['Omega_c']
     Omega_b = config_dict['Omega_b']
     h = config_dict['h']
-    #A_s = config_dict['A_s']
+    # A_s = config_dict['A_s']
     sigma8 = config_dict['sigma8']
     n_s = config_dict['n_s']
     Omega_k = config_dict['Omega_k']
@@ -421,78 +378,82 @@ def generate_pseudo_bps_model(cosmo_params, pipeline_variables_path, config_dict
         'Omega_c': Omega_c,
         'Omega_b': Omega_b,
         'h': h,
-        #'A_s': A_s,
+        # 'A_s': A_s,
         'sigma8': sigma8,
         'n_s': n_s,
         'Omega_k': Omega_k,
         'w0': w0,
         'wa': wa,
-        'extra_parameters': {'camb':{'dark_energy_model':'ppf'}}
+        'extra_parameters': {'camb': {'dark_energy_model': 'ppf'}}
     }
 
-    ccl_params, nuisance_params = split_ccl_parameters(cosmo_params, n_zbin=nbins, bi_marg=bi_marg, b2i_marg=b2i_marg, mi_marg=mi_marg, Dzi_marg=Dzi_marg, A1i_marg=A1i_marg)
+    ccl_params, nuisance_params = split_ccl_parameters(cosmo_params, n_zbin=nbins, bi_marg=bi_marg, mi_marg=mi_marg,
+                                                       Dzi_marg=Dzi_marg, A1i_marg=A1i_marg)
 
     if 'Omega_m' in nuisance_params:
         fid_cosmo_dict['Omega_c'] = nuisance_params['Omega_m'] - Omega_b
     fid_cosmo_dict.update(ccl_params)
     # print(fid_cosmo_dict)
     fid_cosmo = ccl.Cosmology(**fid_cosmo_dict)
-    start_time=time.time()
+    # start_time = time.time()
 
     nz_boundaries = np.loadtxt(f"{save_dir}z_boundaries.txt")
 
     sampler_systematics = {}
 
+    if "_b1" in nuisance_params:
+        # need to convert to b(z)
+        b_1 = float(nuisance_params["_b1"]) * np.ones(len(z))
+        sampler_systematics['b1'] = b_1
+
     # bi_marg = nuisance_params['bi_marg']
     if bi_marg:
         b_1 = np.ones(len(z))
-        for i in range(nbins-1):
+        for i in range(nbins - 1):
             ids = np.where((z.round(decimals=2) >= nz_boundaries[:, 0][i].round(decimals=2)) & (
-                        z.round(decimals=2) < nz_boundaries[:, 2][i].round(decimals=2)))[0]
-            b_1[ids] = nuisance_params["_b1_{}".format(i+1)]
+                    z.round(decimals=2) < nz_boundaries[:, 2][i].round(decimals=2)))[0]
+            b_1[ids] = nuisance_params["_b1_{}".format(i + 1)]
         ids_last = np.where((z.round(decimals=2) >= nz_boundaries[:, 0][-2].round(decimals=2)) & (
-                    z.round(decimals=2) <= nz_boundaries[:, 2][-2].round(decimals=2)))[0]
+                z.round(decimals=2) <= nz_boundaries[:, 2][-2].round(decimals=2)))[0]
         b_1[ids_last] = nuisance_params["_b1_{}".format(nbins)]
         sampler_systematics['b1'] = b_1
 
-    if b2i_marg:
-        b_2 = np.ones(len(z))
-        for i in range(nbins-1):
-            ids = np.where((z.round(decimals=2) >= nz_boundaries[:, 0][i].round(decimals=2)) & (
-                        z.round(decimals=2) < nz_boundaries[:, 2][i].round(decimals=2)))[0]
-            b_2[ids] = nuisance_params["_b2_{}".format(i+1)]
-        ids_last = np.where((z.round(decimals=2) >= nz_boundaries[:, 0][-2].round(decimals=2)) & (
-                    z.round(decimals=2) <= nz_boundaries[:, 2][-2].round(decimals=2)))[0]
-        b_2[ids_last] = nuisance_params["_b2_{}".format(nbins)]
-        sampler_systematics['b2'] = b_2
+    if "_m" in nuisance_params:
+        # need to convert to b(z)
+        mi = float(nuisance_params["_m"]) * np.ones(len(z))
+        sampler_systematics['mi'] = mi
 
+    # mi_marg = nuisance_params['mi_marg']
     if mi_marg:
         mi_dat = []
         for i in range(nbins):
-            mi_dat.append(nuisance_params["_m_{}".format(i+1)])
+            mi_dat.append(nuisance_params["_m_{}".format(i + 1)])
         sampler_systematics['mi'] = np.asarray(mi_dat)
 
+    if "_A1" in nuisance_params:
+        # need to convert to b(z)
+        A_1 = float(nuisance_params["_A1"]) * np.ones(len(z))
+        sampler_systematics['A1'] = A_1
+
+    # A1i_marg = nuisance_params['A1i_marg']
     if A1i_marg:
         A_1 = np.ones(len(z))
-        for i in range(nbins-1):
+        for i in range(nbins - 1):
             ids = np.where((z.round(decimals=2) >= nz_boundaries[:, 0][i].round(decimals=2)) & (
-                        z.round(decimals=2) < nz_boundaries[:, 2][i].round(decimals=2)))[0]
-            A_1[ids] = nuisance_params["_A1_{}".format(i+1)]
+                    z.round(decimals=2) < nz_boundaries[:, 2][i].round(decimals=2)))[0]
+            A_1[ids] = nuisance_params["_A1_{}".format(i + 1)]
         ids_last = np.where((z.round(decimals=2) >= nz_boundaries[:, 0][-2].round(decimals=2)) & (
-                    z.round(decimals=2) <= nz_boundaries[:, 2][-2].round(decimals=2)))[0]
+                z.round(decimals=2) <= nz_boundaries[:, 2][-2].round(decimals=2)))[0]
         A_1[ids_last] = nuisance_params["_A1_{}".format(nbins)]
         sampler_systematics['A1'] = A_1
 
     # Now loop over some other constant nuisance parameters that need to be converted to arrays along z
     constant_nuisance_params_to_z = [
-        'b1',
         'b2',
         'bs',
-        'mi',
-        'A1'
     ]
 
-    for count, constant_nuisance_param in enumerate(['_b1', '_b2', '_bs', '_m', '_A1']):
+    for count, constant_nuisance_param in enumerate(['_b2', '_bs']):
         if constant_nuisance_param in nuisance_params:
             nuisance_param_dat = float(nuisance_params[constant_nuisance_param]) * np.ones(len(z))
             sampler_systematics[constant_nuisance_params_to_z[count]] = nuisance_param_dat
@@ -516,7 +477,7 @@ def generate_pseudo_bps_model(cosmo_params, pipeline_variables_path, config_dict
     if Dzi_marg:
         Dzi_dat = []
         for i in range(nbins):
-            Dzi_dat.append(nuisance_params["_Dz_{}".format(i+1)])
+            Dzi_dat.append(nuisance_params["_Dz_{}".format(i + 1)])
         # sampler_systematics['Dzi'] = np.asarray(Dzi_dat)
 
     else:
@@ -524,7 +485,7 @@ def generate_pseudo_bps_model(cosmo_params, pipeline_variables_path, config_dict
 
     systematics_dict = generate_cls.setup_systematics_dict(pipeline_variables_path=pipeline_variables_path)
     systematics_dict.update(sampler_systematics)
-    
+
     cls_dict = generate_cls.setup_6x2pt_cls(
         save_dir=save_dir,
         nz_filename=nz_filename,
@@ -535,8 +496,8 @@ def generate_pseudo_bps_model(cosmo_params, pipeline_variables_path, config_dict
         systematics_dict=systematics_dict,
         mode='dict',
         Dzi_dat=Dzi_dat)
-    
-    print(time.time()-start_time)
+
+    # print(time.time() - start_time)
 
     # Now we need to convert to Pseudo-Cls and then bandpowers
     theory_cls_dir = save_dir + 'inference_chains/'
@@ -544,6 +505,21 @@ def generate_pseudo_bps_model(cosmo_params, pipeline_variables_path, config_dict
 
     # create_null_spectras(nbins=nbins, lmin=input_lmin, lmax=input_lmax, output_dir=theory_cls_dir)
 
+    mixmats_allbins = {}
+    for i in range(nbins):
+        mix_mats_save_path = save_dir + 'mixmats_bin{}.npz'.format(i+1)
+        mixmats_all = np.load(mix_mats_save_path)
+
+        # mixmats = {'mixmat_nn_to_nn': mixmats_all['mixmat_nn_to_nn'],
+        #            'mixmat_ne_to_ne': mixmats_all['mixmat_ne_to_ne'],
+        #            'mixmat_ee_to_ee': mixmats_all['mixmat_ee_to_ee'],
+        #            'mixmat_bb_to_ee': mixmats_all['mixmat_bb_to_ee'],
+        #            'mixmat_kk_to_kk': mixmats_all['mixmat_kk_to_kk'],
+        #            'mixmat_nn_to_kk': mixmats_all['mixmat_nn_to_kk'],
+        #            'mixmat_ke_to_ke': mixmats_all['mixmat_ke_to_ke']
+        #            }
+        mixmats_allbins['Bin_{}'.format(i+1)]=mixmats_all
+    mixmats = mixmats_allbins
     if obs_spec == '6X2PT':
         model_bps = PCl_bandpowers_6x2pt(
             cls_dict=cls_dict,
@@ -613,31 +589,12 @@ def generate_pseudo_bps_model(cosmo_params, pipeline_variables_path, config_dict
     return model_bps
 
 
-def log_normal_likelihood_ccl(params, config_dict, pipeline_variables_path, mixmats, data_vector, inverse_covariance, bi_marg=False, b2i_marg=False, mi_marg=False, Dzi_marg=False, A1i_marg=False):
+def log_normal_likelihood_ccl(params, config_dict, pipeline_variables_path, data_vector, inverse_covariance,
+                              bi_marg=False, mi_marg=False, Dzi_marg=False, A1i_marg=False):
 
-    """
-    Evaluate the likelihood (Gaussian) for a given point in parameter space.
-
-    Parameters
-    ----------
-    params (dict):                  Parameters (cosmology and nuisance) with their values
-    config_dict (dict):             Dictionary describing simulation/measurement parameters. Ones that will be sampled are overwritten
-    pipeline_variables_path (str):  Path to location of pipeline variables file (e.g. 'set_variables_3x2pt_measurement.ini')
-    mixmats (dict):                 Dictionary of 6x2pt spin-0 and spin-2 mixing matrices
-    data_vector (dict):             6x2pt or 3x2pt data vector
-    inverse_covariance (2D array):  Inverse covariance matrix
-    bi_marg (bool):     Marginalise over b1 galaxy bias (True) or not (False). Prepares formatting for parameter input to CCL
-    b2i_marg (bool):    Marginalise over b2 galaxy bias (True) or not (False). Prepares formatting for parameter input to CCL
-    mi_marg (bool):     Marginalise over shear m-bias (True) or not (False). Prepares formatting for parameter input to CCL
-    Dzi_marg (bool):    Marginalise over Delta z photo-z uncertainty (True) or not (False). Prepares formatting for parameter input to CCL
-    A1i_marg (bool):    Marginalise over IA amplitude (True) or not (False). Prepares formatting for parameter input to CCL
-
-    Returns
-    -------
-    Log likelihood at a given point in parameter space (float)
-    """
-
-    model_vector = generate_pseudo_bps_model(cosmo_params=params, pipeline_variables_path=pipeline_variables_path, config_dict=config_dict, mixmats=mixmats, bi_marg=bi_marg, b2i_marg=b2i_marg, mi_marg=mi_marg, Dzi_marg=Dzi_marg, A1i_marg=A1i_marg)
+    model_vector = generate_pseudo_bps_model(cosmo_params=params, pipeline_variables_path=pipeline_variables_path,
+                                             config_dict=config_dict, bi_marg=bi_marg, mi_marg=mi_marg,
+                                             Dzi_marg=Dzi_marg, A1i_marg=A1i_marg)
 
     # Need to stack data vector
     assert model_vector.shape == data_vector.shape
@@ -648,29 +605,14 @@ def log_normal_likelihood_ccl(params, config_dict, pipeline_variables_path, mixm
     data_vector = np.reshape(data_vector, n_data)
 
     d_vector = model_vector - data_vector
-
+    # print(d_vector)
+    # print(-0.5 * d_vector @ inverse_covariance @ d_vector)
     return -0.5 * d_vector @ inverse_covariance @ d_vector
 
 
 def test(params, config_dict, pipeline_variables_path, mixmats, data_vector):
-
-    """
-    Debugging test to investigate data vector preparation for log likelihood calculation
-
-    Parameters
-    ----------
-    params (dict):  Parameters (cosmology and nuisance) with their values
-    config_dict (dict): Dictionary describing simulation/measurement parameters. Ones that will be sampled are overwritten
-    pipeline_variables_path (str): Path to location of pipeline variables file (e.g. 'set_variables_3x2pt_measurement.ini')
-    mixmats (dict): Dictionary of 6x2pt spin-0 and spin-2 mixing matrices
-    data_vector (dict): 6x2pt or 3x2pt data vector
-
-    Returns
-    -------
-    Prints 3x2pt or 6x2pt data vector
-    """
-
-    model_vector = generate_pseudo_bps_model(cosmo_params=params, pipeline_variables_path=pipeline_variables_path, config_dict=config_dict, mixmats=mixmats)
+    model_vector = generate_pseudo_bps_model(cosmo_params=params, pipeline_variables_path=pipeline_variables_path,
+                                             config_dict=config_dict, mixmats=mixmats)
     print(model_vector)
     # Need to stack data vector
     assert model_vector.shape == data_vector.shape
@@ -690,32 +632,13 @@ def test(params, config_dict, pipeline_variables_path, mixmats, data_vector):
     '''
 
 
-def run_nautilus(sampler_config_dict, pipeline_variables_path, mixmats, data_vector, inverse_covariance,
-                 sampler_checkpoint_file, priors, bi_marg=False, b2i_marg=False, mi_marg=False, Dzi_marg=False, A1i_marg=False, run=True):
+def run_nautilus(sampler_config_dict, pipeline_variables_path, data_vector, inverse_covariance,
+                 sampler_checkpoint_file, priors, bi_marg=False, mi_marg=False, Dzi_marg=False, A1i_marg=False):
 
-    """
-    Run parameter sampling with nautilus (nested sampling)
-
-    Parameters
-    ----------
-    sampler_config_dict (dict):     Dictionary describing simulation/measurement parameters. Ones that will be sampled are overwritten
-    pipeline_variables_path (str):  Path to location of pipeline variables file (e.g. 'set_variables_3x2pt_measurement.ini')
-    mixmats (dict):                 Dictionary of 6x2pt spin-0 and spin-2 mixing matrices
-    data_vector (array):            6x2pt or 3x2pt data vector
-    inverse_covariance (2D array):  Inverse covariance matrix
-    sampler_checkpoint_file (str):  Name of checkpoint file for sampler outputs
-    priors (dict):      Parameter and its prior values/type. Prior can either be a tuple for a uniform prior, or e.g. scipy.stats.norm for a Gaussian prior
-    bi_marg (bool):     Marginalise over b1 galaxy bias (True) or not (False). Prepares formatting for parameter input to CCL
-    b2i_marg (bool):    Marginalise over b2 galaxy bias (True) or not (False). Prepares formatting for parameter input to CCL
-    mi_marg (bool):     Marginalise over shear m-bias (True) or not (False). Prepares formatting for parameter input to CCL
-    Dzi_marg (bool):    Marginalise over Delta z photo-z uncertainty (True) or not (False). Prepares formatting for parameter input to CCL
-    A1i_marg (bool):    Marginalise over IA amplitude (True) or not (False). Prepares formatting for parameter input to CCL
-    run (bool):         Run the parameter sampling (True) or not (False). Set run=False to just load the posterior sampling points for plotting etc.
-
-    Returns
-    -------
-    nautilus sampler object.
-    """
+    # systematics_dict = generate_cls.setup_systematics_dict(pipeline_variables_path=pipeline_variables_path)
+    # n_zbin = sampler_config_dict['nbins']
+    # b_1 = systematics_dict['b_1']
+    # mi = systematics_dict['mi']
 
     prior = nautilus.Prior()
 
@@ -724,6 +647,45 @@ def run_nautilus(sampler_config_dict, pipeline_variables_path, mixmats, data_vec
     for p in range(n_params):
         prior.add_parameter(priors[p][0], dist=priors[p][1])
 
+    # prior = nautilus.Prior()
+    # prior.add_parameter("w0", dist=(-1.5, -0.5))
+    # prior.add_parameter("wa", dist=(-0.5, 0.5))
+    # prior.add_parameter("Omega_m", dist=(0.2, 0.4))
+    # prior.add_parameter("h", dist=(0.5, 0.8))
+
+    # For a constant global galaxy bias, we can have e.g.
+    # prior.add_parameter('_b1', dist=(0,3))   # for a constant global galaxy bias
+
+    # Or we specify b1 as a constant that is different for each bin, e.g for a 3 bin analysis.
+    # prior.add_parameter('_b1_1', dist=(0,3))   # for a constant galaxy bias in bin 1
+    # prior.add_parameter('_b1_2', dist=(0,3))   # for a constant galaxy bias in bin 2
+    # prior.add_parameter('_b1_3', dist=(0,3))   # for a constant galaxy bias in bin 3
+    # and in this case we need to have bi_marg=True in the sampler args below
+
+    # Can also repeat this for m-bias marginalisation. If a global m-bias (independent of tomographic bin)
+    # then we have to do
+    # prior.add_parameter('_m', dist=(0,3))   # for a constant global m-bias
+    # Otherwise, we set the m-bias per tomographic bin, i.e
+    # prior.add_parameter('_m_1', dist=(0,3))   # for a constant m-bias in bin 1
+    # prior.add_parameter('_m_2', dist=(0,3))   # for a constant m-bias in bin 2
+    # prior.add_parameter('_m_3', dist=(0,3))   # for a constant m-bias in bin 3
+    # and in this case we need to set mi_marg=True in the sampler args below
+
+    # Can also repeat this for the A1 amplitude of IA TATT/NLA model. If a global A1 value (independent of tomographic
+    # bin) then we have to do
+    # prior.add_parameter('_A1', dist=(0,3))   # for a constant global m-bias
+    # Otherwise, we set the A1 value per tomographic bin, i.e
+    # prior.add_parameter('_A1_1', dist=(0,3))   # for a constant A1 in bin 1
+    # prior.add_parameter('_A1_2', dist=(0,3))   # for a constant A1 in bin 2
+    # prior.add_parameter('_A1_3', dist=(0,3))   # for a constant A1 in bin 3
+    # and in this case we need to set A1i_marg=True in the sampler args below
+
+    # For marginalisation over shift paramaters for the n(z) we have to add a shift parameter per bin, i.e
+    # prior.add_parameter('_Dz_1', dist=(0,3))   # for a constant m-bias in bin 1
+    # prior.add_parameter('_Dz_2', dist=(0,3))   # for a constant m-bias in bin 2
+    # prior.add_parameter('_Dz_3', dist=(0,3))   # for a constant m-bias in bin 3
+    # and we need to set Dzi_marg=True in the sampler args below
+
     n_pool = sampler_config_dict['n_pool']
 
     sampler = nautilus.Sampler(
@@ -731,48 +693,332 @@ def run_nautilus(sampler_config_dict, pipeline_variables_path, mixmats, data_vec
         likelihood_kwargs={
             "config_dict": sampler_config_dict,
             "pipeline_variables_path": pipeline_variables_path,
-            "mixmats": mixmats,
+            # "mixmats": mixmats,
             "data_vector": data_vector,
             "inverse_covariance": inverse_covariance,
             "bi_marg": bi_marg,
-            "b2i_marg": b2i_marg,
             "mi_marg": mi_marg,
             "Dzi_marg": Dzi_marg,
             "A1i_marg": A1i_marg
         },  # could e.g. add bi_marg=True if marginalising over tomographic bin-dependent b parameters
         filepath=sampler_checkpoint_file,
-        pool=n_pool
         # pool=MPIPoolExecutor()
+        pool=n_pool
     )
 
-    if run:
-        sampler.run(verbose=True, discard_exploration=True)
+    sampler.run(verbose=True)
 
-    return sampler
+    points, log_w, log_l = sampler.posterior()
+
+    # points = points[:,0:]
+    # points = points[:,0:7]
+
+    # max_like_id = log_l.argmax()
+    # print(max_like_id)
+    # w0_m, wa_m, Omega_c_m, h_m,  = points[max_like_id]
+    # print(w0_m, wa_m, Omega_c_m, h_m)
+
+    one_sigma_1d = 0.683
+
+    q_lower = 1 / 2 - one_sigma_1d / 2
+    q_upper = 1 / 2 + one_sigma_1d / 2
+
+    # hist_bins = [90,90,120,80,90,150,250,500,500,500,500,500,500]
+    hist_bins = [25,25] #,100,30,40,100,100]
+    # hist_bins = [100,100,100]
+    # hist_bins = [60,40,100,30,40,100,100,3000,100]
+    # hist_bins = [60,100,30,40,100,100,3000,100]
+    # hist_bins = [60,40,100,30,40,100,100,1500, 1500, 500, 500, 500]
+    # hist_bins = [50,30,100,30,40,100,100,1500, 1500, 500, 500, 500]
+    # hist_bins = [50,30,100,30,40,100,250] #,1000,1000,200]
+    figure = corner.corner(
+        points,
+        weights=np.exp(log_w),
+        # bins=250,
+        # bins=[3000,2000,300],
+        # bins=[50,30,100,30,40,100,100,1500, 1500, 500, 500, 500],
+        # bins=[70,100,200,70,70,200,200],
+        bins=hist_bins, #,5000,300],
+        # bins=[50,30,100,30,40,100,250,1000,1000,200],
+        # bins=[50,30,100,30,40,100,100, 300, 300, 100],
+        # labels=prior.keys[0:],
+        plot_density=False,
+        fill_contours=True,
+        color='royalblue',
+        data_kwargs={'color':'0.45','ms':'0'},
+        label_kwargs={'fontsize':'20'},
+        # hist_kwargs={'linewidth':0},
+        # labels=[r'$w_{0}$', r'$w_{a}$', r'$\Omega_{m}$', r'$h$', r'$\Omega_{b}$', r'$n_{s}$', r'$\sigma_{8}$', r'$A_{1}$', r'$A_{2}$', r'$b_{TA}$', r'$\eta_{1}$', r'$\eta_{2}$'],
+        # labels=[r'$w_{0}$', r'$w_{a}$', r'$\Omega_{m}$', r'$h$', r'$\Omega_{b}$', r'$n_{s}$', r'$\sigma_{8}$', r'$A_{1}$', r'$\eta_{1}$'],
+        # labels=[r'$w_{0}$', r'$\Omega_{m}$', r'$h$', r'$\Omega_{b}$', r'$n_{s}$', r'$\sigma_{8}$', r'$A_{1}$', r'$\eta_{1}$'],
+        labels=[r'$w_{0}$', r'$w_{a}$'], #, r'$\Omega_{m}$', r'$h$', r'$\Omega_{b}$', r'$n_{s}$', r'$\sigma_{8}$'],
+        # labels=[r'$w_{0}$', r'$\Omega_{m}$', r'$\sigma_{8}$'],
+        # labels=[r'$w_{0}$', r'$w_{a}$', r'$\Omega_{m}$', r'$h$', r'$\Omega_{b}$', r'$n_{s}$', r'$\sigma_{8}$', r'$b_{1}$', r'$b_{2}$', r'$b_{s}$'],
+        # labels=[r'$w_{0}$', r'$w_{a}$', r'$\Omega_{m}$', r'$h$', r'$\Omega_{b}$', r'$n_{s}$', r'$\sigma_{8}$', r'$b_{1}$', r'$b_{2}$', r'$b_{3}$', r'$b_{4}$', r'$b_{5}$', r'$b_{6}$'],
+        labelpad=0.025,
+        levels=(0.683, 0.955),
+        smooth=1.5,
+        smooth1d=True,
+        # title_quantiles=[q_lower, 0.5, q_upper],
+        # show_titles=True,
+        # title_fmt='.4f'
+    )
+
+    # prior2 = nautilus.Prior()
+    # # # prior2.add_parameter("w0", dist=(-1.05, -0.95))
+    # # # prior2.add_parameter("wa", dist=(-0.25, 0.25))
+    # #
+    # prior2.add_parameter("w0", (-1.25, -0.75))
+    # prior2.add_parameter("wa", (-0.5, 0.5))
+    # prior2.add_parameter("Omega_m", (0.2, 0.4))
+    # prior2.add_parameter("h", (0.5, 0.8))
+    # prior2.add_parameter("Omega_b", (0.02, 0.08))
+    # prior2.add_parameter("n_s", (0.8, 1.2))
+    # prior2.add_parameter("sigma8", (0.75, 0.9))
+    #
+    # prior2.add_parameter("_A1", (-8, 8))
+    # # prior2.add_parameter("_A2", (-8, 8))
+    # # prior2.add_parameter("_bTA", (-6, 6))
+    # prior2.add_parameter("_eta1", (-6, 6))
+    # # prior2.add_parameter("_eta2", (-6, 6))
+    #
+    prior2 = prior
+    sampler2 = nautilus.Sampler(
+        # prior, log_normal_likelihood_ccl, n_live=200,
+        prior2, log_normal_likelihood_ccl, n_live=200,
+        likelihood_kwargs={
+            "config_dict": sampler_config_dict,
+            "pipeline_variables_path": pipeline_variables_path,
+            # "mixmats": mixmats,
+            "data_vector": data_vector,
+            "inverse_covariance": inverse_covariance,
+            "bi_marg": bi_marg,
+            "mi_marg": mi_marg,
+            "Dzi_marg": Dzi_marg,
+            "A1i_marg": A1i_marg
+        },  # could e.g. add bi_marg=True if marginalising over tomographic bin-dependent b parameters
+        filepath='/raid/scratch/wongj/mywork/3x2pt/6x2pt_sim_data/bins4/inference_chains/Cosmology_TEST_6x2pt.hdf5',
+        pool=n_pool
+    )
+
+    # sampler2.run(verbose=True)
+
+    points2, log_w2, log_l2 = sampler2.posterior()
+    # points2 = points2[:,0:7]
+
+    corner.corner(
+        points2,
+        weights=np.exp(log_w2),
+        # bins=250,
+        # bins=[3000, 2000, 300],
+        # bins=[50, 30, 100, 30, 40, 100, 250, 1000, 1000, 200],
+        # bins=[50,30,100,30,40,100,100,1500, 1500, 500, 500, 500],
+        bins=hist_bins, #, 5000, 300],
+        plot_density=False,
+        no_fill_contours=True,
+        color='darkred',
+        # contour_kwargs={'linestyles':'--','linewidths':1.5},
+        contour_kwargs={'linestyles':'--','linewidths':1.5},
+        data_kwargs={'color': '0.45', 'ms': '0'},
+        label_kwargs={'fontsize': '20'},
+        # labels=[r'$w_{0}$', r'$w_{a}$', r'$\Omega_{m}$', r'$h$', r'$\Omega_{c}$', r'$n_{s}$', r'$\sigma_{8}$',
+        #         r'$A_{1}$', r'$A_{2}$', r'$b_{TA}$', r'$\eta_{1}$', r'$\eta_{2}$'],
+        labelpad=0.025,
+        levels=(0.683, 0.955),
+        smooth=1.5,
+        smooth1d=True,
+        fig=figure,
+        # hist_kwargs={'linestyle':'--','linewidth':2.5,'dashes':(5, 6)},
+        hist_kwargs={'linestyle':'-','linewidth':1.5},
+        # hist2d_kwargs={'contour_kwargs':{'linestyles': '--'}},
+        hist2d_kwargs={'contour_kwargs':{'linestyles': '-'}},
+        # title_quantiles=[q_lower, 0.5, q_upper],
+        # show_titles=True,
+        # title_fmt='.4f'
+    )
+
+    ndim = len(prior.keys)
+
+    xranges = []
+
+    # for i in range(ndim):
+    #     q_lo, q_mid, q_hi = corner.quantile(
+    #         points[:,i], [q_lower, 0.5, q_upper], weights=np.exp(log_w)
+    #     )
+    #     q_m, q_p = q_mid - q_lo, q_hi - q_mid
+    #
+    #     print(np.array([q_mid, q_p, q_m]))
+    #
+    # for i in range(ndim):
+    #     q_lo, q_mid, q_hi = corner.quantile(
+    #         points2[:,i], [q_lower, 0.5, q_upper], weights=np.exp(log_w2)
+    #     )
+    #     q_m, q_p = q_mid - q_lo, q_hi - q_mid
+    #
+    #     print(np.array([q_mid, q_p, q_m]))
+
+    one_sigma_1d = 0.999999999919680
+    # one_sigma_1d = 0.99999999999999999
+    # one_sigma_1d = 0.99
+
+    q_lower = 1 / 2 - one_sigma_1d / 2
+    q_upper = 1 / 2 + one_sigma_1d / 2
+
+    for i in range(ndim):
+        # print(len(points[:,i]))
+        # print(len(np.exp(log_w)))
+        q_lo, q_mid, q_hi = corner.quantile(
+            points[:,i], [q_lower, 0.5, q_upper], weights=np.exp(log_w)
+        )
+        q_m, q_p = q_mid - q_lo, q_hi - q_mid
+        xranges.append([q_lo, q_hi])
+    # print(xranges)
+    #
+    # # Format the quantile display.
+    # fmt = "{{0:{0}}}".format(title_fmt).format
+    # title = r"${{{0}}}_{{-{1}}}^{{+{2}}}$"
+    # title = title.format(fmt(q_mid), fmt(q_m), fmt(q_p))
+
+    for ax in figure.get_axes():
+        ax.xaxis.set_ticks_position('both')
+        ax.yaxis.set_ticks_position('both')
+        ax.tick_params(axis='both', direction='in',labelsize=20)
+
+    axes = np.array(figure.axes).reshape((ndim,ndim))
+    # print(xranges)
+    # xranges = [priors[p][1] for p in range(len(priors))]
+    # xranges = [[-1.15, -0.85], [-0.4, 0.4], [0.28,0.34], [0.55, 0.80], [0.02,0.07], [0.91, 1.01], [0.82,0.86], [0.58, 0.8], [-1.45,-1.25], [0.7,1.3], [-2.1,-1.3], [-2.1,-1.3]] # for IA
+    # xranges = [[-1.15, -0.85], [-0.4, 0.4], [0.28,0.34], [0.55, 0.80], [0.02,0.07], [0.88, 1.04], [0.81,0.87], [1.95, 2.2], [0.3,0.7], [-1.5,0.25]] # for bias
+    # xranges = [
+    #     [-1.1390991431074178, -0.8614864430873895], [-0.45008765349943214, 0.4203948398332733],
+    #     [0.2920769720310088, 0.3385946457273819], [0.5605128366682348, 0.7954783920595907],
+    #     [0.02041858354543234, 0.06615883786084358], [0.9195099181351285, 0.9933313155491182],
+    #     [0.8264167875194324, 0.8553209133826235], [0.581842574722146, 0.8295851618565178],
+    #     [-1.4764214674201828, -1.2512921101586283], [0.6626333033051865, 1.3735536951789],
+    #     [-2.10791258916056, -1.2916628125374878], [-2.8954472552587878, -2.122759974693125]]
+    # xranges = [
+    #     [-1.199502489274048, -0.7867440358341983],
+    #     [-0.4999142828491949, 0.49999147868940874],
+    #     [0.2813111893420181, 0.3494832657889116],
+    #     [0.5119303393828264, 0.7999730342349741],
+    #     [0.020031018898387015, 0.0725787093784679],
+    #     [0.8992434347089814, 1.0279282252230308],
+    #     [0.8174936257293406, 0.8635702219755874]]
+    # xranges=[
+    #     [-1.199502489274048, -0.7867440358341983],
+    #     [-0.4999142828491949, 0.49999147868940874],
+    #     [0.2813111893420181, 0.3494832657889116],
+    #     [0.5119303393828264, 0.7999730342349741],
+    #     [0.020031018898387015, 0.0725787093784679],
+    #     [0.8992434347089814, 1.0279282252230308],
+    #     [0.8174936257293406, 0.8635702219755874],
+    #     [0.48343353896669466, 0.8787529651998153],
+    #     [-1.5999785092077812, -1.1386689629390465],
+    #     [0.5531661949053119, 1.560211252697805],
+    #     [-2.5962369463664765, -0.8159752193277147],
+    #     [-3.2361310581234783, -1.8170991845488031]]
+    yranges = xranges[1:]
+
+    fid_vals = [-1, 0]
+    # fid_vals = [-1,0,0.315,0.67,0.045,0.96,0.84048,0.7,-1.7] # for IA
+    # fid_vals = [-1,0.315,0.67,0.045,0.96,0.84048,0.7,-1.7] # for IA
+    # fid_vals = [-1,0,0.315,0.67,0.045,0.96,0.84048] # for cosmo
+    # fid_vals = [-1,0.315,0.84048] # for cosmo
+    # fid_vals = [-1,0,0.315,0.67,0.045,0.96,0.84048, 2.07, 0.5, -0.611] # for nl bias
+    # fid_vals = [-1,0,0.315,0.67,0.045,0.96,0.84048, 2.07, 2.07, 2.07, 2.07, 2.07, 2.07] # for bias
+    # fid_vals = [-1,0,0.315,0.67,0.045,0.96,0.84048,0.7,-1.36,1.0,-1.7,-2.5] # for IA
+    # fid_vals = [-1,0,0.315,0.67,0.045,0.96,0.84048,2.07,0.5,-0.611] # for IA
+    # fid_vals = [2.07, 0.5, -0.611]
+    # fid_vals = [-1,0,0.315,0.67,0.045,0.96,0.84048,2.07,0.5,-0.611]
+
+    for i in range(ndim):
+        ax = axes[i,i]
+        ax.set_xlim(xranges[i][0], xranges[i][1])
+        ax.axvline(fid_vals[i], color='0.5', linestyle=':')
+
+    for yi in range(ndim):
+        for xi in range(yi):
+            ax = axes[yi, xi]
+            ax.set_xlim(xranges[xi][0],xranges[xi][1])
+            ax.set_ylim(yranges[yi-1][0],yranges[yi-1][1])
+            ax.axvline(fid_vals[xi],color='0.5', linestyle=':')
+            ax.axhline(fid_vals[yi],color='0.5', linestyle=':')
+
+    # patch1 = mpatches.Patch(color='darkred', label='3'+r'$\times$'+'2pt')
+    # patch2 = mpatches.Patch(color='royalblue', label='Stage IV-like 3x2pt + \nSO-like CMB lensing\n(6x2pt)')
+    # patch1 = mpatches.Patch(color='darkred', label='Stage IV-like 3x2pt')
+    # patch2 = mpatches.Patch(color='royalblue', label='Stage IV-like 6x2pt 3 Bin')
+    # patch1 = mpatches.Patch(color='darkred', label='Stage IV-like 3x2pt 3 Bin')
+
+    # figure.legend(handles=[patch1, patch2],loc='center right',fontsize=15)   #legend can be centre right for big plots
+    # save_fig_dir = '/raid/scratch/wongj/mywork/3x2pt/6x2pt_sim_data/ff/inference_chains/bias_l500.png'
+    #
+    # if os.path.exists(save_fig_dir):
+    #     print('WARNING! File exists, did not overwrite')
+    # else:
+    #     plt.savefig(save_fig_dir,dpi=200)
+
+    plt.show()
+    #
+    # sampler2 = nautilus.Sampler(
+    #     prior, log_normal_likelihood_ccl, n_live=200,
+    #     likelihood_kwargs={
+    #         "config_dict": sampler_config_dict,
+    #         "pipeline_variables_path": pipeline_variables_path,
+    #         "mixmats": mixmats,
+    #         "data_vector": data_vector,
+    #         "inverse_covariance": inverse_covariance,
+    #         "bi_marg": bi_marg,
+    #         "mi_marg": mi_marg,
+    #         "Dzi_marg": Dzi_marg,
+    #         "A1i_marg": A1i_marg
+    #     },  # could e.g. add bi_marg=True if marginalising over tomographic bin-dependent b parameters
+    #     filepath='/raid/scratch/wongj/mywork/3x2pt/6x2pt_sim_data/ff/inference_chains/Cosmology_IA_3x2pt_numerical.hdf5',
+    #     pool=n_pool
+    # )
+    #
+    # sampler3 = nautilus.Sampler(
+    #     prior, log_normal_likelihood_ccl, n_live=200,
+    #     likelihood_kwargs={
+    #         "config_dict": sampler_config_dict,
+    #         "pipeline_variables_path": pipeline_variables_path,
+    #         "mixmats": mixmats,
+    #         "data_vector": data_vector,
+    #         "inverse_covariance": inverse_covariance,
+    #         "bi_marg": bi_marg,
+    #         "mi_marg": mi_marg,
+    #         "Dzi_marg": Dzi_marg,
+    #         "A1i_marg": A1i_marg
+    #     },  # could e.g. add bi_marg=True if marginalising over tomographic bin-dependent b parameters
+    #     filepath='/raid/scratch/wongj/mywork/3x2pt/6x2pt_sim_data/ff/inference_chains/Cosmology_IA_3x2pt_analytic.hdf5',
+    #     pool=n_pool
+    # )
+    #
+    # sampler4 = nautilus.Sampler(
+    #     prior, log_normal_likelihood_ccl, n_live=200,
+    #     likelihood_kwargs={
+    #         "config_dict": sampler_config_dict,
+    #         "pipeline_variables_path": pipeline_variables_path,
+    #         "mixmats": mixmats,
+    #         "data_vector": data_vector,
+    #         "inverse_covariance": inverse_covariance,
+    #         "bi_marg": bi_marg,
+    #         "mi_marg": mi_marg,
+    #         "Dzi_marg": Dzi_marg,
+    #         "A1i_marg": A1i_marg
+    #     },  # could e.g. add bi_marg=True if marginalising over tomographic bin-dependent b parameters
+    #     filepath='/raid/scratch/wongj/mywork/3x2pt/6x2pt_sim_data/ff/inference_chains/Cosmology_IA_6x2pt_analytic.hdf5',
+    #     pool=n_pool
+    # )
+    #
+    # spider_plot.spiderplot(spider_plot.spider_data4(sampler1=sampler2, sampler2=sampler, sampler3=sampler3, sampler4=sampler4))
+    # #
+    # spider_plot.spiderplot(spider_plot.spider_data(sampler1=sampler2, sampler2=sampler))
 
 
-def execute(pipeline_variables_path, covariance_matrix_type, priors, checkpoint_filename, bi_marg=False, b2i_marg=False,  mi_marg=False, Dzi_marg=False, A1i_marg=False):
 
-    """
-    Prepare and execute the parameter sampling
-
-    Parameters
-    ----------
-    pipeline_variables_path (str):  Path to location of pipeline variables file (e.g. 'set_variables_3x2pt_measurement.ini')
-    covariance_matrix_type (str):   Either 'analytic' or 'numerical'. Will look for a covariance matrix on disk with relevant filename
-    priors (dict):                  Parameter and its prior values/type. Prior can either be a tuple for a uniform prior, or e.g. scipy.stats.norm for a Gaussian prior
-    checkpoint_filename (str):      Name of checkpoint file for sampler outputs
-    bi_marg (bool):     Marginalise over b1 galaxy bias (True) or not (False). Prepares formatting for parameter input to CCL
-    b2i_marg (bool):    Marginalise over b2 galaxy bias (True) or not (False). Prepares formatting for parameter input to CCL
-    mi_marg (bool):     Marginalise over shear m-bias (True) or not (False). Prepares formatting for parameter input to CCL
-    Dzi_marg (bool):    Marginalise over Delta z photo-z uncertainty (True) or not (False). Prepares formatting for parameter input to CCL
-    A1i_marg (bool):    Marginalise over IA amplitude (True) or not (False). Prepares formatting for parameter input to CCL
-
-    Returns
-    -------
-    Instance of nautilus sampler run
-    """
-
+def execute(pipeline_variables_path, covariance_matrix_type, priors, checkpoint_filename, bi_marg=False, mi_marg=False,
+            Dzi_marg=False, A1i_marg=False):
     sampler_config_dict = sampler_config(pipeline_variables_path=pipeline_variables_path)
     # systematics_dict = generate_cls.setup_systematics_dict(pipeline_variables_path=pipeline_variables_path)
 
@@ -799,50 +1045,40 @@ def execute(pipeline_variables_path, covariance_matrix_type, priors, checkpoint_
         inverse_covariance = np.linalg.inv(covariance_matrix)
         n_sims = no_iter
         if obs_spec == '6X2PT':
-            n_dim = ((nbins*((2*nbins)+1)) + (2*nbins) + 1)*n_bps
+            n_dim = ((nbins * ((2 * nbins) + 1)) + (2 * nbins) + 1) * n_bps
         elif obs_spec == '3X2PT':
-            n_dim = ((nbins*((2*nbins)+1)))*n_bps
+            n_dim = ((nbins * ((2 * nbins) + 1))) * n_bps
         else:
             assert obs_spec == '1X2PT'
             if obs_field == 'E' or obs_field == 'N':
-                n_dim = ((nbins*(nbins+1))/2)*n_bps
+                n_dim = ((nbins * (nbins + 1)) / 2) * n_bps
             elif obs_field == 'EK' or obs_field == 'NK':
-                n_dim = nbins*n_bps
+                n_dim = nbins * n_bps
             else:
                 assert obs_field == 'K'
-                n_dim = 1*n_bps
-        hartlap_correction = (n_sims-n_dim-2)/(n_sims-1)
+                n_dim = 1 * n_bps
+        hartlap_correction = (n_sims - n_dim - 2) / (n_sims - 1)
+        # print(hartlap_correction)
         inverse_covariance = inverse_covariance * hartlap_correction
 
-    mix_mats_save_path = save_dir + 'mixmats.npz'
-    mixmats_all = np.load(mix_mats_save_path)
+    # log_normal_likelihood_ccl(
+    #     params={'w0':-1.0,'wa':0},
+    #     config_dict=sampler_config_dict,
+    #     pipeline_variables_path=pipeline_variables_path,
+    #     # mixmats=mixmats_allbins,
+    #     data_vector=data_vector,
+    #     inverse_covariance=inverse_covariance)
 
-    mixmats = {'mixmat_nn_to_nn': mixmats_all['mixmat_nn_to_nn'],
-               'mixmat_ne_to_ne': mixmats_all['mixmat_ne_to_ne'],
-               'mixmat_ee_to_ee': mixmats_all['mixmat_ee_to_ee'],
-               'mixmat_bb_to_ee': mixmats_all['mixmat_bb_to_ee'],
-               'mixmat_kk_to_kk': mixmats_all['mixmat_kk_to_kk'],
-               'mixmat_nn_to_kk': mixmats_all['mixmat_nn_to_kk'],
-               'mixmat_ke_to_ke': mixmats_all['mixmat_ke_to_ke']
-               }
-
-    # Uncomment for some useful debugging
-    # log_normal_likelihood_ccl({'w0':-1,'wa':0}, sampler_config_dict, pipeline_variables_path, mixmats, data_vector, inverse_covariance)
-    # test({'Omega_c':0.3, 'h':0.7, 'w0':-1.0, 'wa':0.0}, sampler_config_dict, pipeline_variables_path, mixmats, data_vector)
-    
-    sampler_run = run_nautilus(
+    run_nautilus(
         sampler_config_dict=sampler_config_dict,
         pipeline_variables_path=pipeline_variables_path,
-        mixmats=mixmats,
+        # mixmats=mixmats_allbins,
         data_vector=data_vector,
         inverse_covariance=inverse_covariance,
         sampler_checkpoint_file=sampler_checkpoint_file,
         priors=priors,
         bi_marg=bi_marg,
-        b2i_marg=b2i_marg,
         mi_marg=mi_marg,
         Dzi_marg=Dzi_marg,
         A1i_marg=A1i_marg
     )
-
-    return sampler_run
