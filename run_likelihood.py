@@ -115,7 +115,7 @@ def main():
     # priors.append(('_Dz_3', (0,3)))   # for a constant m-bias in bin 3
     # and we need to set Dzi_marg=True in the sampler args below
 
-    # likelihood.sampler_new.execute(
+    # sampler1 = likelihood.sampler.execute(
     #     pipeline_variables_path,
     #     covariance_matrix_type=covariance_matrix_type,
     #     priors=priors,
@@ -125,6 +125,10 @@ def main():
     #     Dzi_marg=False,
     #     A1i_marg=False
     # )
+    #
+    # plotting.plot_posteriors.nautilus_posterior_plotting(sampler1)
+
+
     '''
     # For plotting
     sampler1 = likelihood.sampler.execute(

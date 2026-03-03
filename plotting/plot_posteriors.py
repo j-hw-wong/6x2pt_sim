@@ -9,7 +9,161 @@ plt.rcParams['mathtext.fontset'] = 'cm'
 # plt.rcParams['font.serif'] = 'cm'
 
 
-def nautilus_posterior_plotting(sampler, sampler2, sampler3, sampler4):
+def nautilus_posterior_plotting(sampler1):
+
+    """
+    Plot posterior corner plot
+
+    Parameters
+    ----------
+    sampler (nautilus sampler):     Instance of nautilus sampler for given set up
+    sampler2 (nautilus sampler):    Instance of nautilus sampler for given set up
+    sampler3 (nautilus sampler):    Instance of nautilus sampler for given set up
+    sampler4 (nautilus sampler):    Instance of nautilus sampler for given set up
+
+    Returns
+    -------
+    Corner plot of parameters
+    """
+    points, log_w, log_l = sampler1.posterior()
+    print(len(points[0]))
+    # one_sigma_1d = 0.683
+    #
+    # q_lower = 1 / 2 - one_sigma_1d / 2
+    # q_upper = 1 / 2 + one_sigma_1d / 2
+
+    hist_bins = [25,25]
+
+    figure = corner.corner(
+        points,
+        weights=np.exp(log_w),
+        bins=hist_bins,
+        plot_density=False,
+        fill_contours=True,
+        color='royalblue',
+        data_kwargs={'color':'0.45','ms':'0'},
+        label_kwargs={'fontsize':'20'},
+        labels=[r'$w_{0}$', r'$w_{a}$'], #, r'$\Omega_{m}$', r'$h$', r'$\Omega_{b}$', r'$n_{s}$', r'$\sigma_{8}$'],
+        labelpad=0.025,
+        levels=(0.683, 0.955),
+        smooth=1.5,
+        smooth1d=True,
+    )
+
+    ndim = len(points[0])
+    xranges = []
+
+    one_sigma_1d = 0.999999999919680
+
+    q_lower = 1 / 2 - one_sigma_1d / 2
+    q_upper = 1 / 2 + one_sigma_1d / 2
+
+    for i in range(ndim):
+
+        q_lo, q_mid, q_hi = corner.quantile(
+            points[:,i], [q_lower, 0.5, q_upper], weights=np.exp(log_w)
+        )
+        q_m, q_p = q_mid - q_lo, q_hi - q_mid
+        xranges.append([q_lo, q_hi])
+
+    for ax in figure.get_axes():
+        ax.xaxis.set_ticks_position('both')
+        ax.yaxis.set_ticks_position('both')
+        ax.tick_params(axis='both', direction='in',labelsize=20)
+
+    axes = np.array(figure.axes).reshape((ndim,ndim))
+
+    yranges = xranges[1:]
+
+    fid_vals = [-1, 0]
+
+    for i in range(ndim):
+        ax = axes[i,i]
+        ax.set_xlim(xranges[i][0], xranges[i][1])
+        ax.axvline(fid_vals[i], color='0.5', linestyle=':')
+
+    for yi in range(ndim):
+        for xi in range(yi):
+            ax = axes[yi, xi]
+            ax.set_xlim(xranges[xi][0],xranges[xi][1])
+            ax.set_ylim(yranges[yi-1][0],yranges[yi-1][1])
+            ax.axvline(fid_vals[xi],color='0.5', linestyle=':')
+            ax.axhline(fid_vals[yi],color='0.5', linestyle=':')
+
+    # patch1 = mpatches.Patch(color='darkred', label='3'+r'$\times$'+'2pt')
+    # patch2 = mpatches.Patch(color='royalblue', label='Stage IV-like 3x2pt + \nSO-like CMB lensing\n(6x2pt)')
+    # patch1 = mpatches.Patch(color='darkred', label='Stage IV-like 3x2pt')
+    # patch2 = mpatches.Patch(color='royalblue', label='Stage IV-like 6x2pt 3 Bin')
+    # patch1 = mpatches.Patch(color='darkred', label='Stage IV-like 3x2pt 3 Bin')
+
+    # figure.legend(handles=[patch1, patch2],loc='center right',fontsize=15)   #legend can be centre right for big plots
+    # save_fig_dir = '/raid/scratch/wongj/mywork/3x2pt/6x2pt_sim_data/ff/inference_chains/bias_l500.png'
+    #
+    # if os.path.exists(save_fig_dir):
+    #     print('WARNING! File exists, did not overwrite')
+    # else:
+    #     plt.savefig(save_fig_dir,dpi=200)
+
+    plt.show()
+    #
+    # sampler2 = nautilus.Sampler(
+    #     prior, log_normal_likelihood_ccl, n_live=200,
+    #     likelihood_kwargs={
+    #         "config_dict": sampler_config_dict,
+    #         "pipeline_variables_path": pipeline_variables_path,
+    #         "mixmats": mixmats,
+    #         "data_vector": data_vector,
+    #         "inverse_covariance": inverse_covariance,
+    #         "bi_marg": bi_marg,
+    #         "mi_marg": mi_marg,
+    #         "Dzi_marg": Dzi_marg,
+    #         "A1i_marg": A1i_marg
+    #     },  # could e.g. add bi_marg=True if marginalising over tomographic bin-dependent b parameters
+    #     filepath='/raid/scratch/wongj/mywork/3x2pt/6x2pt_sim_data/ff/inference_chains/Cosmology_IA_3x2pt_numerical.hdf5',
+    #     pool=n_pool
+    # )
+    #
+    # sampler3 = nautilus.Sampler(
+    #     prior, log_normal_likelihood_ccl, n_live=200,
+    #     likelihood_kwargs={
+    #         "config_dict": sampler_config_dict,
+    #         "pipeline_variables_path": pipeline_variables_path,
+    #         "mixmats": mixmats,
+    #         "data_vector": data_vector,
+    #         "inverse_covariance": inverse_covariance,
+    #         "bi_marg": bi_marg,
+    #         "mi_marg": mi_marg,
+    #         "Dzi_marg": Dzi_marg,
+    #         "A1i_marg": A1i_marg
+    #     },  # could e.g. add bi_marg=True if marginalising over tomographic bin-dependent b parameters
+    #     filepath='/raid/scratch/wongj/mywork/3x2pt/6x2pt_sim_data/ff/inference_chains/Cosmology_IA_3x2pt_analytic.hdf5',
+    #     pool=n_pool
+    # )
+    #
+    # sampler4 = nautilus.Sampler(
+    #     prior, log_normal_likelihood_ccl, n_live=200,
+    #     likelihood_kwargs={
+    #         "config_dict": sampler_config_dict,
+    #         "pipeline_variables_path": pipeline_variables_path,
+    #         "mixmats": mixmats,
+    #         "data_vector": data_vector,
+    #         "inverse_covariance": inverse_covariance,
+    #         "bi_marg": bi_marg,
+    #         "mi_marg": mi_marg,
+    #         "Dzi_marg": Dzi_marg,
+    #         "A1i_marg": A1i_marg
+    #     },  # could e.g. add bi_marg=True if marginalising over tomographic bin-dependent b parameters
+    #     filepath='/raid/scratch/wongj/mywork/3x2pt/6x2pt_sim_data/ff/inference_chains/Cosmology_IA_6x2pt_analytic.hdf5',
+    #     pool=n_pool
+    # )
+    #
+    # spider_plot.spiderplot(spider_plot.spider_data4(sampler1=sampler2, sampler2=sampler, sampler3=sampler3, sampler4=sampler4))
+    # #
+    # spider_plot.spiderplot(spider_plot.spider_data(sampler1=sampler2, sampler2=sampler))
+
+
+
+def nautilus_posterior_plotting_4(sampler, sampler2, sampler3, sampler4):
 
     """
     Plot posterior corner plot

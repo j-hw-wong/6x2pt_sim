@@ -77,8 +77,9 @@ def execute(pipeline_variables_path):
     output_lmax_galaxy = [int(float(i)) for i in output_lmax_galaxy_config.split(',')]
 
     output_lmin_cmbkk = int(float(config['measurement_setup']['OUTPUT_ELL_MIN_CMBKK']))
-    output_lmax_cmbkk_config = config['measurement_setup']['OUTPUT_ELL_MAX_CMBKK']
-    output_lmax_cmbkk = [int(float(i)) for i in output_lmax_cmbkk_config.split(',')]
+    # output_lmax_cmbkk_config = config['measurement_setup']['OUTPUT_ELL_MAX_CMBKK']
+    # output_lmax_cmbkk = [int(float(i)) for i in output_lmax_cmbkk_config.split(',')]
+    output_lmax_cmbkk = int(float(config['measurement_setup']['OUTPUT_ELL_MAX_CMBKK']))
 
     output_lmin_cmbkk_galaxy = int(float(config['measurement_setup']['OUTPUT_ELL_MIN_CMBKK_N']))
     output_lmax_cmbkk_galaxy_config = config['measurement_setup']['OUTPUT_ELL_MAX_CMBKK_N']
@@ -124,7 +125,7 @@ def execute(pipeline_variables_path):
             mask_path = lss_mask_path
 
         elif obs_field == 'K':
-            output_lmax = output_lmax_cmbkk
+            output_lmax = [output_lmax_cmbkk]
             output_lmin = output_lmin_cmbkk
             mask_path = cmb_mask_path
 

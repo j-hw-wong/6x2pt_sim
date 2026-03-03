@@ -767,7 +767,7 @@ def run_nautilus(sampler_config_dict, pipeline_variables_path, data_vector, inve
 
     n_pool = sampler_config_dict['n_pool']
 
-    sampler = nautilus.Sampler(
+    nautilus_sampler = nautilus.Sampler(
         prior, log_normal_likelihood_ccl, n_live=200,
         likelihood_kwargs={
             "config_dict": sampler_config_dict,
@@ -786,9 +786,9 @@ def run_nautilus(sampler_config_dict, pipeline_variables_path, data_vector, inve
     )
 
     if run:
-        sampler.run(verbose=True, discard_exploration=True)
+        nautilus_sampler.run(verbose=True, discard_exploration=True)
 
-    return sampler
+    return nautilus_sampler
 
 
 def execute(pipeline_variables_path, covariance_matrix_type, priors, checkpoint_filename, bi_marg=False, b2i_marg=False,  mi_marg=False, Dzi_marg=False, A1i_marg=False):
@@ -862,7 +862,7 @@ def execute(pipeline_variables_path, covariance_matrix_type, priors, checkpoint_
     #     data_vector=data_vector,
     #     inverse_covariance=inverse_covariance)
 
-    run_nautilus(
+    nautilus_sampler = run_nautilus(
         sampler_config_dict=sampler_config_dict,
         pipeline_variables_path=pipeline_variables_path,
         data_vector=data_vector,
@@ -875,3 +875,5 @@ def execute(pipeline_variables_path, covariance_matrix_type, priors, checkpoint_
         Dzi_marg=Dzi_marg,
         A1i_marg=A1i_marg
     )
+
+    return nautilus_sampler
